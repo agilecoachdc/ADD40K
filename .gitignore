@@ -12,5 +12,6 @@ dist/
 scripts/characters.seed.json
 scripts/import-report.md
 scripts/generated-credentials.md
+scripts/rotate-passwords.sql
 migrations/0002_seed.sql
 .release-check.*.log

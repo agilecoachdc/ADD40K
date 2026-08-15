@@ -3,7 +3,12 @@
 // architecture" pour la justification (petit groupe de confiance, pas
 // besoin de Cloudflare Access/OAuth).
 
-const PBKDF2_ITERATIONS = 210_000;
+// 100 000 = plafond dur imposé par le runtime Workers en production (workerd
+// rejette toute valeur supérieure avec "Pbkdf2 failed: iteration counts above
+// 100000 are not supported" — `wrangler dev` en local ne l'applique pas,
+// donc cette limite n'apparaît qu'une fois déployé). Recommandation OWASP
+// pour PBKDF2-SHA256, donc pas de compromis de sécurité à s'y limiter.
+const PBKDF2_ITERATIONS = 100_000;
 const SESSION_TTL_DAYS = 30;
 
 function toHex(buffer: ArrayBuffer): string {

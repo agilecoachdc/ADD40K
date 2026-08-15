@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const PBKDF2_ITERATIONS = 210_000; // doit rester identique à src/worker/lib/auth.ts
+const PBKDF2_ITERATIONS = 100_000; // doit rester identique à src/worker/lib/auth.ts (plafond runtime Workers en prod)
 
 function toHex(buffer) {
   return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
