@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* Palette sombre par défaut, adaptée à un usage en séance (table peu
+   éclairée) — cf. plan (mobile-first, laptop/tablette/téléphone). */
+html {
+  color-scheme: dark;
+}
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+}

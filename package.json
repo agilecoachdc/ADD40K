@@ -1,0 +1,41 @@
+{
+  "name": "add40k",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Fiches de personnage ADD40K - remplacement des classeurs Excel par une web app Cloudflare",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev:frontend": "vite",
+    "dev": "wrangler dev",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate:local": "wrangler d1 migrations apply add40k --local",
+    "db:migrate:remote": "wrangler d1 migrations apply add40k --remote",
+    "import:xlsx": "python3 scripts/import_xlsx.py",
+    "deploy": "bash scripts/release-check.sh && npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20250101.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "tailwindcss": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.0",
+    "wrangler": "^4.0.0"
+  }
+}

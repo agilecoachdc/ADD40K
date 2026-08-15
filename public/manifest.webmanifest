@@ -1,0 +1,9 @@
+{
+  "name": "ADD40K — Fiches de personnage",
+  "short_name": "ADD40K",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": []
+}

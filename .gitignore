@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.wrangler/
+*.tsbuildinfo
+.DS_Store
+
+# Générés par scripts/import_xlsx.py et scripts/generate_seed_sql.mjs — pas
+# de code source, régénérables. characters.seed.json contient les stats de
+# jeu des 8 personnages (pas sensible en soi) mais est un artefact d'import,
+# pas une source de vérité à versionner. generated-credentials.md contient
+# des mots de passe en clair : ne JAMAIS committer.
+scripts/characters.seed.json
+scripts/import-report.md
+scripts/generated-credentials.md
+migrations/0002_seed.sql
+.release-check.*.log
