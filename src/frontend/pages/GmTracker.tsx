@@ -1,37 +1,73 @@
 // Écran "Suivi des constantes" — vue MJ uniquement : tous les personnages
-// actuellement "en jeu" (coché sur l'écran d'accueil), avec photo, nom, et
-// une jauge compacte PV/PSP par personnage, pour tout voir sur un seul
-// écran en séance. Rafraîchi automatiquement (polling léger) puisque les
-// PV/PSP bougent côté joueurs pendant que cet écran reste ouvert côté MJ.
+// actuellement "en jeu" (coché sur l'écran d'accueil). Chaque tuile est
+// volontairement minimale (nom, photo, anneaux PV/PSP — rien d'autre) pour
+// tout voir d'un coup d'œil sur un seul écran en séance. Rafraîchi
+// automatiquement (polling léger) puisque les PV/PSP bougent côté joueurs
+// pendant que cet écran reste ouvert côté MJ.
 
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import type { CharacterSummary } from "@shared/types";
-import { referenceData } from "@shared/reference-data";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
 
 const POLL_INTERVAL_MS = 5000;
 
-function raceLabel(race: string) {
-  return referenceData.races.find((r) => r.race === race)?.label ?? race;
-}
+/**
+ * Anneaux concentriques façon Apple Fitness : PV (rouge) à l'extérieur, PSP
+ * (bleu) à l'intérieur. Chaque anneau est un cercle SVG plein tracé en
+ * pointillés (stroke-dasharray = circonférence) dont on masque une partie
+ * (stroke-dashoffset) selon le pourcentage restant — même technique que les
+ * "activity rings". Rotation -90° pour démarrer en haut (12h) comme Apple
+ * plutôt qu'à 3h (défaut SVG). Purement visuel, pas de texte superposé.
+ */
+function ConstantsRings({
+  hpCurrent,
+  hpMax,
+  pspCurrent,
+  pspMax,
+  size = 72,
+}: {
+  hpCurrent: number;
+  hpMax: number;
+  pspCurrent: number;
+  pspMax: number;
+  size?: number;
+}) {
+  const strokeWidth = 8;
+  const gap = 3;
+  const center = size / 2;
+  const outerRadius = center - strokeWidth / 2;
+  const innerRadius = outerRadius - strokeWidth - gap;
 
-function GaugeBar({ label, current, max, color }: { label: string; current: number; max: number; color: string }) {
-  const pct = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
-  const low = max > 0 && current / max <= 0.25;
+  const hpPct = hpMax > 0 ? Math.max(0, Math.min(1, hpCurrent / hpMax)) : 0;
+  const pspPct = pspMax > 0 ? Math.max(0, Math.min(1, pspCurrent / pspMax)) : 0;
+
+  function ring(radius: number, pct: number, trackColor: string, fillColor: string) {
+    const circumference = 2 * Math.PI * radius;
+    return (
+      <>
+        <circle cx={center} cy={center} r={radius} fill="none" stroke={trackColor} strokeWidth={strokeWidth} />
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke={fillColor}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - pct)}
+        />
+      </>
+    );
+  }
+
   return (
-    <div>
-      <div className="flex items-center justify-between text-[11px] text-slate-400">
-        <span>{label}</span>
-        <span className={low ? "font-semibold text-red-400" : "text-slate-300"}>
-          {current} / {max}
-        </span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
-        <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+      {ring(outerRadius, hpPct, "rgba(248,113,113,0.15)", "#f87171")}
+      {ring(innerRadius, pspPct, "rgba(56,189,248,0.15)", "#38bdf8")}
+    </svg>
   );
 }
 
@@ -94,24 +130,23 @@ export default function GmTracker() {
 
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {inGame?.map((c) => (
-            <li key={c.id} className="rounded-xl bg-slate-900 p-3 shadow">
-              <div className="mb-2 flex items-center gap-2">
-                {c.portraitUrl ? (
-                  <img src={c.portraitUrl} alt={c.name} className="h-10 w-10 rounded-lg object-cover" />
-                ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-lg text-slate-600">
-                    {c.name.charAt(0)}
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-100">{c.name}</p>
-                  <p className="truncate text-xs text-slate-500">{raceLabel(c.race)}</p>
+            <li key={c.id}>
+              <Link
+                to={`/personnages/${c.id}`}
+                className="block rounded-xl bg-slate-900 p-3 shadow transition hover:bg-slate-800"
+              >
+                <p className="mb-2 truncate text-center text-sm font-medium text-slate-100">{c.name}</p>
+                <div className="flex items-center justify-center gap-3">
+                  {c.portraitUrl ? (
+                    <img src={c.portraitUrl} alt={c.name} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+                  ) : (
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-xl text-slate-600">
+                      {c.name.charAt(0)}
+                    </div>
+                  )}
+                  <ConstantsRings hpCurrent={c.hpCurrent} hpMax={c.hpMax} pspCurrent={c.pspCurrent} pspMax={c.pspMax} />
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <GaugeBar label="PV" current={c.hpCurrent} max={c.hpMax} color="bg-red-500" />
-                <GaugeBar label="PSP" current={c.pspCurrent} max={c.pspMax} color="bg-sky-500" />
-              </div>
+              </Link>
             </li>
           ))}
         </ul>
