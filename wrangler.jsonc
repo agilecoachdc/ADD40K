@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "add40k",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "ecd55801-7e60-4de2-8286-db70548f2325",
       "migrations_dir": "migrations"
     }
   ],
