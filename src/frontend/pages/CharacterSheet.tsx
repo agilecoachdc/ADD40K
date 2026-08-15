@@ -80,42 +80,57 @@ export default function CharacterSheet() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 px-4 py-6 pb-16">
-      <header className="flex items-center justify-between">
-        <Link to="/" className="text-sm text-indigo-400 hover:underline">
-          ← Personnages
-        </Link>
-        {canEdit &&
-          (editing ? (
-            <div className="flex gap-2">
-              <button
-                onClick={() => setEditing(false)}
-                className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={save}
-                disabled={saving}
-                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
-              >
-                {saving ? "Enregistrement…" : "Enregistrer"}
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setEditing(true)}
-              className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
-            >
-              Modifier
-            </button>
-          ))}
-      </header>
+    <div className="min-h-dvh">
+      {/* Bandeau de fond en haut de fiche uniquement — dégradé vers la
+          couleur de fond (slate-950) pour rester lisible et se fondre avec
+          le reste de la page, qui garde le fond uni. */}
+      <div
+        className="bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage:
+            "linear-gradient(to bottom, rgba(2,6,23,.55), rgba(2,6,23,.93)), url('/background.jpg')",
+        }}
+      >
+        <div className="mx-auto max-w-3xl space-y-4 px-4 pb-8 pt-6">
+          <header className="flex items-center justify-between">
+            <Link to="/" className="text-sm text-indigo-400 hover:underline">
+              ← Personnages
+            </Link>
+            {canEdit &&
+              (editing ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={save}
+                    disabled={saving}
+                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                  >
+                    {saving ? "Enregistrement…" : "Enregistrer"}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
+                >
+                  Modifier
+                </button>
+              ))}
+          </header>
 
-      {error && <p className="text-red-400">{error}</p>}
+          {error && <p className="text-red-400">{error}</p>}
 
-      <IdentityHeader character={character} editing={editing} update={update} />
-      <HpPspBar character={character} computed={computed} update={update} />
+          <IdentityHeader character={character} editing={editing} update={update} />
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-3xl space-y-4 px-4 pb-16 pt-4">
+        <HpPspBar character={character} computed={computed} update={update} />
       <AttributesPanel character={character} computed={computed} editing={editing} update={update} />
       <SkillsPanel character={character} computed={computed} editing={editing} update={update} />
       <WeaponsArmorPanel
@@ -131,6 +146,7 @@ export default function CharacterSheet() {
       <EquipmentPanel character={character} editing={editing} update={update} />
       <BudgetPanel computed={computed} />
       <LocalisationsPanel />
+      </div>
     </div>
   );
 }

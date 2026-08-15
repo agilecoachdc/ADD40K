@@ -38,57 +38,64 @@ export default function CharacterList() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <header className="mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold">Personnages ADD40K</h1>
-        <div className="flex items-center gap-3 text-sm text-slate-400">
-          {isGm && (
-            <Link
-              to="/suivi"
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
-            >
-              Suivi des constantes
-            </Link>
-          )}
-          <span>{user?.displayName}</span>
-          <button onClick={() => logout()} className="text-indigo-400 hover:underline">
-            Déconnexion
-          </button>
-        </div>
-      </header>
-
-      {error && <p className="text-red-400">{error}</p>}
-      {!rows && !error && <p className="text-slate-400">Chargement…</p>}
-
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {rows?.map((c) => (
-          <li key={c.id} className="flex items-center gap-2">
-            <Link
-              to={`/personnages/${c.id}`}
-              className="flex flex-1 items-center justify-between rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
-            >
-              <div>
-                <p className="font-medium text-slate-100">{c.name}</p>
-                <p className="text-sm text-slate-400">{raceLabel(c.race)}</p>
-              </div>
-              {c.owner_username === user?.username && (
-                <span className="rounded-full bg-indigo-600/20 px-2 py-1 text-xs text-indigo-300">Ma fiche</span>
-              )}
-            </Link>
+    <div
+      className="min-h-dvh bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: "linear-gradient(rgba(2,6,23,.82), rgba(2,6,23,.82)), url('/background.jpg')",
+      }}
+    >
+      <div className="mx-auto max-w-3xl px-4 py-6">
+        <header className="mb-6 flex items-center justify-between gap-3">
+          <h1 className="text-lg font-semibold">Personnages ADD40K</h1>
+          <div className="flex items-center gap-3 text-sm text-slate-400">
             {isGm && (
-              <label className="flex shrink-0 flex-col items-center gap-0.5 text-xs text-slate-400">
-                <input
-                  type="checkbox"
-                  checked={c.inGame}
-                  onChange={() => toggleInGame(c)}
-                  aria-label={`${c.name} en jeu`}
-                />
-                En jeu
-              </label>
+              <Link
+                to="/suivi"
+                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
+              >
+                Suivi des constantes
+              </Link>
             )}
-          </li>
-        ))}
-      </ul>
+            <span>{user?.displayName}</span>
+            <button onClick={() => logout()} className="text-indigo-400 hover:underline">
+              Déconnexion
+            </button>
+          </div>
+        </header>
+
+        {error && <p className="text-red-400">{error}</p>}
+        {!rows && !error && <p className="text-slate-400">Chargement…</p>}
+
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {rows?.map((c) => (
+            <li key={c.id} className="flex items-center gap-2">
+              <Link
+                to={`/personnages/${c.id}`}
+                className="flex flex-1 items-center justify-between rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
+              >
+                <div>
+                  <p className="font-medium text-slate-100">{c.name}</p>
+                  <p className="text-sm text-slate-400">{raceLabel(c.race)}</p>
+                </div>
+                {c.owner_username === user?.username && (
+                  <span className="rounded-full bg-indigo-600/20 px-2 py-1 text-xs text-indigo-300">Ma fiche</span>
+                )}
+              </Link>
+              {isGm && (
+                <label className="flex shrink-0 flex-col items-center gap-0.5 text-xs text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={c.inGame}
+                    onChange={() => toggleInGame(c)}
+                    aria-label={`${c.name} en jeu`}
+                  />
+                  En jeu
+                </label>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

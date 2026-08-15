@@ -66,49 +66,56 @@ export default function GmTracker() {
   const inGame = rows?.filter((c) => c.inGame) ?? null;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
-      <header className="mb-6 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold">Suivi des constantes</h1>
-          <p className="text-sm text-slate-400">Personnages en jeu — PV / PSP en direct</p>
-        </div>
-        <Link to="/" className="text-sm text-indigo-400 hover:underline">
-          ← Personnages
-        </Link>
-      </header>
+    <div
+      className="min-h-dvh bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: "linear-gradient(rgba(2,6,23,.82), rgba(2,6,23,.82)), url('/background.jpg')",
+      }}
+    >
+      <div className="mx-auto max-w-5xl px-4 py-6">
+        <header className="mb-6 flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-semibold">Suivi des constantes</h1>
+            <p className="text-sm text-slate-400">Personnages en jeu — PV / PSP en direct</p>
+          </div>
+          <Link to="/" className="text-sm text-indigo-400 hover:underline">
+            ← Personnages
+          </Link>
+        </header>
 
-      {error && <p className="text-red-400">{error}</p>}
-      {!rows && !error && <p className="text-slate-400">Chargement…</p>}
+        {error && <p className="text-red-400">{error}</p>}
+        {!rows && !error && <p className="text-slate-400">Chargement…</p>}
 
-      {inGame && inGame.length === 0 && (
-        <p className="text-slate-400">
-          Aucun personnage en jeu. Coche "En jeu" sur l'écran d'accueil pour l'ajouter ici.
-        </p>
-      )}
+        {inGame && inGame.length === 0 && (
+          <p className="text-slate-400">
+            Aucun personnage en jeu. Coche "En jeu" sur l'écran d'accueil pour l'ajouter ici.
+          </p>
+        )}
 
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {inGame?.map((c) => (
-          <li key={c.id} className="rounded-xl bg-slate-900 p-3 shadow">
-            <div className="mb-2 flex items-center gap-2">
-              {c.portraitUrl ? (
-                <img src={c.portraitUrl} alt={c.name} className="h-10 w-10 rounded-lg object-cover" />
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-lg text-slate-600">
-                  {c.name.charAt(0)}
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {inGame?.map((c) => (
+            <li key={c.id} className="rounded-xl bg-slate-900 p-3 shadow">
+              <div className="mb-2 flex items-center gap-2">
+                {c.portraitUrl ? (
+                  <img src={c.portraitUrl} alt={c.name} className="h-10 w-10 rounded-lg object-cover" />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-lg text-slate-600">
+                    {c.name.charAt(0)}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-slate-100">{c.name}</p>
+                  <p className="truncate text-xs text-slate-500">{raceLabel(c.race)}</p>
                 </div>
-              )}
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-100">{c.name}</p>
-                <p className="truncate text-xs text-slate-500">{raceLabel(c.race)}</p>
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <GaugeBar label="PV" current={c.hpCurrent} max={c.hpMax} color="bg-red-500" />
-              <GaugeBar label="PSP" current={c.pspCurrent} max={c.pspMax} color="bg-sky-500" />
-            </div>
-          </li>
-        ))}
-      </ul>
+              <div className="space-y-1.5">
+                <GaugeBar label="PV" current={c.hpCurrent} max={c.hpMax} color="bg-red-500" />
+                <GaugeBar label="PSP" current={c.pspCurrent} max={c.pspMax} color="bg-sky-500" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
