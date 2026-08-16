@@ -116,26 +116,22 @@ function Ears({
 function VpBadge({ x, y, value }: { x: number; y: number; value: number }) {
   const protectedPart = value > 0;
   return (
-    <g>
-      <circle
-        cx={x}
-        cy={y}
-        r={11}
-        fill={protectedPart ? "#0f766e" : "#1e293b"}
-        stroke={protectedPart ? "#2dd4bf" : "#475569"}
-        strokeWidth={1.5}
-      />
-      <text
-        x={x}
-        y={y + 4}
-        textAnchor="middle"
-        fontSize={12}
-        fontWeight={700}
-        fill={protectedPart ? "#f0fdfa" : "#94a3b8"}
-      >
-        {value}
-      </text>
-    </g>
+    // Pas de pastille : juste le chiffre, avec un liseré sombre (paintOrder
+    // stroke) pour rester lisible par-dessus la silhouette sans reconstituer
+    // un cercle plein.
+    <text
+      x={x}
+      y={y + 4}
+      textAnchor="middle"
+      fontSize={13}
+      fontWeight={700}
+      fill={protectedPart ? "#2dd4bf" : "#94a3b8"}
+      stroke="#0f172a"
+      strokeWidth={3}
+      paintOrder="stroke"
+    >
+      {value}
+    </text>
   );
 }
 
