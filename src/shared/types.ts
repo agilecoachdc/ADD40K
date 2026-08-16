@@ -58,6 +58,24 @@ export interface WeaponEntry {
   baseScore: number;
   /** Munitions ou notes libres. */
   notes?: string;
+  /**
+   * Bonus ponctuels (améliorations tech, boosters...) justifiés chacun par
+   * une ligne d'équipement — ex. "Améliorations WP : 1,1,1" sur la Wild
+   * Predator de Conrad Lingus. `damage`/`ra`/`baseScore` ci-dessus restent
+   * la valeur DE BASE ; le total réellement joué = base + somme des
+   * modificateurs (cf. calc-engine.getWeaponTotals). Absent/vide = pas de
+   * modificateur, total = base (comportement inchangé pour les armes
+   * existantes — champ ajouté après coup, cf. plan de la fiche PNJ/Excel).
+   */
+  modifiers?: WeaponModifier[];
+}
+
+export interface WeaponModifier {
+  /** Ligne justifiant le bonus — reprise de l'équipement de la fiche, ou texte libre si l'objet n'y est pas encore. */
+  justification: string;
+  ra?: number;
+  damage?: number;
+  score?: number;
 }
 
 export interface ArmorEntry {

@@ -5,9 +5,16 @@
 // est faux.
 
 import { useRef, useState } from "react";
-import { ATTRIBUTES, WEAPON_TYPES, type Attribute, type Character, type WeaponType } from "@shared/types";
+import {
+  ATTRIBUTES,
+  WEAPON_TYPES,
+  type Attribute,
+  type Character,
+  type WeaponModifier,
+  type WeaponType,
+} from "@shared/types";
 import type { CharacterComputed } from "@shared/calc-engine";
-import { getPsyPowerTotal, getSkillTotal } from "@shared/calc-engine";
+import { getPsyPowerTotal, getSkillTotal, getWeaponTotals } from "@shared/calc-engine";
 import { referenceData, LOCALISATIONS } from "@shared/reference-data";
 import { RaceArmorSilhouette } from "./RaceArmorSilhouette";
 import { resizePortraitToDataUrl } from "../lib/image";
@@ -414,105 +421,211 @@ export function WeaponsArmorPanel({
   const weapons = character.weapons;
   const armor = character.armor;
   const activeArmor = armor.filter((a) => a.active);
+  const [expandedWeapon, setExpandedWeapon] = useState<number | null>(null);
+
+  function setWeaponModifiers(i: number, modifiers: WeaponModifier[]) {
+    update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, modifiers } : x)) });
+  }
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Section title="Armes">
         <ul className="space-y-2">
-          {weapons.map((w, i) => (
-            <li key={i} className="rounded-lg bg-slate-800/50 p-2 text-sm">
-              <div className="flex items-center justify-between gap-2">
-                {editing ? (
-                  <CatalogSelect
-                    value={w.name}
-                    options={referenceData.weapons.map((wd) => wd.name)}
-                    onPick={(name) => {
-                      // Auto-remplit type/dégâts/RA depuis le catalogue (listes!I:R) —
-                      // le score de base reste manuel (dépend du personnage, pas du catalogue).
-                      const def = referenceData.weapons.find((wd) => wd.name === name);
-                      update({
-                        weapons: weapons.map((x, idx) =>
-                          idx === i
-                            ? {
-                                ...x,
-                                name,
-                                type: (def?.type as WeaponType) ?? x.type,
-                                damage: def?.damage ?? x.damage,
-                                ra: def?.ra ?? x.ra,
-                              }
-                            : x,
-                        ),
-                      });
-                    }}
-                    placeholder="— choisir une arme —"
-                    className="flex-1"
-                  />
-                ) : (
-                  <span className="font-medium text-slate-100">{w.name}</span>
-                )}
-                {editing && (
-                  <button
-                    onClick={() => update({ weapons: weapons.filter((_, idx) => idx !== i) })}
-                    className="text-slate-500 hover:text-red-400"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-3 text-slate-400">
-                <span>
-                  Score{" "}
+          {weapons.map((w, i) => {
+            const totals = getWeaponTotals(w);
+            const modifiers = w.modifiers ?? [];
+            return (
+              <li key={i} className="rounded-lg bg-slate-800/50 p-2 text-sm">
+                <div className="flex items-center justify-between gap-2">
                   {editing ? (
-                    <NumberInput
-                      value={w.baseScore}
-                      onChange={(n) => update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, baseScore: n } : x)) })}
+                    <CatalogSelect
+                      value={w.name}
+                      // Exclut les lignes "Amélioration ..." : ce sont les 3 emplacements
+                      // fixes (listes!L58:L60) que le classeur d'origine bricolait dans la
+                      // formule de l'arme n°1, pas de vraies armes sélectionnables — cf.
+                      // investigation du 16/08 et le système de modificateurs justifiés
+                      // par équipement, qui les remplace proprement.
+                      options={referenceData.weapons
+                        .map((wd) => wd.name)
+                        .filter((name) => !name.startsWith("Amélioration"))}
+                      onPick={(name) => {
+                        // Auto-remplit type/dégâts/RA depuis le catalogue (listes!I:R) —
+                        // le score de base reste manuel (dépend du personnage, pas du catalogue).
+                        const def = referenceData.weapons.find((wd) => wd.name === name);
+                        update({
+                          weapons: weapons.map((x, idx) =>
+                            idx === i
+                              ? {
+                                  ...x,
+                                  name,
+                                  type: (def?.type as WeaponType) ?? x.type,
+                                  damage: def?.damage ?? x.damage,
+                                  ra: def?.ra ?? x.ra,
+                                }
+                              : x,
+                          ),
+                        });
+                      }}
+                      placeholder="— choisir une arme —"
+                      className="flex-1"
                     />
                   ) : (
-                    <span className="font-semibold text-indigo-300">{w.baseScore}</span>
+                    <span className="font-medium text-slate-100">{w.name}</span>
                   )}
-                </span>
-                <span>
-                  Dmg{" "}
+                  {editing && (
+                    <button
+                      onClick={() => update({ weapons: weapons.filter((_, idx) => idx !== i) })}
+                      className="text-slate-500 hover:text-red-400"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                {/* Score/Dmg/RA : en édition on saisit la valeur DE BASE (comme
+                    avant) ; en lecture on affiche le TOTAL joué (base + somme
+                    des modificateurs justifiés ci-dessous) — cf. getWeaponTotals. */}
+                <div className="mt-1 flex flex-wrap items-center gap-3 text-slate-400">
+                  <span>
+                    Score{" "}
+                    {editing ? (
+                      <NumberInput
+                        value={w.baseScore}
+                        onChange={(n) => update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, baseScore: n } : x)) })}
+                      />
+                    ) : (
+                      <span className="font-semibold text-indigo-300">{totals.baseScore}</span>
+                    )}
+                  </span>
+                  <span>
+                    Dmg{" "}
+                    {editing ? (
+                      <NumberInput
+                        value={w.damage}
+                        onChange={(n) => update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, damage: n } : x)) })}
+                      />
+                    ) : (
+                      totals.damage
+                    )}
+                  </span>
+                  <span>
+                    RA{" "}
+                    {editing ? (
+                      <NumberInput
+                        value={w.ra}
+                        onChange={(n) => update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, ra: n } : x)) })}
+                      />
+                    ) : (
+                      totals.ra
+                    )}
+                  </span>
                   {editing ? (
-                    <NumberInput
-                      value={w.damage}
-                      onChange={(n) => update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, damage: n } : x)) })}
-                    />
+                    <select
+                      value={w.type}
+                      onChange={(e) =>
+                        update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, type: e.target.value as WeaponType } : x)) })
+                      }
+                      className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5 text-xs"
+                    >
+                      {WEAPON_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
                   ) : (
-                    w.damage
+                    <span>{w.type}</span>
                   )}
-                </span>
-                <span>
-                  RA{" "}
-                  {editing ? (
-                    <NumberInput
-                      value={w.ra}
-                      onChange={(n) => update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, ra: n } : x)) })}
-                    />
-                  ) : (
-                    w.ra
+                  {editing && (
+                    <button
+                      type="button"
+                      onClick={() => setExpandedWeapon(expandedWeapon === i ? null : i)}
+                      className="text-xs text-indigo-400 hover:underline"
+                    >
+                      {modifiers.length > 0 ? `Modificateurs (${modifiers.length})` : "+ Modificateur"}
+                    </button>
                   )}
-                </span>
-                {editing ? (
-                  <select
-                    value={w.type}
-                    onChange={(e) =>
-                      update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, type: e.target.value as WeaponType } : x)) })
-                    }
-                    className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5 text-xs"
-                  >
-                    {WEAPON_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
+                  {!editing && modifiers.length > 0 && (
+                    <span
+                      className="text-xs text-emerald-400"
+                      title={modifiers.map((m) => m.justification || "(sans justification)").join(", ")}
+                    >
+                      base {w.baseScore}/{w.damage}/{w.ra} + {modifiers.length} modif.
+                    </span>
+                  )}
+                </div>
+
+                {editing && expandedWeapon === i && (
+                  <div className="mt-2 space-y-2 border-t border-slate-700 pt-2">
+                    <datalist id={`weapon-mod-equipment-${i}`}>
+                      {character.equipment.map((e, ei) => (
+                        <option key={ei} value={e.label} />
+                      ))}
+                    </datalist>
+                    {modifiers.map((m, mi) => (
+                      <div key={mi} className="flex flex-wrap items-center gap-2 text-xs">
+                        <input
+                          list={`weapon-mod-equipment-${i}`}
+                          type="text"
+                          value={m.justification}
+                          onChange={(e) =>
+                            setWeaponModifiers(
+                              i,
+                              modifiers.map((x, idx) => (idx === mi ? { ...x, justification: e.target.value } : x)),
+                            )
+                          }
+                          placeholder="Justification (ligne d'équipement)"
+                          className="min-w-[160px] flex-1 rounded border border-slate-700 bg-slate-800 px-2 py-1"
+                        />
+                        <span className="flex items-center gap-1">
+                          RA
+                          <NumberInput
+                            value={m.ra ?? 0}
+                            onChange={(n) => setWeaponModifiers(i, modifiers.map((x, idx) => (idx === mi ? { ...x, ra: n } : x)))}
+                            className="w-12"
+                          />
+                        </span>
+                        <span className="flex items-center gap-1">
+                          Dmg
+                          <NumberInput
+                            value={m.damage ?? 0}
+                            onChange={(n) => setWeaponModifiers(i, modifiers.map((x, idx) => (idx === mi ? { ...x, damage: n } : x)))}
+                            className="w-12"
+                          />
+                        </span>
+                        <span className="flex items-center gap-1">
+                          Score
+                          <NumberInput
+                            value={m.score ?? 0}
+                            onChange={(n) => setWeaponModifiers(i, modifiers.map((x, idx) => (idx === mi ? { ...x, score: n } : x)))}
+                            className="w-12"
+                          />
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setWeaponModifiers(i, modifiers.filter((_, idx) => idx !== mi))}
+                          className="text-slate-500 hover:text-red-400"
+                        >
+                          ×
+                        </button>
+                      </div>
                     ))}
-                  </select>
-                ) : (
-                  <span>{w.type}</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWeaponModifiers(i, [...modifiers, { justification: "", ra: 0, damage: 0, score: 0 }])
+                      }
+                      className="text-xs text-indigo-400 hover:underline"
+                    >
+                      + Ajouter un modificateur
+                    </button>
+                    <p className="text-xs text-slate-500">
+                      Total joué : Score {totals.baseScore} · Dmg {totals.damage} · RA {totals.ra}
+                    </p>
+                  </div>
                 )}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
         {editing && (
           <button

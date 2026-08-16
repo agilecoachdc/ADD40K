@@ -21,6 +21,7 @@ import type {
   AttributeScores,
   Character,
   ReferenceData,
+  WeaponEntry,
 } from "./types";
 import { ATTRIBUTES } from "./types";
 
@@ -173,6 +174,29 @@ export function getPsyPowerTotal(
 ): number {
   const affinity = character.skills.find((s) => s.name === `Affinité (VOL) ${power.name}`);
   return power.score + attributeTotals.VOL + (affinity?.score ?? 0);
+}
+
+export interface WeaponTotals {
+  ra: number;
+  damage: number;
+  baseScore: number;
+}
+
+/**
+ * RA/Dégâts/Score réellement joués = valeur de base + somme des
+ * modificateurs justifiés (cf. WeaponEntry.modifiers dans types.ts).
+ * Remplace le bricolage du classeur Excel d'origine (une formule figée
+ * référençant 3 lignes fixes du catalogue, uniquement câblée pour le 1er
+ * emplacement d'arme, propagée par copier-coller à des personnages qui
+ * n'avaient pourtant pas l'amélioration — cf. investigation du 16/08).
+ */
+export function getWeaponTotals(weapon: Pick<WeaponEntry, "ra" | "damage" | "baseScore" | "modifiers">): WeaponTotals {
+  const modifiers = weapon.modifiers ?? [];
+  return {
+    ra: weapon.ra + modifiers.reduce((sum, m) => sum + (m.ra ?? 0), 0),
+    damage: weapon.damage + modifiers.reduce((sum, m) => sum + (m.damage ?? 0), 0),
+    baseScore: weapon.baseScore + modifiers.reduce((sum, m) => sum + (m.score ?? 0), 0),
+  };
 }
 
 /** Somme signée des avantages/inconvénients (données!K40). */

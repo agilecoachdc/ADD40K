@@ -113,16 +113,22 @@ def write_character(character: dict, out_path: Path) -> None:
     cs["O9"] = character.get("loyaute", "")
     cs["AR6"] = fmt_height(character.get("heightM"))
 
-    # Armes — écrasées en littéral (pas en formule), cf. docstring.
+    # Armes — écrasées en littéral (pas en formule), cf. docstring. On écrit
+    # le TOTAL joué (base + modificateurs justifiés par une ligne
+    # d'équipement, cf. WeaponEntry.modifiers dans types.ts / getWeaponTotals
+    # dans calc-engine.ts), pas juste la base — la justification elle-même
+    # (texte) n'a pas de cellule dédiée dans ce classeur, elle ne survit pas
+    # à l'export (perte assumée, comme les images).
     weapons = character.get("weapons", [])
     for i, row in enumerate(WEAPON_ROWS):
         if i < len(weapons):
             w = weapons[i]
+            modifiers = w.get("modifiers") or []
             cs[f"J{row}"] = w["name"]
             cs[f"AO{row}"] = w["type"]
-            cs[f"AJ{row}"] = w["damage"]
-            cs[f"AF{row}"] = w["ra"]
-            cs[f"AY{row}"] = w["baseScore"]
+            cs[f"AJ{row}"] = w["damage"] + sum(m.get("damage") or 0 for m in modifiers)
+            cs[f"AF{row}"] = w["ra"] + sum(m.get("ra") or 0 for m in modifiers)
+            cs[f"AY{row}"] = w["baseScore"] + sum(m.get("score") or 0 for m in modifiers)
         else:
             cs[f"J{row}"] = None
             cs[f"AO{row}"] = None

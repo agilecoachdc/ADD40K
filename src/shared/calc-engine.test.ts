@@ -14,6 +14,7 @@ import {
   getPsyPowerTotal,
   getSkillCost,
   getSkillTotal,
+  getWeaponTotals,
   parseSkillAttribute,
 } from "./calc-engine";
 import { referenceData } from "./reference-data";
@@ -77,6 +78,35 @@ describe("getArmorTotals", () => {
       ],
     });
     expect(totals).toEqual({ vpTete: 1, vpBras: 1, vpTorse: 1, vpJambes: 1 });
+  });
+});
+
+describe("getWeaponTotals", () => {
+  it("sans modificateur, le total = la base (comportement des armes existantes, inchangé)", () => {
+    expect(getWeaponTotals({ ra: 6, damage: 8, baseScore: 7 })).toEqual({ ra: 6, damage: 8, baseScore: 7 });
+  });
+
+  it("cas réel Wild Predator de Conrad Lingus : +1 RA/Dégâts/Score justifiés par 'Améliorations WP : 1,1,1'", () => {
+    const totals = getWeaponTotals({
+      ra: 6,
+      damage: 8,
+      baseScore: 8,
+      modifiers: [{ justification: "Améliorations WP : 1,1,1", ra: 1, damage: 1, score: 1 }],
+    });
+    expect(totals).toEqual({ ra: 7, damage: 9, baseScore: 9 });
+  });
+
+  it("cumule plusieurs modificateurs, chacun ne touchant pas forcément les 3 stats", () => {
+    const totals = getWeaponTotals({
+      ra: 5,
+      damage: 5,
+      baseScore: 5,
+      modifiers: [
+        { justification: "Viseur laser", score: 2 },
+        { justification: "Chargeur amélioré", damage: 1 },
+      ],
+    });
+    expect(totals).toEqual({ ra: 5, damage: 6, baseScore: 7 });
   });
 });
 
