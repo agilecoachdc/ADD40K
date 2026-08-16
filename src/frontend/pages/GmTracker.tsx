@@ -35,8 +35,11 @@ function ConstantsRings({
   pspMax: number;
   size?: number;
 }) {
-  const strokeWidth = 8;
-  const gap = 3;
+  // Épaisseur/écart proportionnels à la taille (ratio fixé à size=72, le
+  // réglage d'origine) — sinon un anneau agrandi garde un trait fin et perd
+  // son effet "activity ring".
+  const strokeWidth = Math.max(6, Math.round(size / 9));
+  const gap = Math.max(2, Math.round(size / 24));
   const center = size / 2;
   const outerRadius = center - strokeWidth / 2;
   const innerRadius = outerRadius - strokeWidth - gap;
@@ -129,7 +132,16 @@ export default function GmTracker() {
           </p>
         )}
 
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/*
+          Passage à 2 colonnes repoussé à `lg` (1024px) plutôt que `sm`
+          (640px) : entre 640 et 1023px, une tuile en 2 colonnes serait trop
+          étroite pour loger silhouette + anneaux + photo agrandis sans
+          déborder. En dessous de `lg`, une seule colonne pleine largeur
+          laisse largement la place ; à partir de `lg` le conteneur
+          (max-w-5xl) est assez large pour 2 tuiles de ~160px d'anneaux/photo
+          chacune sans les rétrécir.
+        */}
+        <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {inGame?.map((c) => (
             <li key={c.id}>
               <Link
@@ -143,11 +155,11 @@ export default function GmTracker() {
                 <div className="flex min-w-0 flex-1 flex-col p-3">
                   <p className="truncate text-sm font-medium text-slate-100">{c.name}</p>
                   <div className="mt-2 flex flex-1 items-center gap-3">
-                    <ConstantsRings hpCurrent={c.hpCurrent} hpMax={c.hpMax} pspCurrent={c.pspCurrent} pspMax={c.pspMax} size={100} />
+                    <ConstantsRings hpCurrent={c.hpCurrent} hpMax={c.hpMax} pspCurrent={c.pspCurrent} pspMax={c.pspMax} size={160} />
                     {c.portraitUrl ? (
-                      <img src={c.portraitUrl} alt={c.name} className="h-[100px] w-[100px] shrink-0 rounded-lg object-cover" />
+                      <img src={c.portraitUrl} alt={c.name} className="h-[160px] w-[160px] shrink-0 rounded-lg object-cover" />
                     ) : (
-                      <div className="flex h-[100px] w-[100px] shrink-0 items-center justify-center rounded-lg bg-slate-800 text-3xl text-slate-600">
+                      <div className="flex h-[160px] w-[160px] shrink-0 items-center justify-center rounded-lg bg-slate-800 text-4xl text-slate-600">
                         {c.name.charAt(0)}
                       </div>
                     )}
