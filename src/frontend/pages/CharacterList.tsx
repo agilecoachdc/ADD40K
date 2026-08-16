@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { CharacterSummary } from "@shared/types";
 import { referenceData } from "@shared/reference-data";
@@ -13,13 +13,23 @@ export default function CharacterList() {
   const { user, logout } = useAuth();
   const [rows, setRows] = useState<CharacterSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const isGm = user?.role === "gm";
 
-  useEffect(() => {
-    api
+  // Un seul input file caché, réutilisé pour toutes les tuiles — on retient
+  // quelle fiche est visée dans une ref (pas de state, pas besoin de re-render).
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const importTargetId = useRef<string | null>(null);
+
+  function loadCharacters() {
+    return api
       .listCharacters()
       .then(({ characters }) => setRows(characters))
       .catch((err) => setError(err instanceof Error ? err.message : "Erreur"));
+  }
+
+  useEffect(() => {
+    loadCharacters();
   }, []);
 
   // Bascule le statut "en jeu" et sauvegarde immédiatement (MJ uniquement),
@@ -37,6 +47,67 @@ export default function CharacterList() {
     }
   }
 
+  // Export App -> Excel : charge le template embarqué (public/character-template.xlsx,
+  // une copie allégée du classeur de Conrad — sans images, cf. src/frontend/lib/xlsxSync.ts),
+  // y écrit les données actuelles du personnage, déclenche le téléchargement.
+  async function handleExport(id: string, name: string) {
+    setError(null);
+    setBusyId(id);
+    try {
+      const [{ character }, XLSX, templateRes] = await Promise.all([
+        api.getCharacter(id),
+        import("xlsx"),
+        fetch("/character-template.xlsx"),
+      ]);
+      if (!templateRes.ok) throw new Error("Template Excel introuvable");
+      const buf = await templateRes.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const { applyCharacterToWorkbook } = await import("../lib/xlsxSync");
+      applyCharacterToWorkbook(wb, character);
+      const out = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+      const blob = new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${name}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de l'export");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  function handleImportClick(id: string) {
+    importTargetId.current = id;
+    fileInputRef.current?.click();
+  }
+
+  // Import Excel -> App : ne fait jamais confiance à une valeur de cellule
+  // formule (armure/pouvoir psy/avantage) mise en cache par Excel — cf.
+  // xlsxSync.ts, même principe que scripts/import_xlsx.py.
+  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    const id = importTargetId.current;
+    e.target.value = ""; // permet de re-sélectionner le même fichier ensuite
+    if (!file || !id) return;
+    setError(null);
+    setBusyId(id);
+    try {
+      const [buf, XLSX] = await Promise.all([file.arrayBuffer(), import("xlsx")]);
+      const wb = XLSX.read(buf, { type: "array" });
+      const { readCharacterPatchFromWorkbook } = await import("../lib/xlsxSync");
+      const patch = readCharacterPatchFromWorkbook(wb, referenceData);
+      await api.updateCharacter(id, patch);
+      await loadCharacters();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de l'import — le fichier n'est peut-être pas au bon format");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div
       className="min-h-dvh bg-cover bg-center bg-no-repeat"
@@ -44,6 +115,7 @@ export default function CharacterList() {
         backgroundImage: "linear-gradient(rgba(2,6,23,.82), rgba(2,6,23,.82)), url('/background.jpg')",
       }}
     >
+      <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden" onChange={handleFileSelected} />
       <div className="mx-auto max-w-3xl px-4 py-6">
         <header className="mb-6 flex items-center justify-between gap-3">
           <h1 className="text-lg font-semibold">Personnages ADD40K</h1>
@@ -67,33 +139,63 @@ export default function CharacterList() {
         {!rows && !error && <p className="text-slate-400">Chargement…</p>}
 
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {rows?.map((c) => (
-            <li key={c.id} className="flex items-center gap-2">
-              <Link
-                to={`/personnages/${c.id}`}
-                className="flex flex-1 items-center justify-between rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
-              >
-                <div>
-                  <p className="font-medium text-slate-100">{c.name}</p>
-                  <p className="text-sm text-slate-400">{raceLabel(c.race)}</p>
+          {rows?.map((c) => {
+            const canEdit = isGm || c.owner_username === user?.username;
+            const busy = busyId === c.id;
+            return (
+              <li key={c.id} className="flex items-center gap-2">
+                <Link
+                  to={`/personnages/${c.id}`}
+                  className="flex flex-1 items-center justify-between rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
+                >
+                  <div>
+                    <p className="font-medium text-slate-100">{c.name}</p>
+                    <p className="text-sm text-slate-400">{raceLabel(c.race)}</p>
+                  </div>
+                  {c.owner_username === user?.username && (
+                    <span className="rounded-full bg-indigo-600/20 px-2 py-1 text-xs text-indigo-300">Ma fiche</span>
+                  )}
+                </Link>
+                <div className="flex shrink-0 flex-col items-center gap-1">
+                  {isGm && (
+                    <label className="flex flex-col items-center gap-0.5 text-xs text-slate-400">
+                      <input
+                        type="checkbox"
+                        checked={c.inGame}
+                        onChange={() => toggleInGame(c)}
+                        aria-label={`${c.name} en jeu`}
+                      />
+                      En jeu
+                    </label>
+                  )}
+                  <div className="flex gap-1">
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => handleImportClick(c.id)}
+                        disabled={busy}
+                        title="Importer depuis une fiche Excel"
+                        aria-label={`Importer la fiche de ${c.name} depuis Excel`}
+                        className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+                      >
+                        ⬆︎ Excel
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleExport(c.id, c.name)}
+                      disabled={busy}
+                      title="Exporter vers une fiche Excel"
+                      aria-label={`Exporter la fiche de ${c.name} vers Excel`}
+                      className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+                    >
+                      ⬇︎ Excel
+                    </button>
+                  </div>
                 </div>
-                {c.owner_username === user?.username && (
-                  <span className="rounded-full bg-indigo-600/20 px-2 py-1 text-xs text-indigo-300">Ma fiche</span>
-                )}
-              </Link>
-              {isGm && (
-                <label className="flex shrink-0 flex-col items-center gap-0.5 text-xs text-slate-400">
-                  <input
-                    type="checkbox"
-                    checked={c.inGame}
-                    onChange={() => toggleInGame(c)}
-                    aria-label={`${c.name} en jeu`}
-                  />
-                  En jeu
-                </label>
-              )}
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>

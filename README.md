@@ -45,6 +45,23 @@ par nom de fichier : régénérer `0002_seed.sql` sans avoir d'abord supprimé l
 Lire `scripts/import-report.md` après chaque import : il liste les écarts connus (races hors
 catalogue, avantages introuvables, XP invalide...) qui nécessitent une vérification manuelle.
 
+## Synchro fiche Excel <-> app
+
+Chaque personnage a une fiche Excel dans `Mon Drive/ADD40K/Fiches App/<Nom>.xlsx` (générée par
+`python3 scripts/export_xlsx.py <dossier de .json>`, au format du classeur de Conrad Lingus pris
+comme template). Sur l'écran d'accueil, chaque tuile a deux boutons :
+
+- **⬆︎ Excel** (import, propriétaire du personnage ou MJ) : lit un `.xlsx` sélectionné localement
+  et met à jour la fiche dans l'app.
+- **⬇︎ Excel** (export, tout le monde) : télécharge un `.xlsx` avec les données actuelles de l'app.
+
+Les deux sens utilisent les mêmes coordonnées de cellules que `scripts/import_xlsx.py` (voir
+`src/frontend/lib/xlsxSync.ts`) et re-dérivent les valeurs d'armure/pouvoir psy/avantage depuis
+`reference-data.ts` plutôt que de faire confiance à la cellule formule mise en cache par Excel.
+**Limite connue** : l'export (bibliothèque XLSX.js gratuite, `public/character-template.xlsx`)
+ne préserve pas les images ni la mise en forme riche du classeur original — fonctionnel, pas
+identique visuellement aux fiches de `Fiches App/`.
+
 ## Comptes
 
 Un compte par joueur (`role: player`, lié à un `character_id`, édite uniquement sa fiche) + un
