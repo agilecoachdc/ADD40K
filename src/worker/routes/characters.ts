@@ -30,7 +30,7 @@ characterRoutes.get("/", async (c) => {
   // hpMax/pspMax comme pour la fiche détaillée, même source de vérité.
   const characters: CharacterSummary[] = (results ?? []).map((row) => {
     const parsed: Character = JSON.parse(row.data);
-    const { hpMax, pspMax } = computeCharacter(parsed, referenceData);
+    const { hpMax, pspMax, armorTotals } = computeCharacter(parsed, referenceData);
     return {
       id: row.id,
       name: row.name,
@@ -42,6 +42,7 @@ characterRoutes.get("/", async (c) => {
       hpMax,
       pspCurrent: parsed.pspCurrent,
       pspMax,
+      armorTotals,
     };
   });
 

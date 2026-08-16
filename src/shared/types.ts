@@ -238,4 +238,6 @@ export interface CharacterSummary {
   hpMax: number;
   pspCurrent: number;
   pspMax: number;
+  /** VP de protection par membre — mêmes clés que calc-engine.ArmorTotals, dupliquées ici pour éviter un import croisé types.ts ↔ calc-engine.ts. */
+  armorTotals: { vpTete: number; vpBras: number; vpTorse: number; vpJambes: number };
 }

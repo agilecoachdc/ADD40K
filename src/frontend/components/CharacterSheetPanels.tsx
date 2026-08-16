@@ -9,6 +9,7 @@ import { ATTRIBUTES, type Attribute, type Character } from "@shared/types";
 import type { CharacterComputed } from "@shared/calc-engine";
 import { getPsyPowerTotal, getSkillTotal } from "@shared/calc-engine";
 import { referenceData, LOCALISATIONS } from "@shared/reference-data";
+import { RaceArmorSilhouette } from "./RaceArmorSilhouette";
 
 type Update = (patch: Partial<Character>) => void;
 
@@ -481,23 +482,8 @@ export function WeaponsArmorPanel({
       </Section>
 
       <Section title="Armures">
-        <div className="mb-3 grid grid-cols-4 gap-2 rounded-lg bg-slate-800/50 py-2 text-center text-sm">
-          <div>
-            <p className="text-slate-500">Tête</p>
-            <p className="text-lg font-semibold text-slate-100">{computed.armorTotals.vpTete}</p>
-          </div>
-          <div>
-            <p className="text-slate-500">Bras</p>
-            <p className="text-lg font-semibold text-slate-100">{computed.armorTotals.vpBras}</p>
-          </div>
-          <div>
-            <p className="text-slate-500">Torse</p>
-            <p className="text-lg font-semibold text-slate-100">{computed.armorTotals.vpTorse}</p>
-          </div>
-          <div>
-            <p className="text-slate-500">Jambes</p>
-            <p className="text-lg font-semibold text-slate-100">{computed.armorTotals.vpJambes}</p>
-          </div>
+        <div className="mb-3 flex justify-center">
+          <RaceArmorSilhouette race={character.race} armorTotals={computed.armorTotals} size={110} />
         </div>
 
         {!editing && canEdit && (

@@ -10,6 +10,7 @@ import { Link, Navigate } from "react-router-dom";
 import type { CharacterSummary } from "@shared/types";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
+import { RaceArmorSilhouette } from "../components/RaceArmorSilhouette";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -128,23 +129,31 @@ export default function GmTracker() {
           </p>
         )}
 
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {inGame?.map((c) => (
             <li key={c.id}>
               <Link
                 to={`/personnages/${c.id}`}
-                className="block rounded-xl bg-slate-900 p-3 shadow transition hover:bg-slate-800"
+                className="flex items-stretch overflow-hidden rounded-xl bg-slate-900 shadow transition hover:bg-slate-800"
               >
-                <p className="mb-2 truncate text-center text-sm font-medium text-slate-100">{c.name}</p>
-                <div className="flex items-center justify-center gap-3">
-                  {c.portraitUrl ? (
-                    <img src={c.portraitUrl} alt={c.name} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
-                  ) : (
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-xl text-slate-600">
-                      {c.name.charAt(0)}
-                    </div>
-                  )}
-                  <ConstantsRings hpCurrent={c.hpCurrent} hpMax={c.hpMax} pspCurrent={c.pspCurrent} pspMax={c.pspMax} />
+                {/* Photo sur toute la hauteur de la tuile (colonne stretch). */}
+                {c.portraitUrl ? (
+                  <img
+                    src={c.portraitUrl}
+                    alt={c.name}
+                    className="h-auto w-24 shrink-0 self-stretch object-cover"
+                  />
+                ) : (
+                  <div className="flex w-24 shrink-0 items-center justify-center self-stretch bg-slate-800 text-2xl text-slate-600">
+                    {c.name.charAt(0)}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1 p-3">
+                  <p className="truncate text-sm font-medium text-slate-100">{c.name}</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <ConstantsRings hpCurrent={c.hpCurrent} hpMax={c.hpMax} pspCurrent={c.pspCurrent} pspMax={c.pspMax} size={64} />
+                    <RaceArmorSilhouette race={c.race} armorTotals={c.armorTotals} size={42} />
+                  </div>
                 </div>
               </Link>
             </li>
