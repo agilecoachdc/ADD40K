@@ -7,6 +7,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeCharacter,
+  getAllAttributeTotals,
   getArmorTotals,
   getAttributeTotal,
   getHpMax,
@@ -14,14 +15,17 @@ import {
   getPsyPowerTotal,
   getSkillCost,
   getSkillTotal,
+  getWeaponSkillName,
+  getWeaponSuggestedScore,
   getWeaponTotals,
   parseSkillAttribute,
 } from "./calc-engine";
 import { referenceData } from "./reference-data";
 import type { Character } from "./types";
-import sternTackSeed from "../../scripts/characters.seed.json";
+import charactersSeed from "../../scripts/characters.seed.json";
 
-const sternTack = (sternTackSeed as Character[]).find((c) => c.name === "Stern Tack")!;
+const sternTack = (charactersSeed as Character[]).find((c) => c.name === "Stern Tack")!;
+const jonas = (charactersSeed as Character[]).find((c) => c.name === "Jonas")!;
 
 describe("getSkillCost", () => {
   it("suit la table listes!A14:B29", () => {
@@ -86,14 +90,22 @@ describe("getWeaponTotals", () => {
     expect(getWeaponTotals({ ra: 6, damage: 8, baseScore: 7 })).toEqual({ ra: 6, damage: 8, baseScore: 7 });
   });
 
-  it("cas réel Wild Predator de Conrad Lingus : +1 RA/Dégâts/Score justifiés par 'Améliorations WP : 1,1,1'", () => {
+  it("cas réel Wild Predator de Conrad Lingus : base catalogue (RA2/Dmg6) + score compétence Arme de poing (7) + modificateur équipement 'Améliorations WP' + écart hérité de l'ancienne fiche", () => {
+    // Depuis la restructuration base=compétence du 16/08 (cf. investigation
+    // weapon-modifiers) : baseScore vient de la compétence liée (Arme de
+    // poing (PER) pour un pistolet), ra/damage viennent du catalogue armes —
+    // le "Écart hérité" absorbe la différence avec l'ancienne fiche Excel
+    // (RA/Dégâts qui n'y étaient pas alignés sur le catalogue).
     const totals = getWeaponTotals({
-      ra: 6,
-      damage: 8,
-      baseScore: 8,
-      modifiers: [{ justification: "Améliorations WP : 1,1,1", ra: 1, damage: 1, score: 1 }],
+      ra: 2,
+      damage: 6,
+      baseScore: 7,
+      modifiers: [
+        { justification: "Améliorations WP : 1,1,1", ra: -1, damage: 1, score: 1 },
+        { justification: "Écart hérité de la fiche (avant restructuration base = compétence)", ra: 4, damage: 2, score: 1 },
+      ],
     });
-    expect(totals).toEqual({ ra: 7, damage: 9, baseScore: 9 });
+    expect(totals).toEqual({ ra: 5, damage: 9, baseScore: 9 });
   });
 
   it("cumule plusieurs modificateurs, chacun ne touchant pas forcément les 3 stats", () => {
@@ -107,6 +119,44 @@ describe("getWeaponTotals", () => {
       ],
     });
     expect(totals).toEqual({ ra: 5, damage: 6, baseScore: 7 });
+  });
+});
+
+describe("getWeaponSkillName", () => {
+  it("arme de mêlée -> Mêlée (DEX)", () => {
+    expect(getWeaponSkillName("Epées haches 2 mains", "Mêl")).toBe("Mêlée (DEX)");
+  });
+
+  it("pistolet connu (Wild Predator) -> Arme de poing (PER)", () => {
+    expect(getWeaponSkillName("Wild Predator", "Fire")).toBe("Arme de poing (PER)");
+  });
+
+  it("fusil connu (INDRA) -> Fusils (PER)", () => {
+    expect(getWeaponSkillName("INDRA", "Fire")).toBe("Fusils (PER)");
+  });
+
+  it("arme de jet -> pas de compétence fiable (null)", () => {
+    expect(getWeaponSkillName("Grenade à fragmentation", "Jet")).toBeNull();
+  });
+});
+
+describe("getWeaponSuggestedScore", () => {
+  it("cas réel Vagar : Mêlée (DEX) 8 + DEX_total 1 = 9 pour sa hache (Epées haches 2 mains)", () => {
+    const vagar: Pick<Character, "skills"> = { skills: [{ name: "Mêlée (DEX)", score: 8 }] };
+    const attributeTotals = { ...({} as Character["attributeScores"]), DEX: 1 } as Character["attributeScores"];
+    expect(getWeaponSuggestedScore(vagar, attributeTotals, "Epées haches 2 mains", "Mêl")).toBe(9);
+  });
+
+  it("cas réel Jonas : Arme de poing (PER) 5 + PER_total 2 = 7 pour son Wild Predator", () => {
+    const attributeTotals = getAllAttributeTotals(jonas, referenceData);
+    expect(attributeTotals.PER).toBe(2);
+    expect(getWeaponSuggestedScore(jonas, attributeTotals, "Wild Predator", "Fire")).toBe(7);
+  });
+
+  it("compétence absente de la fiche -> null (le score reste manuel)", () => {
+    const noSkill: Pick<Character, "skills"> = { skills: [] };
+    const attributeTotals = {} as Character["attributeScores"];
+    expect(getWeaponSuggestedScore(noSkill, attributeTotals, "Wild Predator", "Fire")).toBeNull();
   });
 });
 

@@ -22,6 +22,7 @@ import type {
   Character,
   ReferenceData,
   WeaponEntry,
+  WeaponType,
 } from "./types";
 import { ATTRIBUTES } from "./types";
 
@@ -197,6 +198,63 @@ export function getWeaponTotals(weapon: Pick<WeaponEntry, "ra" | "damage" | "bas
     damage: weapon.damage + modifiers.reduce((sum, m) => sum + (m.damage ?? 0), 0),
     baseScore: weapon.baseScore + modifiers.reduce((sum, m) => sum + (m.score ?? 0), 0),
   };
+}
+
+// Armes -> compétence liée, pour dériver le score de base (cf. getWeaponSuggestedScore).
+// Le classeur d'origine ne fait cette association nulle part de façon fiable
+// (une seule colonne "type" Mêl/Fire/Jet, aucune liaison arme->compétence) —
+// construite manuellement à partir du catalogue (listes!I:R), confirmée avec
+// le MJ le 16/08 sur les cas Vagar (Mêlée) et Jonas (Arme de poing). Les
+// armes de jet (arcs, grenades) n'ont pas de compétence fiable identifiée et
+// restent donc hors mapping (score de base reste manuel pour ce type).
+const PISTOL_WEAPONS = new Set([
+  "Street line palm pistol",
+  "Cybertech secutity",
+  "Colt Python",
+  "Wild Predator",
+  "Cybertech Silverhawk",
+  "Pistolet Gauss",
+]);
+const RIFLE_WEAPONS = new Set([
+  "INDRA",
+  "Leader AF4",
+  "Redfield 540",
+  "Widowmaker",
+  "Devastator",
+  "Railgun",
+  "Inferno",
+  "C-Tech Tsunami",
+  "Wild RPG",
+]);
+
+/** Nom de la compétence liée à une arme (par nom + type), ou null si aucune correspondance fiable (armes de jet). */
+export function getWeaponSkillName(weaponName: string, weaponType: WeaponType): string | null {
+  if (weaponType === "Mêl") return "Mêlée (DEX)";
+  if (weaponType === "Fire") {
+    if (PISTOL_WEAPONS.has(weaponName)) return "Arme de poing (PER)";
+    if (RIFLE_WEAPONS.has(weaponName)) return "Fusils (PER)";
+  }
+  return null;
+}
+
+/**
+ * Score de base suggéré pour une arme = total de la compétence liée (score +
+ * attribut, cf. getSkillTotal) si le personnage possède cette compétence sur
+ * sa fiche — null sinon (le score de base reste alors manuel). Utilisé pour
+ * pré-remplir le score au choix d'une arme dans le catalogue ; n'écrase pas
+ * une saisie manuelle existante si aucune compétence ne correspond.
+ */
+export function getWeaponSuggestedScore(
+  character: Pick<Character, "skills">,
+  attributeTotals: AttributeScores,
+  weaponName: string,
+  weaponType: WeaponType,
+): number | null {
+  const skillName = getWeaponSkillName(weaponName, weaponType);
+  if (!skillName) return null;
+  const skill = character.skills.find((s) => s.name === skillName);
+  if (!skill) return null;
+  return getSkillTotal(skillName, skill.score, attributeTotals).total;
 }
 
 /** Somme signée des avantages/inconvénients (données!K40). */

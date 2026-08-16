@@ -14,7 +14,7 @@ import {
   type WeaponType,
 } from "@shared/types";
 import type { CharacterComputed } from "@shared/calc-engine";
-import { getPsyPowerTotal, getSkillTotal, getWeaponTotals } from "@shared/calc-engine";
+import { getPsyPowerTotal, getSkillTotal, getWeaponSuggestedScore, getWeaponTotals } from "@shared/calc-engine";
 import { referenceData, LOCALISATIONS } from "@shared/reference-data";
 import { RaceArmorSilhouette } from "./RaceArmorSilhouette";
 import { resizePortraitToDataUrl } from "../lib/image";
@@ -449,18 +449,23 @@ export function WeaponsArmorPanel({
                         .map((wd) => wd.name)
                         .filter((name) => !name.startsWith("Amélioration"))}
                       onPick={(name) => {
-                        // Auto-remplit type/dégâts/RA depuis le catalogue (listes!I:R) —
-                        // le score de base reste manuel (dépend du personnage, pas du catalogue).
+                        // Auto-remplit type/dégâts/RA depuis le catalogue (listes!I:R) et le
+                        // score de base depuis la compétence liée (Mêlée/Arme de poing/Fusils
+                        // — cf. getWeaponSuggestedScore) si le personnage la possède ; sinon
+                        // le score reste manuel (armes de jet, compétence absente de la fiche).
                         const def = referenceData.weapons.find((wd) => wd.name === name);
+                        const type = (def?.type as WeaponType) ?? w.type;
+                        const suggestedScore = getWeaponSuggestedScore(character, computed.attributeTotals, name, type);
                         update({
                           weapons: weapons.map((x, idx) =>
                             idx === i
                               ? {
                                   ...x,
                                   name,
-                                  type: (def?.type as WeaponType) ?? x.type,
+                                  type,
                                   damage: def?.damage ?? x.damage,
                                   ra: def?.ra ?? x.ra,
+                                  baseScore: suggestedScore ?? x.baseScore,
                                 }
                               : x,
                           ),
