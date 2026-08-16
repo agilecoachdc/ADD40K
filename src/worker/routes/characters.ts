@@ -1,13 +1,14 @@
 // Routes /api/characters/* — voir docs/API_REFERENCE.md.
 // Lecture ouverte à tout utilisateur connecté (utile en jeu pour consulter
 // la fiche d'un coéquipier) ; écriture réservée au propriétaire ou au MJ
-// (canEditCharacter, lib/session.ts).
+// (canEditCharacter, lib/session.ts). Création (PNJ) réservée au MJ.
 
 import { Hono } from "hono";
 import type { Env } from "../lib/session";
 import { canEditCharacter } from "../lib/session";
 import type { PublicUser } from "../../shared/types";
-import type { Character, CharacterSummary } from "../../shared/types";
+import type { AttributeScores, Character, CharacterSummary } from "../../shared/types";
+import { ATTRIBUTES } from "../../shared/types";
 import { computeCharacter } from "../../shared/calc-engine";
 import { referenceData } from "../../shared/reference-data";
 
@@ -38,6 +39,7 @@ characterRoutes.get("/", async (c) => {
       owner_username: row.owner_username,
       portraitUrl: parsed.portraitUrl,
       inGame: parsed.inGame ?? false,
+      isNpc: parsed.isNpc ?? false,
       hpCurrent: parsed.hpCurrent,
       hpMax,
       pspCurrent: parsed.pspCurrent,
@@ -59,6 +61,97 @@ characterRoutes.get("/:id", async (c) => {
   const computed = computeCharacter(character, referenceData);
   const user = c.get("user");
   return c.json({ character, computed, canEdit: canEditCharacter(user, row.id) });
+});
+
+function slugify(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "") // accents
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "pnj"
+  );
+}
+
+async function uniqueId(db: D1Database, name: string): Promise<string> {
+  const base = slugify(name);
+  let candidate = base;
+  let suffix = 2;
+  while (await db.prepare("SELECT 1 FROM characters WHERE id = ?1").bind(candidate).first()) {
+    candidate = `${base}-${suffix++}`;
+  }
+  return candidate;
+}
+
+const EMPTY_ATTRIBUTE_SCORES: AttributeScores = Object.fromEntries(ATTRIBUTES.map((a) => [a, 0])) as AttributeScores;
+
+// Création d'un PNJ : fiche volontairement minimale (nom, photo, race pour
+// la silhouette, PV/PSP max fixés directement via hpMaxOverride/
+// pspMaxOverride — pas d'attributs à saisir). Réservé au MJ : un PNJ n'a pas
+// de joueur propriétaire, seul le MJ doit pouvoir le créer/modifier (déjà
+// garanti par canEditCharacter côté PUT, qui autorise role=gm sur n'importe
+// quel id).
+characterRoutes.post("/", async (c) => {
+  const user = c.get("user");
+  if (user.role !== "gm") {
+    return c.json({ error: "Réservé au MJ" }, 403);
+  }
+
+  const body = await c.req
+    .json<{ name?: string; portraitUrl?: string | null; race?: string; hpMax?: number; pspMax?: number }>()
+    .catch(() => null);
+  if (!body?.name?.trim()) {
+    return c.json({ error: "Nom requis" }, 400);
+  }
+
+  const id = await uniqueId(c.env.DB, body.name);
+  const now = new Date().toISOString();
+  const hpMax = Number.isFinite(body.hpMax) ? Number(body.hpMax) : 20;
+  const pspMax = Number.isFinite(body.pspMax) ? Number(body.pspMax) : 20;
+
+  const character: Character = {
+    id,
+    ownerUsername: user.username,
+    name: body.name.trim(),
+    age: null,
+    heightM: null,
+    weightLabel: "",
+    race: body.race?.trim() || "humain",
+    faction: "",
+    fonction: "",
+    loyaute: "",
+    portraitUrl: body.portraitUrl ?? null,
+    attributeScores: EMPTY_ATTRIBUTE_SCORES,
+    attributeTechBonus: {},
+    tailleModifier: 0,
+    hpCurrent: hpMax,
+    pspCurrent: pspMax,
+    hpMaxOverride: hpMax,
+    pspMaxOverride: pspMax,
+    inGame: true, // visible tout de suite là où le MJ vient de le créer (Suivi des constantes)
+    isNpc: true,
+    skills: [],
+    psyPowers: [],
+    weapons: [],
+    armor: [],
+    advantages: [],
+    equipment: [],
+    pointsDepart: 0,
+    xp: 0,
+    reputations: "",
+    notes: "",
+    updatedAt: now,
+  };
+
+  await c.env.DB.prepare(
+    "INSERT INTO characters (id, name, race, owner_username, data, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+  )
+    .bind(character.id, character.name, character.race, character.ownerUsername, JSON.stringify(character), now)
+    .run();
+
+  const computed = computeCharacter(character, referenceData);
+  return c.json({ character, computed, canEdit: true }, 201);
 });
 
 characterRoutes.put("/:id", async (c) => {

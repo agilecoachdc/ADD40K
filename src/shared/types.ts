@@ -116,6 +116,21 @@ export interface Character {
    * libre).
    */
   inGame: boolean;
+  /**
+   * PNJ créé rapidement par le MJ (bouton dédié sur l'écran "Suivi des
+   * constantes"), par opposition à un personnage de joueur importé depuis
+   * une fiche Excel. Un PNJ n'a en général ni compétences ni équipement
+   * détaillé — seuls le nom, la photo et les PV/PSP max (cf.
+   * hpMaxOverride/pspMaxOverride) comptent vraiment.
+   */
+  isNpc: boolean;
+  /**
+   * PV/PSP max fixés directement (pas de fiche d'attributs pour un PNJ) —
+   * prioritaires sur le calcul habituel (VIT/VOL) dans calc-engine quand
+   * définis. `null`/absent = personnage de joueur normal, calcul inchangé.
+   */
+  hpMaxOverride?: number | null;
+  pspMaxOverride?: number | null;
 
   // Listes
   skills: SkillEntry[];
@@ -234,6 +249,7 @@ export interface CharacterSummary {
   owner_username: string;
   portraitUrl: string | null;
   inGame: boolean;
+  isNpc: boolean;
   hpCurrent: number;
   hpMax: number;
   pspCurrent: number;

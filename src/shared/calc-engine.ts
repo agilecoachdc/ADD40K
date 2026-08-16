@@ -80,23 +80,29 @@ export function getAttributeSum(
   return ATTRIBUTES.reduce((sum, attr) => sum + totals[attr], 0);
 }
 
-/** PV max = (VIT_total + taille) x 5 + 30 (données!E24). */
+/**
+ * PV max = (VIT_total + taille) x 5 + 30 (données!E24), sauf si
+ * `hpMaxOverride` est défini (PNJ créé par le MJ sans fiche d'attributs,
+ * cf. types.ts) — auquel cas cette valeur fixe prévaut.
+ */
 export function getHpMax(
   character: Pick<
     Character,
-    "attributeScores" | "attributeTechBonus" | "race" | "tailleModifier"
+    "attributeScores" | "attributeTechBonus" | "race" | "tailleModifier" | "hpMaxOverride"
   >,
   reference: ReferenceData,
 ): number {
+  if (character.hpMaxOverride != null) return character.hpMaxOverride;
   const vit = getAttributeTotal(character, reference, "VIT");
   return (vit + character.tailleModifier) * 5 + 30;
 }
 
-/** PSP max = VOL_total x 5 + 30 (données!E25). */
+/** PSP max = VOL_total x 5 + 30 (données!E25), sauf `pspMaxOverride` (cf. getHpMax). */
 export function getPspMax(
-  character: Pick<Character, "attributeScores" | "attributeTechBonus" | "race">,
+  character: Pick<Character, "attributeScores" | "attributeTechBonus" | "race" | "pspMaxOverride">,
   reference: ReferenceData,
 ): number {
+  if (character.pspMaxOverride != null) return character.pspMaxOverride;
   const vol = getAttributeTotal(character, reference, "VOL");
   return vol * 5 + 30;
 }

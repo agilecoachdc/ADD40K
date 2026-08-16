@@ -38,6 +38,15 @@ Toutes les routes sauf `/api/auth/login` exigent une session valide (cookie http
   frontend, pour rester la source de vérité en cas de divergence de version de code).
 - Erreurs : `404` si le personnage n'existe pas.
 
+### `POST /api/characters`
+- Auth : session + rôle `gm` uniquement.
+- Entrée : `{ name: string, portraitUrl?: string | null, race?: string, hpMax: number, pspMax: number }`
+  — crée un PNJ (`isNpc: true`, `inGame: true`, `hpMaxOverride`/`pspMaxOverride` fixés à
+  `hpMax`/`pspMax` plutôt que calculés depuis les attributs, cf. `calc-engine.ts`). `id` généré
+  par slug du nom (suffixe numérique en cas de collision).
+- Sortie : `{ character: Character, computed: CharacterComputed, canEdit: true }`, code `201`.
+- Erreurs : `403` (pas MJ), `400` (nom manquant).
+
 ### `PUT /api/characters/:id`
 - Auth : session + `canEditCharacter` (propriétaire du personnage ou rôle `gm`).
 - Entrée : `Partial<Character>` — fusionné avec les données existantes côté serveur

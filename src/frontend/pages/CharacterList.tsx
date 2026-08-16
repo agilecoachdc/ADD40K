@@ -147,7 +147,7 @@ export default function CharacterList() {
         {!rows && !error && <p className="text-slate-400">Chargement…</p>}
 
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {rows?.map((c) => {
+          {rows?.filter((c) => !c.isNpc).map((c) => {
             const canEdit = isGm || c.owner_username === user?.username;
             const busy = busyId === c.id;
             return (

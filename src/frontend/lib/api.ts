@@ -31,4 +31,9 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(patch),
     }),
+  createNpc: (input: { name: string; portraitUrl?: string | null; race?: string; hpMax: number; pspMax: number }) =>
+    request<{ character: Character; computed: CharacterComputed; canEdit: boolean }>("/characters", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
 };

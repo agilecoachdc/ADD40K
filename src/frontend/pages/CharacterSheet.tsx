@@ -58,6 +58,21 @@ export default function CharacterSheet() {
   // sans devoir éditer toute la fiche. On envoie uniquement `{ armor }` —
   // le PUT fusionne côté worker (characters.ts), le reste de la fiche n'est
   // pas touché.
+  // PV/PSP : mêmes +/- toujours actifs (hors mode édition) que l'armure —
+  // sauvegarde immédiate, sinon la valeur affichée divergeait silencieusement
+  // de celle en base au premier rechargement (bug signalé).
+  async function adjustVital(field: "hpCurrent" | "pspCurrent", value: number) {
+    if (!character || !id) return;
+    const previous = character[field];
+    update({ [field]: value });
+    try {
+      await api.updateCharacter(id, { [field]: value });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de la sauvegarde");
+      update({ [field]: previous });
+    }
+  }
+
   async function toggleArmor(index: number) {
     if (!character || !id) return;
     const previousArmor = character.armor;
@@ -137,7 +152,7 @@ export default function CharacterSheet() {
       </div>
 
       <div className="mx-auto max-w-3xl space-y-4 px-4 pb-16 pt-4">
-        <HpPspBar character={character} computed={computed} update={update} />
+        <HpPspBar character={character} computed={computed} onAdjust={adjustVital} />
       <AttributesPanel character={character} computed={computed} editing={editing} update={update} />
       <SkillsPanel character={character} computed={computed} editing={editing} update={update} />
       <WeaponsArmorPanel
