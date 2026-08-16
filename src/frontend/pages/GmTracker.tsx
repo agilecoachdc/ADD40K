@@ -129,30 +129,28 @@ export default function GmTracker() {
           </p>
         )}
 
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {inGame?.map((c) => (
             <li key={c.id}>
               <Link
                 to={`/personnages/${c.id}`}
                 className="flex items-stretch overflow-hidden rounded-xl bg-slate-900 shadow transition hover:bg-slate-800"
               >
-                {/* Photo sur toute la hauteur de la tuile (colonne stretch). */}
-                {c.portraitUrl ? (
-                  <img
-                    src={c.portraitUrl}
-                    alt={c.name}
-                    className="h-auto w-24 shrink-0 self-stretch object-cover"
-                  />
-                ) : (
-                  <div className="flex w-24 shrink-0 items-center justify-center self-stretch bg-slate-800 text-2xl text-slate-600">
-                    {c.name.charAt(0)}
-                  </div>
-                )}
+                {/* Silhouette d'armure sur toute la hauteur — même taille (110) que sur la fiche personnage. */}
+                <div className="flex shrink-0 items-center justify-center self-stretch bg-slate-950/40 px-3">
+                  <RaceArmorSilhouette race={c.race} armorTotals={c.armorTotals} size={110} />
+                </div>
                 <div className="min-w-0 flex-1 p-3">
                   <p className="truncate text-sm font-medium text-slate-100">{c.name}</p>
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex items-center gap-3">
                     <ConstantsRings hpCurrent={c.hpCurrent} hpMax={c.hpMax} pspCurrent={c.pspCurrent} pspMax={c.pspMax} size={64} />
-                    <RaceArmorSilhouette race={c.race} armorTotals={c.armorTotals} size={42} />
+                    {c.portraitUrl ? (
+                      <img src={c.portraitUrl} alt={c.name} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+                    ) : (
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-xl text-slate-600">
+                        {c.name.charAt(0)}
+                      </div>
+                    )}
                   </div>
                 </div>
               </Link>
