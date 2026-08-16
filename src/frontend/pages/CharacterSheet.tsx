@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import type { Character } from "@shared/types";
 import { computeCharacter, type CharacterComputed } from "@shared/calc-engine";
 import { referenceData } from "@shared/reference-data";
@@ -19,6 +19,13 @@ import {
 
 export default function CharacterSheet() {
   const { id } = useParams<{ id: string }>();
+  // Retour contextuel : la liste et le suivi des constantes passent chacun
+  // leur origine via l'état de navigation (state.from) au clic sur une
+  // fiche ; sans état (accès direct par URL), on retombe sur l'accueil.
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
+  const backTo = from === "suivi" ? "/suivi" : "/";
+  const backLabel = from === "suivi" ? "← Suivi des constantes" : "← Personnages";
   const [character, setCharacter] = useState<Character | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -93,8 +100,8 @@ export default function CharacterSheet() {
       >
         <div className="mx-auto max-w-3xl space-y-4 px-4 pb-8 pt-6">
           <header className="flex items-center justify-between">
-            <Link to="/" className="text-sm text-indigo-400 hover:underline">
-              ← Personnages
+            <Link to={backTo} className="text-sm text-indigo-400 hover:underline">
+              {backLabel}
             </Link>
             {canEdit &&
               (editing ? (

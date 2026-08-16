@@ -146,6 +146,7 @@ export default function GmTracker() {
             <li key={c.id}>
               <Link
                 to={`/personnages/${c.id}`}
+                state={{ from: "suivi" }}
                 className="flex items-stretch overflow-hidden rounded-xl bg-slate-900 shadow transition hover:bg-slate-800"
               >
                 {/* Silhouette d'armure sur toute la hauteur — même taille (110) que sur la fiche personnage. */}
