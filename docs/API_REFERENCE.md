@@ -40,9 +40,10 @@ Toutes les routes sauf `/api/auth/login` exigent une session valide (cookie http
 
 ### `POST /api/characters`
 - Auth : session + rôle `gm` uniquement.
-- Entrée : `{ name: string, portraitUrl?: string | null, race?: string, hpMax: number, pspMax: number }`
-  — crée un PNJ (`isNpc: true`, `inGame: true`, `hpMaxOverride`/`pspMaxOverride` fixés à
-  `hpMax`/`pspMax` plutôt que calculés depuis les attributs, cf. `calc-engine.ts`). `id` généré
+- Entrée : `{ name: string, portraitUrl?: string | null, race?: string, vit?: number, vol?: number }`
+  — crée un PNJ (`isNpc: true`, `inGame: true`). PV/PSP max suivent exactement le même calcul
+  que pour un personnage de joueur (VIT/VOL + bonus racial + taille, `calc-engine.ts`) ; les
+  autres attributs restent à 0. `id` généré
   par slug du nom (suffixe numérique en cas de collision).
 - Sortie : `{ character: Character, computed: CharacterComputed, canEdit: true }`, code `201`.
 - Erreurs : `403` (pas MJ), `400` (nom manquant).

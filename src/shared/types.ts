@@ -120,17 +120,11 @@ export interface Character {
    * PNJ créé rapidement par le MJ (bouton dédié sur l'écran "Suivi des
    * constantes"), par opposition à un personnage de joueur importé depuis
    * une fiche Excel. Un PNJ n'a en général ni compétences ni équipement
-   * détaillé — seuls le nom, la photo et les PV/PSP max (cf.
-   * hpMaxOverride/pspMaxOverride) comptent vraiment.
+   * détaillé, mais PV/PSP max suivent exactement le même calcul que pour
+   * un joueur (VIT/VOL + race + taille, cf. calc-engine.ts) — le MJ saisit
+   * juste VIT/VOL à la création plutôt que les 8 attributs.
    */
   isNpc: boolean;
-  /**
-   * PV/PSP max fixés directement (pas de fiche d'attributs pour un PNJ) —
-   * prioritaires sur le calcul habituel (VIT/VOL) dans calc-engine quand
-   * définis. `null`/absent = personnage de joueur normal, calcul inchangé.
-   */
-  hpMaxOverride?: number | null;
-  pspMaxOverride?: number | null;
 
   // Listes
   skills: SkillEntry[];

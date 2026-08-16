@@ -99,7 +99,7 @@ characterRoutes.post("/", async (c) => {
   }
 
   const body = await c.req
-    .json<{ name?: string; portraitUrl?: string | null; race?: string; hpMax?: number; pspMax?: number }>()
+    .json<{ name?: string; portraitUrl?: string | null; race?: string; vit?: number; vol?: number }>()
     .catch(() => null);
   if (!body?.name?.trim()) {
     return c.json({ error: "Nom requis" }, 400);
@@ -107,8 +107,12 @@ characterRoutes.post("/", async (c) => {
 
   const id = await uniqueId(c.env.DB, body.name);
   const now = new Date().toISOString();
-  const hpMax = Number.isFinite(body.hpMax) ? Number(body.hpMax) : 20;
-  const pspMax = Number.isFinite(body.pspMax) ? Number(body.pspMax) : 20;
+  const race = body.race?.trim() || "humain";
+  // PV/PSP suivent exactement le même calcul que pour un personnage de
+  // joueur (VIT/VOL + bonus racial + taille, cf. calc-engine.ts) — le MJ
+  // saisit juste VIT/VOL, les autres attributs restent à 0 (un PNJ n'a pas
+  // de compétences à calculer dessus dans ce flux minimal).
+  const raceDef = referenceData.races.find((r) => r.race === race);
 
   const character: Character = {
     id,
@@ -117,18 +121,16 @@ characterRoutes.post("/", async (c) => {
     age: null,
     heightM: null,
     weightLabel: "",
-    race: body.race?.trim() || "humain",
+    race,
     faction: "",
     fonction: "",
     loyaute: "",
     portraitUrl: body.portraitUrl ?? null,
-    attributeScores: EMPTY_ATTRIBUTE_SCORES,
+    attributeScores: { ...EMPTY_ATTRIBUTE_SCORES, VIT: body.vit ?? 0, VOL: body.vol ?? 0 },
     attributeTechBonus: {},
-    tailleModifier: 0,
-    hpCurrent: hpMax,
-    pspCurrent: pspMax,
-    hpMaxOverride: hpMax,
-    pspMaxOverride: pspMax,
+    tailleModifier: raceDef?.tailleBonus ?? 0,
+    hpCurrent: 0, // recalculé juste après via computeCharacter
+    pspCurrent: 0,
     inGame: true, // visible tout de suite là où le MJ vient de le créer (Suivi des constantes)
     isNpc: true,
     skills: [],
@@ -143,6 +145,9 @@ characterRoutes.post("/", async (c) => {
     notes: "",
     updatedAt: now,
   };
+  const { hpMax, pspMax } = computeCharacter(character, referenceData);
+  character.hpCurrent = hpMax;
+  character.pspCurrent = pspMax;
 
   await c.env.DB.prepare(
     "INSERT INTO characters (id, name, race, owner_username, data, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",

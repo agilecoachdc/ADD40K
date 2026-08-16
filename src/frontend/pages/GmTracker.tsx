@@ -6,14 +6,17 @@
 // ouvert côté MJ.
 //
 // Les PNJ sont créés directement depuis cet écran (pas de fiche complète —
-// juste nom/photo/PV max/PSP max, cf. characters.ts POST) et ont, à la
+// juste nom/photo/race/VIT/VOL, cf. characters.ts POST) et ont, à la
 // différence des personnages de joueurs, des boutons +/- pour ajuster leurs
 // PV/PSP en direct : ils n'ont pas de joueur pour le faire depuis leur
-// propre fiche.
+// propre fiche. PV/PSP max suivent le même calcul que pour un joueur
+// (VIT/VOL + race + taille, cf. calc-engine.ts) — le formulaire affiche un
+// aperçu en direct de ce calcul pendant la saisie.
 
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import type { CharacterSummary } from "@shared/types";
+import { ATTRIBUTES, type AttributeScores, type CharacterSummary } from "@shared/types";
+import { getHpMax, getPspMax } from "@shared/calc-engine";
 import { referenceData } from "@shared/reference-data";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
@@ -22,6 +25,7 @@ import { resizePortraitToDataUrl } from "../lib/image";
 
 const POLL_INTERVAL_MS = 5000;
 const RING_SIZE = 160;
+const EMPTY_NPC_ATTRIBUTES: AttributeScores = Object.fromEntries(ATTRIBUTES.map((a) => [a, 0])) as AttributeScores;
 
 /**
  * Anneaux concentriques façon Apple Fitness : PV (rouge) à l'extérieur, PSP
@@ -186,12 +190,23 @@ export default function GmTracker() {
   const [showNpcForm, setShowNpcForm] = useState(false);
   const [npcName, setNpcName] = useState("");
   const [npcRace, setNpcRace] = useState("");
-  const [npcHpMax, setNpcHpMax] = useState(20);
-  const [npcPspMax, setNpcPspMax] = useState(20);
+  const [npcVit, setNpcVit] = useState(0);
+  const [npcVol, setNpcVol] = useState(0);
   const [npcPortraitUrl, setNpcPortraitUrl] = useState<string | null>(null);
   const [npcSaving, setNpcSaving] = useState(false);
   const [npcError, setNpcError] = useState<string | null>(null);
   const npcFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Aperçu du calcul PV/PSP pendant la saisie — même moteur que la fiche
+  // (getHpMax/getPspMax), sur un personnage minimal construit à la volée.
+  const npcPreviewCharacter = {
+    attributeScores: { ...EMPTY_NPC_ATTRIBUTES, VIT: npcVit, VOL: npcVol },
+    attributeTechBonus: {},
+    race: npcRace || "humain",
+    tailleModifier: referenceData.races.find((r) => r.race === (npcRace || "humain"))?.tailleBonus ?? 0,
+  };
+  const npcHpPreview = getHpMax(npcPreviewCharacter, referenceData);
+  const npcPspPreview = getPspMax(npcPreviewCharacter, referenceData);
 
   function loadCharacters() {
     return api
@@ -259,13 +274,13 @@ export default function GmTracker() {
         name: npcName.trim(),
         portraitUrl: npcPortraitUrl,
         race: npcRace || undefined,
-        hpMax: npcHpMax,
-        pspMax: npcPspMax,
+        vit: npcVit,
+        vol: npcVol,
       });
       setNpcName("");
       setNpcRace("");
-      setNpcHpMax(20);
-      setNpcPspMax(20);
+      setNpcVit(0);
+      setNpcVol(0);
       setNpcPortraitUrl(null);
       setShowNpcForm(false);
       await loadCharacters();
@@ -379,26 +394,29 @@ export default function GmTracker() {
                         </select>
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs text-slate-500">PV max</label>
+                        <label className="mb-1 block text-xs text-slate-500">Vitalité (VIT)</label>
                         <input
                           type="number"
-                          min={1}
-                          value={npcHpMax}
-                          onChange={(e) => setNpcHpMax(Number(e.target.value))}
+                          value={npcVit}
+                          onChange={(e) => setNpcVit(Number(e.target.value))}
                           className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs text-slate-500">PSP max</label>
+                        <label className="mb-1 block text-xs text-slate-500">Volonté (VOL)</label>
                         <input
                           type="number"
-                          min={0}
-                          value={npcPspMax}
-                          onChange={(e) => setNpcPspMax(Number(e.target.value))}
+                          value={npcVol}
+                          onChange={(e) => setNpcVol(Number(e.target.value))}
                           className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
                         />
                       </div>
                     </div>
+                    <p className="text-xs text-slate-500">
+                      PV max : <span className="text-red-400">{npcHpPreview}</span> · PSP max :{" "}
+                      <span className="text-sky-400">{npcPspPreview}</span> (même calcul que pour un joueur — VIT/VOL
+                      + race + taille)
+                    </p>
                   </div>
                 </div>
                 {npcError && <p className="mt-3 text-sm text-red-400">{npcError}</p>}

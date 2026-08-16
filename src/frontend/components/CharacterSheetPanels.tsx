@@ -5,7 +5,7 @@
 // est faux.
 
 import { useRef, useState } from "react";
-import { ATTRIBUTES, type Attribute, type Character } from "@shared/types";
+import { ATTRIBUTES, WEAPON_TYPES, type Attribute, type Character, type WeaponType } from "@shared/types";
 import type { CharacterComputed } from "@shared/calc-engine";
 import { getPsyPowerTotal, getSkillTotal } from "@shared/calc-engine";
 import { referenceData, LOCALISATIONS } from "@shared/reference-data";
@@ -53,6 +53,42 @@ function TextInput({ value, onChange, className = "" }: { value: string; onChang
       onChange={(e) => onChange(e.target.value)}
       className={`rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm ${className}`}
     />
+  );
+}
+
+/**
+ * Sélecteur d'un nom/libellé depuis le catalogue de référence (feuille
+ * `listes` du classeur Excel — src/shared/reference-data.ts), plutôt qu'un
+ * champ texte libre : évite les fautes de frappe et permet d'auto-remplir
+ * les caractéristiques associées (dégâts/RA d'une arme, VP d'une armure,
+ * discipline d'un pouvoir, valeur d'un avantage...) au choix, via `onPick`.
+ */
+function CatalogSelect({
+  value,
+  options,
+  onPick,
+  placeholder = "— choisir —",
+  className = "",
+}: {
+  value: string;
+  options: string[];
+  onPick: (name: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onPick(e.target.value)}
+      className={`rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm ${className}`}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((name) => (
+        <option key={name} value={name}>
+          {name}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -316,7 +352,13 @@ export function SkillsPanel({
           return (
             <li key={i} className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-2 text-sm">
               {editing ? (
-                <TextInput value={s.name} onChange={(v) => setSkill(i, { name: v })} className="flex-1" />
+                <CatalogSelect
+                  value={s.name}
+                  options={referenceData.skills.map((sd) => sd.name)}
+                  onPick={(name) => setSkill(i, { name })}
+                  placeholder="— choisir une compétence —"
+                  className="flex-1"
+                />
               ) : (
                 <span className="text-slate-200">{s.name}</span>
               )}
@@ -381,9 +423,28 @@ export function WeaponsArmorPanel({
             <li key={i} className="rounded-lg bg-slate-800/50 p-2 text-sm">
               <div className="flex items-center justify-between gap-2">
                 {editing ? (
-                  <TextInput
+                  <CatalogSelect
                     value={w.name}
-                    onChange={(v) => update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, name: v } : x)) })}
+                    options={referenceData.weapons.map((wd) => wd.name)}
+                    onPick={(name) => {
+                      // Auto-remplit type/dégâts/RA depuis le catalogue (listes!I:R) —
+                      // le score de base reste manuel (dépend du personnage, pas du catalogue).
+                      const def = referenceData.weapons.find((wd) => wd.name === name);
+                      update({
+                        weapons: weapons.map((x, idx) =>
+                          idx === i
+                            ? {
+                                ...x,
+                                name,
+                                type: (def?.type as WeaponType) ?? x.type,
+                                damage: def?.damage ?? x.damage,
+                                ra: def?.ra ?? x.ra,
+                              }
+                            : x,
+                        ),
+                      });
+                    }}
+                    placeholder="— choisir une arme —"
                     className="flex-1"
                   />
                 ) : (
@@ -398,7 +459,7 @@ export function WeaponsArmorPanel({
                   </button>
                 )}
               </div>
-              <div className="mt-1 flex flex-wrap gap-3 text-slate-400">
+              <div className="mt-1 flex flex-wrap items-center gap-3 text-slate-400">
                 <span>
                   Score{" "}
                   {editing ? (
@@ -432,7 +493,23 @@ export function WeaponsArmorPanel({
                     w.ra
                   )}
                 </span>
-                <span>{w.type}</span>
+                {editing ? (
+                  <select
+                    value={w.type}
+                    onChange={(e) =>
+                      update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, type: e.target.value as WeaponType } : x)) })
+                    }
+                    className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5 text-xs"
+                  >
+                    {WEAPON_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span>{w.type}</span>
+                )}
               </div>
             </li>
           ))}
@@ -489,9 +566,30 @@ export function WeaponsArmorPanel({
                     onChange={(e) => update({ armor: armor.map((x, idx) => (idx === i ? { ...x, active: e.target.checked } : x)) })}
                     aria-label={`${a.name} équipée`}
                   />
-                  <TextInput
+                  <CatalogSelect
                     value={a.name}
-                    onChange={(v) => update({ armor: armor.map((x, idx) => (idx === i ? { ...x, name: v } : x)) })}
+                    options={referenceData.armor.map((ad) => ad.name)}
+                    onPick={(name) => {
+                      // Auto-remplit les VP tête/bras/torse/jambes depuis le
+                      // catalogue (listes!T:AD) — restent éditables si le
+                      // joueur veut surcharger (ex. armure améliorée).
+                      const def = referenceData.armor.find((ad) => ad.name === name);
+                      update({
+                        armor: armor.map((x, idx) =>
+                          idx === i
+                            ? {
+                                ...x,
+                                name,
+                                vpTete: def?.vpTete ?? x.vpTete,
+                                vpBras: def?.vpBras ?? x.vpBras,
+                                vpTorse: def?.vpTorse ?? x.vpTorse,
+                                vpJambes: def?.vpJambes ?? x.vpJambes,
+                              }
+                            : x,
+                        ),
+                      });
+                    }}
+                    placeholder="— choisir une armure —"
                     className="flex-1"
                   />
                   <button
@@ -551,9 +649,18 @@ export function PsyPowersPanel({
           return (
             <li key={i} className="flex items-center justify-between gap-2 text-sm">
               {editing ? (
-                <TextInput
+                <CatalogSelect
                   value={p.name}
-                  onChange={(v) => update({ psyPowers: powers.map((x, idx) => (idx === i ? { ...x, name: v } : x)) })}
+                  options={referenceData.psyPowers.map((pd) => pd.name)}
+                  onPick={(name) => {
+                    const def = referenceData.psyPowers.find((pd) => pd.name === name);
+                    update({
+                      psyPowers: powers.map((x, idx) =>
+                        idx === i ? { ...x, name, discipline: def?.discipline ?? x.discipline } : x,
+                      ),
+                    });
+                  }}
+                  placeholder="— choisir un pouvoir —"
                   className="flex-1"
                 />
               ) : (
@@ -605,8 +712,28 @@ export function AdvantagesPanel({
     <Section title="Avantages et inconvénients">
       <ul className="space-y-1">
         {advantages.map((a, i) => (
-          <li key={i} className="flex items-center justify-between text-sm">
-            <span className="text-slate-200">{a.label}</span>
+          <li key={i} className="flex items-center justify-between gap-2 text-sm">
+            {editing ? (
+              <CatalogSelect
+                value={a.label}
+                options={referenceData.advantages.map((ad) => ad.label)}
+                onPick={(label) => {
+                  // La valeur (points) vient toujours du catalogue par
+                  // libellé, jamais saisie à la main — c'est ce qui a
+                  // corrigé le bug "Dans les nuages" à l'import (cf.
+                  // calc-engine.ts) ; laisser la même règle ici évite de
+                  // le réintroduire.
+                  const def = referenceData.advantages.find((ad) => ad.label === label);
+                  update({
+                    advantages: advantages.map((x, idx) => (idx === i ? { label, value: def?.value ?? 0 } : x)),
+                  });
+                }}
+                placeholder="— choisir —"
+                className="flex-1"
+              />
+            ) : (
+              <span className="text-slate-200">{a.label}</span>
+            )}
             <span className={a.value >= 0 ? "text-emerald-400" : "text-red-400"}>
               {a.value >= 0 ? "+" : ""}
               {a.value}
@@ -614,7 +741,7 @@ export function AdvantagesPanel({
             {editing && (
               <button
                 onClick={() => update({ advantages: advantages.filter((_, idx) => idx !== i) })}
-                className="ml-2 text-slate-500 hover:text-red-400"
+                className="text-slate-500 hover:text-red-400"
               >
                 ×
               </button>
@@ -622,6 +749,14 @@ export function AdvantagesPanel({
           </li>
         ))}
       </ul>
+      {editing && (
+        <button
+          onClick={() => update({ advantages: [...advantages, { label: "", value: 0 }] })}
+          className="mt-2 text-sm text-indigo-400 hover:underline"
+        >
+          + Ajouter un avantage/inconvénient
+        </button>
+      )}
     </Section>
   );
 }
