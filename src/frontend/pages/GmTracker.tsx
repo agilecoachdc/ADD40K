@@ -239,8 +239,8 @@ export default function GmTracker() {
   // Vue réservée au MJ — un joueur qui atterrit ici (URL directe) repart à l'accueil.
   if (user && user.role !== "gm") return <Navigate to="/" replace />;
 
-  const players = rows?.filter((c) => c.inGame && !c.isNpc) ?? null;
-  const npcs = rows?.filter((c) => c.inGame && c.isNpc) ?? null;
+  const players = rows?.filter((c) => c.inGame && !c.isNpc && !c.archived) ?? null;
+  const npcs = rows?.filter((c) => c.inGame && c.isNpc && !c.archived) ?? null;
 
   // Ajuste PV/PSP d'un PNJ et sauvegarde immédiatement — pas de fiche à
   // ouvrir, c'est tout l'intérêt de ces boutons pour le MJ en cours de jeu.

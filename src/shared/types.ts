@@ -143,6 +143,13 @@ export interface Character {
    * juste VIT/VOL à la création plutôt que les 8 attributs.
    */
   isNpc: boolean;
+  /**
+   * Archivé par le MJ (bouton "Archiver" sur l'écran d'accueil) : masqué des
+   * écrans "Personnages" et "Suivi des constantes" sans être supprimé —
+   * même principe que `inGame`, absent des fiches existantes avant l'ajout
+   * de ce champ, traité comme `false` côté route (GET /api/characters).
+   */
+  archived: boolean;
 
   // Listes
   skills: SkillEntry[];
@@ -262,6 +269,7 @@ export interface CharacterSummary {
   portraitUrl: string | null;
   inGame: boolean;
   isNpc: boolean;
+  archived: boolean;
   hpCurrent: number;
   hpMax: number;
   pspCurrent: number;

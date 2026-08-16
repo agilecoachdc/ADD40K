@@ -28,8 +28,10 @@ Toutes les routes sauf `/api/auth/login` exigent une session valide (cookie http
 ### `GET /api/characters`
 - Auth : session (tout utilisateur connecté).
 - Sortie : `{ characters: CharacterSummary[] }` — résumé enrichi (portrait, statut `inGame`,
-  PV/PSP courant + max calculé) utilisé par l'écran d'accueil et l'écran "Suivi des
-  constantes" (MJ). Voir `src/shared/types.ts`.
+  `isNpc`, `archived`, PV/PSP courant + max calculé) utilisé par l'écran d'accueil et l'écran
+  "Suivi des constantes" (MJ). `archived` masque la fiche des deux écrans sans la supprimer
+  (bouton "Archiver"/"Désarchiver", MJ uniquement, écran d'accueil) ; `isNpc` peut être basculé
+  dans les deux sens par le MJ (boutons "→ PNJ"/"→ Joueur"). Voir `src/shared/types.ts`.
 
 ### `GET /api/characters/:id`
 - Auth : session (lecture ouverte à tout utilisateur connecté).

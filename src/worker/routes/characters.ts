@@ -40,6 +40,7 @@ characterRoutes.get("/", async (c) => {
       portraitUrl: parsed.portraitUrl,
       inGame: parsed.inGame ?? false,
       isNpc: parsed.isNpc ?? false,
+      archived: parsed.archived ?? false,
       hpCurrent: parsed.hpCurrent,
       hpMax,
       pspCurrent: parsed.pspCurrent,
@@ -133,6 +134,7 @@ characterRoutes.post("/", async (c) => {
     pspCurrent: 0,
     inGame: true, // visible tout de suite là où le MJ vient de le créer (Suivi des constantes)
     isNpc: true,
+    archived: false,
     skills: [],
     psyPowers: [],
     weapons: [],
