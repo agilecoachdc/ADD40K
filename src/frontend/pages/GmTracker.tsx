@@ -24,7 +24,14 @@ import { RaceArmorSilhouette } from "../components/RaceArmorSilhouette";
 import { resizePortraitToDataUrl } from "../lib/image";
 
 const POLL_INTERVAL_MS = 5000;
-const RING_SIZE = 160;
+// Anneaux/photo/silhouette dimensionnés pour tenir sur un écran de 390px de
+// large (iPhone 12 Pro) sans scroll horizontal en tuile 1 colonne : silhouette
+// (SIL_SIZE + son padding px-3) + rings + photo + paddings/gap du contenu
+// tiennent dans les ~358px utiles (390 - px-4 de la page) avec une marge de
+// sécurité. Cf. CharacterTile ci-dessous pour le détail des paddings.
+const RING_SIZE = 96;
+const PHOTO_SIZE = 96;
+const SIL_SIZE = 80;
 const EMPTY_NPC_ATTRIBUTES: AttributeScores = Object.fromEntries(ATTRIBUTES.map((a) => [a, 0])) as AttributeScores;
 
 /**
@@ -130,9 +137,9 @@ function CharacterTile({
       state={{ from: "suivi" }}
       className="flex items-stretch overflow-hidden rounded-xl bg-slate-900 shadow transition hover:bg-slate-800"
     >
-      {/* Silhouette d'armure sur toute la hauteur — même taille (110) que sur la fiche personnage. */}
+      {/* Silhouette d'armure sur toute la hauteur — taille réduite par rapport à la fiche personnage (SIL_SIZE) pour tenir sur mobile. */}
       <div className="flex shrink-0 items-center justify-center self-stretch bg-slate-950/40 px-3">
-        <RaceArmorSilhouette race={c.race} armorTotals={c.armorTotals} size={110} />
+        <RaceArmorSilhouette race={c.race} armorTotals={c.armorTotals} size={SIL_SIZE} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col p-3">
         <div className="flex items-center justify-between gap-2">
@@ -156,9 +163,17 @@ function CharacterTile({
         <div className="mt-2 flex flex-1 items-center gap-3">
           <ConstantsRings hpCurrent={c.hpCurrent} hpMax={c.hpMax} pspCurrent={c.pspCurrent} pspMax={c.pspMax} size={RING_SIZE} />
           {c.portraitUrl ? (
-            <img src={c.portraitUrl} alt={c.name} className="h-[160px] w-[160px] shrink-0 rounded-lg object-cover" />
+            <img
+              src={c.portraitUrl}
+              alt={c.name}
+              className="shrink-0 rounded-lg object-cover"
+              style={{ height: PHOTO_SIZE, width: PHOTO_SIZE }}
+            />
           ) : (
-            <div className="flex h-[160px] w-[160px] shrink-0 items-center justify-center rounded-lg bg-slate-800 text-4xl text-slate-600">
+            <div
+              className="flex shrink-0 items-center justify-center rounded-lg bg-slate-800 text-3xl text-slate-600"
+              style={{ height: PHOTO_SIZE, width: PHOTO_SIZE }}
+            >
               {c.name.charAt(0)}
             </div>
           )}
