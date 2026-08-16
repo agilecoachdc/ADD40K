@@ -146,6 +146,7 @@ export default function CharacterList() {
         {error && <p className="text-red-400">{error}</p>}
         {!rows && !error && <p className="text-slate-400">Chargement…</p>}
 
+        {isGm && <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Joueurs</h2>}
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {rows?.filter((c) => !c.isNpc).map((c) => {
             const canEdit = isGm || c.owner_username === user?.username;
@@ -205,6 +206,43 @@ export default function CharacterList() {
             );
           })}
         </ul>
+
+        {/*
+          Section PNJ — MJ uniquement : les PNJ n'ont pas de joueur pour
+          cocher "En jeu" depuis leur propre fiche (contrairement aux
+          personnages joueurs ci-dessus), donc c'est ici que le MJ décide
+          lesquels apparaissent sur l'écran "Suivi des constantes"
+          (rows.inGame filtré côté GmTracker.tsx).
+        */}
+        {isGm && rows && rows.some((c) => c.isNpc) && (
+          <>
+            <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wide text-slate-400">PNJ</h2>
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {rows.filter((c) => c.isNpc).map((c) => (
+                <li key={c.id} className="flex items-center gap-2">
+                  <Link
+                    to={`/personnages/${c.id}`}
+                    className="flex flex-1 items-center justify-between rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
+                  >
+                    <div>
+                      <p className="font-medium text-slate-100">{c.name}</p>
+                      <p className="text-sm text-slate-400">{raceLabel(c.race)}</p>
+                    </div>
+                  </Link>
+                  <label className="flex shrink-0 flex-col items-center gap-0.5 text-xs text-slate-400">
+                    <input
+                      type="checkbox"
+                      checked={c.inGame}
+                      onChange={() => toggleInGame(c)}
+                      aria-label={`${c.name} en jeu`}
+                    />
+                    En jeu
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
     </div>
   );
