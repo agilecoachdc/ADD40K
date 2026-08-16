@@ -128,6 +128,14 @@ export default function CharacterList() {
                 Suivi des constantes
               </Link>
             )}
+            <a
+              href="https://drive.google.com/drive/folders/1bCHRg2AuKnBwizC9arAxvLRCQ8ikCJ6s"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-400 hover:underline"
+            >
+              Dossier Drive
+            </a>
             <span>{user?.displayName}</span>
             <button onClick={() => logout()} className="text-indigo-400 hover:underline">
               Déconnexion
