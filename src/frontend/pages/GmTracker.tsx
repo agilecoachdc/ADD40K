@@ -140,14 +140,14 @@ export default function GmTracker() {
                 <div className="flex shrink-0 items-center justify-center self-stretch bg-slate-950/40 px-3">
                   <RaceArmorSilhouette race={c.race} armorTotals={c.armorTotals} size={110} />
                 </div>
-                <div className="min-w-0 flex-1 p-3">
+                <div className="flex min-w-0 flex-1 flex-col p-3">
                   <p className="truncate text-sm font-medium text-slate-100">{c.name}</p>
-                  <div className="mt-2 flex items-center gap-3">
-                    <ConstantsRings hpCurrent={c.hpCurrent} hpMax={c.hpMax} pspCurrent={c.pspCurrent} pspMax={c.pspMax} size={64} />
+                  <div className="mt-2 flex flex-1 items-center gap-3">
+                    <ConstantsRings hpCurrent={c.hpCurrent} hpMax={c.hpMax} pspCurrent={c.pspCurrent} pspMax={c.pspMax} size={100} />
                     {c.portraitUrl ? (
-                      <img src={c.portraitUrl} alt={c.name} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+                      <img src={c.portraitUrl} alt={c.name} className="h-[100px] w-[100px] shrink-0 rounded-lg object-cover" />
                     ) : (
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-xl text-slate-600">
+                      <div className="flex h-[100px] w-[100px] shrink-0 items-center justify-center rounded-lg bg-slate-800 text-3xl text-slate-600">
                         {c.name.charAt(0)}
                       </div>
                     )}
