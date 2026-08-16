@@ -23,7 +23,7 @@ import { api } from "../lib/api";
 import { RaceArmorSilhouette } from "../components/RaceArmorSilhouette";
 import { resizePortraitToDataUrl } from "../lib/image";
 
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 1000;
 // Anneaux/photo/silhouette dimensionnés pour tenir sur un écran de 390px de
 // large (iPhone 12 Pro) sans scroll horizontal en tuile 1 colonne : silhouette
 // (SIL_SIZE + son padding px-3) + rings + photo + paddings/gap du contenu
