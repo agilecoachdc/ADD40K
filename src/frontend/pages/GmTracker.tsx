@@ -336,12 +336,14 @@ export default function GmTracker() {
               </p>
             )}
             {/*
-              Passage à 2 colonnes repoussé à `lg` (1024px) plutôt que `sm`
-              (640px) : entre 640 et 1023px, une tuile en 2 colonnes serait
-              trop étroite pour loger silhouette + anneaux + photo agrandis
-              sans déborder.
+              Passage à 2 colonnes à `md` (768px, format tablette portrait) :
+              tuile mini ≈ 332px (SIL_SIZE 80 + RING_SIZE/PHOTO_SIZE 96 x2 +
+              paddings/gap), donc 2 colonnes (2x332 + gap-3) tiennent dès
+              ~708px de large — `sm` (640px) serait trop étroit, `md` a de la
+              marge. En dessous de 768px (téléphone), 1 colonne pour éviter le
+              scroll horizontal (cf. RING_SIZE/PHOTO_SIZE/SIL_SIZE ci-dessus).
             */}
-            <ul className="mb-8 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <ul className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2">
               {players?.map((c) => (
                 <li key={c.id}>
                   <CharacterTile c={c} isNpc={false} />
@@ -448,7 +450,7 @@ export default function GmTracker() {
             {npcs && npcs.length === 0 && !showNpcForm && (
               <p className="text-sm text-slate-500">Aucun PNJ en jeu.</p>
             )}
-            <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {npcs?.map((c) => (
                 <li key={c.id}>
                   <CharacterTile
