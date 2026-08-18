@@ -153,7 +153,7 @@ export default function CharacterList() {
     setError(null);
     setBusyId(id);
     try {
-      const [{ character }, XLSX, templateRes] = await Promise.all([
+      const [{ character, referenceData }, XLSX, templateRes] = await Promise.all([
         api.getCharacter(id),
         import("xlsx"),
         fetch("/character-template.xlsx"),
@@ -162,7 +162,7 @@ export default function CharacterList() {
       const buf = await templateRes.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
       const { applyCharacterToWorkbook } = await import("../lib/xlsxSync");
-      applyCharacterToWorkbook(wb, character);
+      applyCharacterToWorkbook(wb, character, referenceData);
       const out = XLSX.write(wb, { type: "array", bookType: "xlsx" });
       const blob = new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const url = URL.createObjectURL(blob);

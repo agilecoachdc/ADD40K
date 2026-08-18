@@ -15,6 +15,12 @@
 //      (somme brute des avantages/inconvénients). Or un avantage doit COÛTER
 //      des points et un inconvénient doit en DONNER — c'est l'inverse. Ce
 //      moteur fait donc `- advantagesNet`, pas `+`.
+//   3. Rang d'Action (getWeaponTotals.ra) : la réimplémentation du 16/08
+//      (cf. investigation weapon-modifiers) avait traité le RA comme les
+//      autres stats d'arme (base + somme des modificateurs), en oubliant la
+//      partie "8 - Réflexe" de la formule — confirmé par le MJ le 18/08 sur
+//      le cas réel Wild Predator de Conrad Lingus (RA final 7, pas le simple
+//      total base+modificateurs qui donnait 1). Voir BASE_RA plus bas.
 
 import type {
   Attribute,
@@ -184,17 +190,33 @@ export interface WeaponTotals {
 }
 
 /**
- * RA/Dégâts/Score réellement joués = valeur de base + somme des
- * modificateurs justifiés (cf. WeaponEntry.modifiers dans types.ts).
- * Remplace le bricolage du classeur Excel d'origine (une formule figée
- * référençant 3 lignes fixes du catalogue, uniquement câblée pour le 1er
- * emplacement d'arme, propagée par copier-coller à des personnages qui
- * n'avaient pourtant pas l'amélioration — cf. investigation du 16/08).
+ * Rang d'Action par défaut avant réflexes/arme : plus le RA final est bas,
+ * plus le personnage agit tôt (confirmé par le MJ le 18/08). Le RA de
+ * catalogue d'une arme (WeaponEntry.ra, ex. 2 pour Wild Predator) et ses
+ * modificateurs justifiés ne sont donc pas le RA final — ils viennent en
+ * déduction de ce socle, avec le Réflexe total du personnage.
  */
-export function getWeaponTotals(weapon: Pick<WeaponEntry, "ra" | "damage" | "baseScore" | "modifiers">): WeaponTotals {
+const BASE_RA = 8;
+
+/**
+ * Dégâts/Score réellement joués = valeur de base + somme des modificateurs
+ * justifiés (cf. WeaponEntry.modifiers dans types.ts). RA réellement joué =
+ * BASE_RA - Réflexe total - (RA de catalogue + modificateurs) : contrairement
+ * aux deux autres stats, le RA de catalogue n'est pas la valeur jouée mais un
+ * terme de la formule complète (cf. écart n°3 en tête de fichier). Remplace
+ * le bricolage du classeur Excel d'origine (une formule figée référençant 3
+ * lignes fixes du catalogue, uniquement câblée pour le 1er emplacement
+ * d'arme, propagée par copier-coller à des personnages qui n'avaient
+ * pourtant pas l'amélioration — cf. investigation du 16/08).
+ */
+export function getWeaponTotals(
+  weapon: Pick<WeaponEntry, "ra" | "damage" | "baseScore" | "modifiers">,
+  refTotal: number,
+): WeaponTotals {
   const modifiers = weapon.modifiers ?? [];
+  const raModifier = weapon.ra + modifiers.reduce((sum, m) => sum + (m.ra ?? 0), 0);
   return {
-    ra: weapon.ra + modifiers.reduce((sum, m) => sum + (m.ra ?? 0), 0),
+    ra: BASE_RA - refTotal - raModifier,
     damage: weapon.damage + modifiers.reduce((sum, m) => sum + (m.damage ?? 0), 0),
     baseScore: weapon.baseScore + modifiers.reduce((sum, m) => sum + (m.score ?? 0), 0),
   };

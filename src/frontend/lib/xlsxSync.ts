@@ -31,7 +31,7 @@ import type {
   WeaponType,
 } from "@shared/types";
 import { ATTRIBUTES } from "@shared/types";
-import { getWeaponTotals } from "@shared/calc-engine";
+import { getAttributeTotal, getWeaponTotals } from "@shared/calc-engine";
 
 const ATTR_ROWS: Record<Attribute, number> = { FO: 6, VIT: 8, DEX: 10, REF: 12, PER: 14, COM: 16, INT: 18, VOL: 20 };
 const SKILL_ROWS = range(3, 15); // données!J3:K14 — 12 emplacements
@@ -72,8 +72,13 @@ function requiredSheets(wb: XLSXType.WorkBook): { dn: XLSXType.WorkSheet; cs: XL
 }
 
 /** Écrit le personnage dans un classeur (mutation en place) — utilisé par l'export. */
-export function applyCharacterToWorkbook(wb: XLSXType.WorkBook, character: Character): void {
+export function applyCharacterToWorkbook(wb: XLSXType.WorkBook, character: Character, reference: ReferenceData): void {
   const { dn, cs } = requiredSheets(wb);
+  // RA joué = 8 - Réflexe total - (RA de catalogue + modificateurs), cf.
+  // calc-engine.getWeaponTotals — nécessite le Réflexe total du personnage
+  // (base + bonus racial + bonus tech), d'où le paramètre `reference` en
+  // plus de `character` (absent avant le fix RA du 18/08).
+  const refTotal = getAttributeTotal(character, reference, "REF");
 
   setCell(dn, "C2", character.race);
 
@@ -121,7 +126,7 @@ export function applyCharacterToWorkbook(wb: XLSXType.WorkBook, character: Chara
     // modificateurs (justification par ligne d'équipement) est une
     // nouveauté app, sans équivalent de cellule dans le classeur d'origine
     // — il ne survit donc pas à l'export (perte assumée, comme les images).
-    const totals = w ? getWeaponTotals(w) : undefined;
+    const totals = w ? getWeaponTotals(w, refTotal) : undefined;
     setCell(cs, `J${row}`, w?.name);
     setCell(cs, `AO${row}`, w?.type);
     setCell(cs, `AJ${row}`, totals?.damage);

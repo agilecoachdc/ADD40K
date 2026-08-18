@@ -446,7 +446,7 @@ export function WeaponsArmorPanel({
       <Section title="Armes">
         <ul className="space-y-2">
           {weapons.map((w, i) => {
-            const totals = getWeaponTotals(w);
+            const totals = getWeaponTotals(w, computed.attributeTotals.REF);
             const modifiers = w.modifiers ?? [];
             return (
               <li key={i} className="rounded-lg bg-slate-800/50 p-2 text-sm">
@@ -501,8 +501,10 @@ export function WeaponsArmorPanel({
                   )}
                 </div>
                 {/* Score/Dmg/RA : en édition on saisit la valeur DE BASE (comme
-                    avant) ; en lecture on affiche le TOTAL joué (base + somme
-                    des modificateurs justifiés ci-dessous) — cf. getWeaponTotals. */}
+                    avant) ; en lecture on affiche le TOTAL joué. Score/Dmg =
+                    base + somme des modificateurs justifiés ci-dessous ; RA =
+                    8 - Réflexe total - (base + modificateurs), cf.
+                    getWeaponTotals. */}
                 <div className="mt-1 flex flex-wrap items-center gap-3 text-slate-400">
                   <span>
                     Score{" "}

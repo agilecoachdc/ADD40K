@@ -86,39 +86,57 @@ describe("getArmorTotals", () => {
 });
 
 describe("getWeaponTotals", () => {
-  it("sans modificateur, le total = la base (comportement des armes existantes, inchangé)", () => {
-    expect(getWeaponTotals({ ra: 6, damage: 8, baseScore: 7 })).toEqual({ ra: 6, damage: 8, baseScore: 7 });
+  it("Dmg/Score = base (RA = BASE_RA - Réflexe - RA catalogue, pas un simple passthrough)", () => {
+    expect(getWeaponTotals({ ra: 6, damage: 8, baseScore: 7 }, 0)).toEqual({ ra: 2, damage: 8, baseScore: 7 });
   });
 
-  it("cas réel Wild Predator de Conrad Lingus : base catalogue (RA2/Dmg6) + score compétence Arme de poing (7) + modificateur équipement 'Améliorations WP' + écart hérité de l'ancienne fiche", () => {
-    // Depuis la restructuration base=compétence du 16/08 (cf. investigation
-    // weapon-modifiers) : baseScore vient de la compétence liée (Arme de
-    // poing (PER) pour un pistolet), ra/damage viennent du catalogue armes —
-    // le "Écart hérité" absorbe la différence avec l'ancienne fiche Excel
-    // (RA/Dégâts qui n'y étaient pas alignés sur le catalogue).
-    const totals = getWeaponTotals({
-      ra: 2,
-      damage: 6,
-      baseScore: 7,
-      modifiers: [
-        { justification: "Améliorations WP : 1,1,1", ra: -1, damage: 1, score: 1 },
-        { justification: "Écart hérité de la fiche (avant restructuration base = compétence)", ra: 4, damage: 2, score: 1 },
-      ],
-    });
-    expect(totals).toEqual({ ra: 5, damage: 9, baseScore: 9 });
+  it("cas réel Wild Predator de Conrad Lingus (Réflexe total 0, un seul modificateur 'Améliorations WP') : RA final 8 - 0 - (2 - 1) = 7 — confirmé par le MJ le 18/08", () => {
+    const totals = getWeaponTotals(
+      {
+        ra: 2,
+        damage: 6,
+        baseScore: 7,
+        modifiers: [{ justification: "Améliorations WP : 1,1,1", ra: -1, damage: 1, score: 1 }],
+      },
+      0,
+    );
+    expect(totals).toEqual({ ra: 7, damage: 7, baseScore: 8 });
   });
 
-  it("cumule plusieurs modificateurs, chacun ne touchant pas forcément les 3 stats", () => {
-    const totals = getWeaponTotals({
-      ra: 5,
-      damage: 5,
-      baseScore: 5,
-      modifiers: [
-        { justification: "Viseur laser", score: 2 },
-        { justification: "Chargeur amélioré", damage: 1 },
-      ],
-    });
-    expect(totals).toEqual({ ra: 5, damage: 6, baseScore: 7 });
+  it("un Réflexe total plus élevé abaisse le RA final (agit plus tôt)", () => {
+    expect(getWeaponTotals({ ra: 2, damage: 6, baseScore: 7 }, 3)).toEqual({ ra: 3, damage: 6, baseScore: 7 });
+  });
+
+  it("cumule plusieurs modificateurs de RA, chacun ne touchant pas forcément les 3 stats", () => {
+    const totals = getWeaponTotals(
+      {
+        ra: 2,
+        damage: 6,
+        baseScore: 7,
+        modifiers: [
+          { justification: "Améliorations WP : 1,1,1", ra: -1, damage: 1, score: 1 },
+          { justification: "Écart hérité de la fiche (avant restructuration base = compétence)", ra: 4, damage: 2, score: 1 },
+        ],
+      },
+      0,
+    );
+    expect(totals).toEqual({ ra: 3, damage: 9, baseScore: 9 });
+  });
+
+  it("modificateurs ne touchant pas le RA (score/dégâts uniquement)", () => {
+    const totals = getWeaponTotals(
+      {
+        ra: 5,
+        damage: 5,
+        baseScore: 5,
+        modifiers: [
+          { justification: "Viseur laser", score: 2 },
+          { justification: "Chargeur amélioré", damage: 1 },
+        ],
+      },
+      0,
+    );
+    expect(totals).toEqual({ ra: 3, damage: 6, baseScore: 7 });
   });
 });
 
