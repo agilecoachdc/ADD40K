@@ -1119,11 +1119,16 @@ const PSY_BOOST_SKILL_DATALIST_ID = "psy-boost-skill-source";
 
 /**
  * Active/désactive un pouvoir "à la demande" (bouton dédié, réservé au
- * joueur propriétaire ou au MJ — canEdit) : choix d'un palier ≤ au score du
- * personnage dans ce pouvoir (coût en PSP affiché par palier, cf.
- * calc-engine.getPsyPowerActivationCost — décompté/remboursé côté
- * CharacterSheet.setActivePower). "Concentration psy" a un effet chiffré
- * codé (cf. calc-engine.getConcentrationPsyAttributeBonus) qui module une ou
+ * joueur propriétaire ou au MJ — canEdit) : choix d'un palier, coût en PSP
+ * affiché par palier (cf. calc-engine.getPsyPowerActivationCost —
+ * décompté/remboursé côté CharacterSheet.setActivePower). Le jet de dé
+ * (1-10) s'ajoute AU score total du pouvoir (score + Volonté + Affinité,
+ * cf. PsyPowersPanel) — pas au palier — et c'est ce résultat qui détermine
+ * la réussite : l'effet de tout palier ≤ au résultat devient accessible.
+ * Aucun calcul de jet côté app (se joue à table) ; le palier choisi ici
+ * sert seulement à fixer le coût en PSP et l'effet de l'activation.
+ * "Concentration psy" a un effet chiffré codé (cf.
+ * calc-engine.getConcentrationPsyAttributeBonus) qui module une ou
  * plusieurs caractéristiques physiques (REF/DEX/VIT) selon le palier :
  * choix obligatoire d'UNE caractéristique aux paliers 15/20 (sélecteur
  * dédié, toujours visible à ces paliers) ; à partir du palier 25, les TROIS
@@ -1140,23 +1145,19 @@ const PSY_BOOST_SKILL_DATALIST_ID = "psy-boost-skill-source";
  */
 function PsyPowerActivation({
   powerName,
-  score,
   active,
   onChange,
 }: {
   powerName: string;
-  /** Total complet AVANT jet (score + VOL + Affinité — cf. calc-engine.getPsyPowerTotal), pas le seul score de base du catalogue — c'est ce total, pas le score brut, qui compte pour la réussite au dé. */
-  score: number;
   active: ActivePsyPower | undefined;
   onChange: (next: ActivePsyPower | null) => void;
 }) {
   const { t } = useTranslation();
   const isConcentrationPsy = powerName === CONCENTRATION_PSY_NAME;
-  // Tous les paliers restent sélectionnables quel que soit le score : la
-  // réussite se joue au dé (score + palier + jet 1-10, comparé au seuil du
-  // pouvoir), pas par un seuil dur côté app — un score bas reste jouable
-  // grâce au jet. Le total avant jet (score + palier) est affiché pour
-  // aider au choix. Pour "Concentration psy" spécifiquement, palier par
+  // Tous les paliers restent sélectionnables — le palier fixe le coût en
+  // PSP et l'effet de l'activation, pas un seuil que l'app validerait
+  // elle-même (le jet + score, comparés au palier, se jouent à table). Pour
+  // "Concentration psy" spécifiquement, palier par
   // défaut 15 (pas le plus bas palier générique, 10) : c'est le premier
   // palier qui a un effet chiffré pour ce pouvoir (cf.
   // calc-engine.getConcentrationPsyAttributeBonus) — au palier 10 il n'y a
@@ -1214,16 +1215,6 @@ function PsyPowerActivation({
             );
           })}
         </select>
-        {/*
-          Total avant jet = score total du pouvoir/de la compétence (déjà
-          score + attribut + Affinité, cf. PsyPowersPanel/SkillsPanel) — le
-          palier choisi ci-dessus n'est PAS additionné : c'est le seuil que
-          ce total + un jet de 1-10 doit atteindre, pas un terme de la
-          somme. Signalé sur le cas réel Téléportation de Conrad Lingus :
-          total 16 (correct), un ancien calcul y ajoutait par erreur le
-          palier (16 + 10 = 26).
-        */}
-        <span className="text-slate-500">{t("Total avant jet")} : {score}</span>
         {needsAttribute && (
           <span className="flex items-center gap-1">
             <span className="text-slate-400">{t("Caractéristique boostée")} :</span>
@@ -1404,12 +1395,7 @@ export function PsyPowersPanel({
                 </div>
               </div>
               {!editing && canEdit && p.name && (
-                <PsyPowerActivation
-                  powerName={p.name}
-                  score={total}
-                  active={active}
-                  onChange={(next) => onSetActivePower(p.name, next)}
-                />
+                <PsyPowerActivation powerName={p.name} active={active} onChange={(next) => onSetActivePower(p.name, next)} />
               )}
             </li>
           );

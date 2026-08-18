@@ -81,11 +81,12 @@ navigateur intégré, cf. session de build).
       code d'attribut. Le badge bleu "Affinité" en lecture seule affiche la cible réelle (ex.
       "→ Téléportation"), pas le mot "Affinité" répété (cas réel signalé : une ligne nommée
       "Affinité" avec le badge affichait "Affinité Affinité").
-- [ ] Sur un pouvoir psy, cliquer "Activer" → "Total avant jet" doit être identique au total affiché
-      juste au-dessus (Σ, score + Volonté + Affinité) — PAS ce total plus le palier choisi (bug
-      réel signalé : Téléportation de Conrad Lingus affichait 26 au lieu de 16, soit +10 = le
-      palier par défaut ajouté par erreur). Changer de palier ne doit pas faire varier "Total avant
-      jet".
+- [ ] Sur un pouvoir psy, cliquer "Activer" → aucune mention "Total avant jet" (règle mal comprise
+      lors d'une itération précédente, retirée : le dé se joue à table et s'ajoute au score déjà
+      affiché — Σ, score + Volonté + Affinité — ce n'est pas quelque chose que l'app calcule ou
+      affiche séparément). Seuls le sélecteur de palier (avec coût en PSP) et, pour "Concentration
+      psy", le sélecteur de caractéristique/la mention "Toutes les caractéristiques physiques"
+      apparaissent.
 - [ ] Sur une fiche sans l'avantage "Ambidextre" : cocher "équipée" sur une 2ᵉ arme (la 1ʳᵉ reste
       équipée, deux armes autorisées par défaut) → un message rouge "Combat à deux armes sans
       Ambidextre : -3 au score de chaque arme équipée" apparaît, et le "Score" affiché de chacune
