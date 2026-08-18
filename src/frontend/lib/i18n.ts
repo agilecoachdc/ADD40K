@@ -204,6 +204,7 @@ const EN: Record<string, string> = {
   "— caractéristique —": "— attribute —",
   "Caractéristique boostée": "Boosted attribute",
   "Toutes les caractéristiques physiques": "All physical attributes",
+  "Aucun effet chiffré à ce palier — choisir 15 ou plus": "No numeric effect at this level — pick 15 or higher",
   "ou compétence": "or skill",
   "Un tour": "One turn",
   "Le combat": "Whole combat",

@@ -301,8 +301,9 @@ export const referenceData: ReferenceData = {
       "description": "Cela représente votre réputation au sein de votre hiérarchie ; plus cette valeur est haute, plus vous avez accès à des données sécurisées."
     },
     {
-      "name": "Affinité (VOL) Téléportation",
-      "attribute": "VOL"
+      "name": "Affinité",
+      "attribute": "VOL",
+      "description": "Modificateur pour une compétence, un pouvoir psy précis, ou toute une discipline de pouvoirs psy — cocher « Affinité » sur la fiche pour choisir sa cible exacte."
     }
   ],
   "weapons": [

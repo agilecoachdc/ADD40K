@@ -1133,17 +1133,26 @@ function PsyPowerActivation({
   onChange,
 }: {
   powerName: string;
+  /** Total complet AVANT jet (score + VOL + Affinité — cf. calc-engine.getPsyPowerTotal), pas le seul score de base du catalogue — c'est ce total, pas le score brut, qui compte pour la réussite au dé. */
   score: number;
   active: ActivePsyPower | undefined;
   onChange: (next: ActivePsyPower | null) => void;
 }) {
   const { t } = useTranslation();
+  const isConcentrationPsy = powerName === CONCENTRATION_PSY_NAME;
   // Tous les paliers restent sélectionnables quel que soit le score : la
   // réussite se joue au dé (score + palier + jet 1-10, comparé au seuil du
   // pouvoir), pas par un seuil dur côté app — un score bas reste jouable
   // grâce au jet. Le total avant jet (score + palier) est affiché pour
-  // aider au choix.
-  const [level, setLevel] = useState(active?.level ?? PSY_POWER_LEVELS[0]);
+  // aider au choix. Pour "Concentration psy" spécifiquement, palier par
+  // défaut 15 (pas le plus bas palier générique, 10) : c'est le premier
+  // palier qui a un effet chiffré pour ce pouvoir (cf.
+  // calc-engine.getConcentrationPsyAttributeBonus) — au palier 10 il n'y a
+  // ni sélecteur de caractéristique ni note, sans indice pour l'utilisateur
+  // qu'il faut changer le palier pour en voir un (signalé sur la fiche de
+  // Karun : le sélecteur semblait absent alors qu'il fallait juste changer
+  // de palier).
+  const [level, setLevel] = useState(active?.level ?? (isConcentrationPsy ? 15 : PSY_POWER_LEVELS[0]));
   const [attribute, setAttribute] = useState<Attribute>(active?.attribute ?? "REF");
   const [boostAttribute, setBoostAttribute] = useState<Attribute | "">(active?.boostAttribute ?? "");
   const [boostSkillName, setBoostSkillName] = useState(active?.boostSkillName ?? "");
@@ -1154,7 +1163,6 @@ function PsyPowerActivation({
   // configurer (cf. même principe que les justifications de compétence).
   const [showEffect, setShowEffect] = useState(false);
 
-  const isConcentrationPsy = powerName === CONCENTRATION_PSY_NAME;
   const needsAttribute = isConcentrationPsy && (level === 15 || level === 20);
   const isAllPhysicalAttributes = isConcentrationPsy && level >= 25;
 
@@ -1216,6 +1224,9 @@ function PsyPowerActivation({
           <span className="text-slate-400">
             {t("Toutes les caractéristiques physiques")} ({CONCENTRATION_PSY_ATTRIBUTES.join("/")})
           </span>
+        )}
+        {isConcentrationPsy && level === 10 && (
+          <span className="text-slate-500">{t("Aucun effet chiffré à ce palier — choisir 15 ou plus")}</span>
         )}
         <button
           type="button"
@@ -1363,7 +1374,7 @@ export function PsyPowersPanel({
               {!editing && canEdit && p.name && (
                 <PsyPowerActivation
                   powerName={p.name}
-                  score={p.score}
+                  score={total}
                   active={active}
                   onChange={(next) => onSetActivePower(p.name, next)}
                 />
