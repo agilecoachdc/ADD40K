@@ -87,10 +87,12 @@ Voir `POST /api/characters/:id/xp` dans `docs/API_REFERENCE.md`.
 ## Rang d'Action (RA)
 
 Le Rang d'Action détermine l'ordre de jeu en combat : plus le RA final est bas, plus le personnage
-agit tôt. Calculé (`calc-engine.getActionRank`, jamais stocké) comme `BASE_RA(5) - Réflexe total -
-(RA de l'arme équipée + ses modificateurs)` — une arme non équipée compte comme mains nues (RA 0).
-Une seule arme peut être marquée "équipée" à la fois (case à cocher sur la fiche, à côté du nom de
-chaque arme, même principe que l'armure).
+agit tôt. Calculé (`calc-engine.getActionRank`, jamais stocké) comme `BASE_RA(5) - Réflexe total +
+(RA de l'arme équipée + ses modificateurs)` — le RA de catalogue d'une arme (ex. 2 pour Wild
+Predator) est déjà un rang à part entière, lu tel quel dans la table du classeur : il s'additionne
+au socle, il ne s'en soustrait pas. Une arme non équipée compte comme mains nues (RA 0 de
+catalogue). Une seule arme peut être marquée "équipée" à la fois (case à cocher sur la fiche, à
+côté du nom de chaque arme, même principe que l'armure).
 
 Deux éléments du catalogue (Règles ADD40K V0.2) modifient le Réflexe pris en compte, mais
 seulement pendant qu'un pouvoir est actif :

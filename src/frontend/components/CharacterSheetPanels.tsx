@@ -532,7 +532,7 @@ export function WeaponsArmorPanel({
                 {/* Score/Dmg/RA : en édition on saisit la valeur DE BASE (comme
                     avant) ; en lecture on affiche le TOTAL joué. Score/Dmg =
                     base + somme des modificateurs justifiés ci-dessous ; RA =
-                    BASE_RA(5) - Réflexe total - (base + modificateurs), cf.
+                    BASE_RA(5) - Réflexe total + (base + modificateurs), cf.
                     getWeaponTotals. */}
                 <div className="mt-1 flex flex-wrap items-center gap-3 text-slate-400">
                   <span>

@@ -87,11 +87,11 @@ describe("getArmorTotals", () => {
 });
 
 describe("getWeaponTotals", () => {
-  it("Dmg/Score = base (RA = BASE_RA - Réflexe - RA catalogue, pas un simple passthrough)", () => {
-    expect(getWeaponTotals({ ra: 6, damage: 8, baseScore: 7 }, 0)).toEqual({ ra: -1, damage: 8, baseScore: 7 });
+  it("Dmg/Score = base ; RA = BASE_RA - Réflexe + RA catalogue (le RA de catalogue s'additionne, il ne se soustrait pas — c'est déjà un rang à part entière)", () => {
+    expect(getWeaponTotals({ ra: 6, damage: 8, baseScore: 7 }, 0)).toEqual({ ra: 11, damage: 8, baseScore: 7 });
   });
 
-  it("cas réel Wild Predator de Conrad Lingus (Réflexe total 0, un seul modificateur 'Améliorations WP') : RA final 5 - 0 - (2 - 1) = 4 — confirmé par le MJ le 19/08 (base RA 5, pas 8)", () => {
+  it("cas réel Wild Predator de Conrad Lingus (Réflexe total 0, un seul modificateur 'Améliorations WP') : RA final 5 - 0 + (2 - 1) = 6 — confirmé par le MJ le 19/08", () => {
     const totals = getWeaponTotals(
       {
         ra: 2,
@@ -101,11 +101,11 @@ describe("getWeaponTotals", () => {
       },
       0,
     );
-    expect(totals).toEqual({ ra: 4, damage: 7, baseScore: 8 });
+    expect(totals).toEqual({ ra: 6, damage: 7, baseScore: 8 });
   });
 
   it("un Réflexe total plus élevé abaisse le RA final (agit plus tôt)", () => {
-    expect(getWeaponTotals({ ra: 2, damage: 6, baseScore: 7 }, 3)).toEqual({ ra: 0, damage: 6, baseScore: 7 });
+    expect(getWeaponTotals({ ra: 2, damage: 6, baseScore: 7 }, 3)).toEqual({ ra: 4, damage: 6, baseScore: 7 });
   });
 
   it("cumule plusieurs modificateurs de RA, chacun ne touchant pas forcément les 3 stats", () => {
@@ -121,7 +121,7 @@ describe("getWeaponTotals", () => {
       },
       0,
     );
-    expect(totals).toEqual({ ra: 0, damage: 9, baseScore: 9 });
+    expect(totals).toEqual({ ra: 10, damage: 9, baseScore: 9 });
   });
 
   it("modificateurs ne touchant pas le RA (score/dégâts uniquement)", () => {
@@ -137,7 +137,7 @@ describe("getWeaponTotals", () => {
       },
       0,
     );
-    expect(totals).toEqual({ ra: 0, damage: 6, baseScore: 7 });
+    expect(totals).toEqual({ ra: 10, damage: 6, baseScore: 7 });
   });
 });
 
@@ -164,7 +164,7 @@ describe("getActionRank", () => {
     expect(getActionRank(baseCharacter(), referenceData)).toBe(5);
   });
 
-  it("arme équipée : reprend le même terme que getWeaponTotals (cas réel Wild Predator, RA 4 — base RA 5, confirmé par le MJ le 19/08)", () => {
+  it("arme équipée : reprend le même terme que getWeaponTotals (cas réel Wild Predator, RA 6 — RA de catalogue additionné, pas soustrait, confirmé par le MJ le 19/08)", () => {
     const character = {
       ...baseCharacter(),
       weapons: [
@@ -179,7 +179,7 @@ describe("getActionRank", () => {
         },
       ],
     };
-    expect(getActionRank(character, referenceData)).toBe(4);
+    expect(getActionRank(character, referenceData)).toBe(6);
   });
 
   it("une arme présente sur la fiche mais NON équipée ne compte pas (comme mains nues)", () => {

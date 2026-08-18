@@ -74,7 +74,7 @@ function requiredSheets(wb: XLSXType.WorkBook): { dn: XLSXType.WorkSheet; cs: XL
 /** Écrit le personnage dans un classeur (mutation en place) — utilisé par l'export. */
 export function applyCharacterToWorkbook(wb: XLSXType.WorkBook, character: Character, reference: ReferenceData): void {
   const { dn, cs } = requiredSheets(wb);
-  // RA joué = BASE_RA(5) - Réflexe total - (RA de catalogue + modificateurs), cf.
+  // RA joué = BASE_RA(5) - Réflexe total + (RA de catalogue + modificateurs), cf.
   // calc-engine.getWeaponTotals — nécessite le Réflexe total du personnage
   // (base + bonus racial + bonus tech), d'où le paramètre `reference` en
   // plus de `character` (absent avant le fix RA du 18/08).

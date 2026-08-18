@@ -19,11 +19,15 @@
 //      (cf. investigation weapon-modifiers) avait traité le RA comme les
 //      autres stats d'arme (base + somme des modificateurs), en oubliant la
 //      partie "BASE_RA - Réflexe" de la formule — confirmé par le MJ le
-//      18/08 sur le cas réel Wild Predator de Conrad Lingus (RA final 4,
-//      pas le simple total base+modificateurs qui donnait 1). Le MJ a
-//      ensuite corrigé la constante elle-même le 19/08 (5, pas 8, valeur
-//      initialement supposée pour coller au premier calcul manuel). Voir
-//      BASE_RA plus bas.
+//      18/08 sur le cas réel Wild Predator de Conrad Lingus. Deux
+//      corrections ultérieures du MJ, mêmes échanges du 19/08 : (a) la
+//      constante elle-même est 5, pas 8 (valeur initialement supposée pour
+//      coller au premier calcul manuel) ; (b) le RA de catalogue d'une arme
+//      (ex. 2 pour Wild Predator) est déjà un rang à part entière, lu tel
+//      quel dans la table du classeur — il s'ADDITIONNE au socle BASE_RA -
+//      Réflexe (avec les modificateurs justifiés, ex. -1 "Améliorations
+//      WP"), il ne s'en soustrait pas. RA final confirmé pour ce cas : 6
+//      (5 - 0 + 2 - 1). Voir BASE_RA plus bas.
 
 import type {
   Attribute,
@@ -205,13 +209,18 @@ const BASE_RA = 5;
 /**
  * Dégâts/Score réellement joués = valeur de base + somme des modificateurs
  * justifiés (cf. WeaponEntry.modifiers dans types.ts). RA réellement joué =
- * BASE_RA - Réflexe total - (RA de catalogue + modificateurs) : contrairement
- * aux deux autres stats, le RA de catalogue n'est pas la valeur jouée mais un
- * terme de la formule complète (cf. écart n°3 en tête de fichier). Remplace
- * le bricolage du classeur Excel d'origine (une formule figée référençant 3
- * lignes fixes du catalogue, uniquement câblée pour le 1er emplacement
- * d'arme, propagée par copier-coller à des personnages qui n'avaient
- * pourtant pas l'amélioration — cf. investigation du 16/08).
+ * BASE_RA - Réflexe total + (RA de catalogue + modificateurs) : le RA de
+ * catalogue d'une arme (ex. 2 pour Wild Predator) est déjà un rang à part
+ * entière — lu directement dans la table du classeur, pas un malus à
+ * soustraire (correction du 19/08 : la première version de cette formule
+ * l'avait soustrait par erreur, oubliant que "le RA de l'arme est déjà dans
+ * la table"). S'ADDITIONNE donc au socle BASE_RA - Réflexe, avec les
+ * modificateurs justifiés (ex. -1 "Améliorations WP", qui réduit d'autant
+ * le total puisqu'ajouté avec son propre signe). Remplace le bricolage du
+ * classeur Excel d'origine (une formule figée référençant 3 lignes fixes du
+ * catalogue, uniquement câblée pour le 1er emplacement d'arme, propagée par
+ * copier-coller à des personnages qui n'avaient pourtant pas l'amélioration
+ * — cf. investigation du 16/08).
  */
 /** RA de catalogue d'une arme + ses modificateurs justifiés — terme de la formule complète (cf. getWeaponTotals/getActionRank), pas une valeur jouée en soi. */
 function getWeaponRaModifier(weapon: Pick<WeaponEntry, "ra" | "modifiers">): number {
@@ -225,7 +234,7 @@ export function getWeaponTotals(
 ): WeaponTotals {
   const modifiers = weapon.modifiers ?? [];
   return {
-    ra: BASE_RA - refTotal - getWeaponRaModifier(weapon),
+    ra: BASE_RA - refTotal + getWeaponRaModifier(weapon),
     damage: weapon.damage + modifiers.reduce((sum, m) => sum + (m.damage ?? 0), 0),
     baseScore: weapon.baseScore + modifiers.reduce((sum, m) => sum + (m.score ?? 0), 0),
   };
@@ -233,7 +242,7 @@ export function getWeaponTotals(
 
 // ---------------------------------------------------------------------------
 // Rang d'Action "courant" du personnage (écran MJ "Suivi des constantes") —
-// même socle BASE_RA - Réflexe - arme équipée que getWeaponTotals ci-dessus,
+// même socle BASE_RA - Réflexe + arme équipée que getWeaponTotals ci-dessus,
 // avec en plus les deux seuls éléments du catalogue (Règles ADD40K V0.2, cf.
 // investigation du 18/08) qui modifient le Réflexe pour le calcul du RA :
 //   - Avantages "Concentration rapide" (+10, REF+3) / "Concentration lente"
@@ -322,7 +331,7 @@ export function getActionRank(
     refTotal + getConcentrationAdvantageRefDelta(character, hasActivePower) + getActivePsyPowerRefBonus(character);
   const equippedWeapon = character.weapons.find((w) => w.equipped);
   const weaponRaModifier = equippedWeapon ? getWeaponRaModifier(equippedWeapon) : 0;
-  return BASE_RA - effectiveRef - weaponRaModifier;
+  return BASE_RA - effectiveRef + weaponRaModifier;
 }
 
 // Armes -> compétence liée, pour dériver le score de base (cf. getWeaponSuggestedScore).
