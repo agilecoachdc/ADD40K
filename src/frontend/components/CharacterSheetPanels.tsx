@@ -8,6 +8,7 @@ import { useRef, useState } from "react";
 import {
   ATTRIBUTES,
   WEAPON_TYPES,
+  type ActivePsyPower,
   type Attribute,
   type Character,
   type ReferenceData,
@@ -422,6 +423,7 @@ export function WeaponsArmorPanel({
   canEdit,
   update,
   onToggleArmor,
+  onToggleWeaponEquipped,
   referenceData,
 }: {
   character: Character;
@@ -430,6 +432,7 @@ export function WeaponsArmorPanel({
   canEdit: boolean;
   update: Update;
   onToggleArmor: (index: number) => void;
+  onToggleWeaponEquipped: (index: number) => void;
   referenceData: ReferenceData;
 }) {
   const weapons = character.weapons;
@@ -451,7 +454,32 @@ export function WeaponsArmorPanel({
             return (
               <li key={i} className="rounded-lg bg-slate-800/50 p-2 text-sm">
                 <div className="flex items-center justify-between gap-2">
-                  {editing ? (
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    {/*
+                      Arme en main — même principe que la case "équipée" des
+                      armures : seule l'arme équipée compte dans le calcul du
+                      Rang d'Action (cf. calc-engine.getActionRank). Visible
+                      même hors édition (comme l'armure) pour un changement
+                      rapide en séance ; en lecture seule pour qui n'a pas
+                      canEdit.
+                    */}
+                    {canEdit ? (
+                      <input
+                        type="checkbox"
+                        checked={w.equipped ?? false}
+                        onChange={() => onToggleWeaponEquipped(i)}
+                        title="Arme équipée"
+                        aria-label={`${w.name || "Cette arme"} équipée`}
+                        className="shrink-0"
+                      />
+                    ) : (
+                      w.equipped && (
+                        <span className="shrink-0 text-xs text-emerald-400" title="Arme équipée">
+                          ●
+                        </span>
+                      )
+                    )}
+                    {editing ? (
                     <CatalogSelect
                       value={w.name}
                       // Exclut les lignes "Amélioration ..." : ce sont les 3 emplacements
@@ -488,9 +516,10 @@ export function WeaponsArmorPanel({
                       placeholder="— choisir une arme —"
                       className="flex-1"
                     />
-                  ) : (
-                    <span className="font-medium text-slate-100">{w.name}</span>
-                  )}
+                    ) : (
+                      <span className="font-medium text-slate-100">{w.name}</span>
+                    )}
+                  </div>
                   {editing && (
                     <button
                       onClick={() => update({ weapons: weapons.filter((_, idx) => idx !== i) })}
@@ -503,7 +532,7 @@ export function WeaponsArmorPanel({
                 {/* Score/Dmg/RA : en édition on saisit la valeur DE BASE (comme
                     avant) ; en lecture on affiche le TOTAL joué. Score/Dmg =
                     base + somme des modificateurs justifiés ci-dessous ; RA =
-                    8 - Réflexe total - (base + modificateurs), cf.
+                    BASE_RA(5) - Réflexe total - (base + modificateurs), cf.
                     getWeaponTotals. */}
                 <div className="mt-1 flex flex-wrap items-center gap-3 text-slate-400">
                   <span>
@@ -762,62 +791,173 @@ export function WeaponsArmorPanel({
   );
 }
 
+// Paliers de règle des pouvoirs psy (Règles ADD40K V0.2, §Description des
+// pouvoirs psys) — un personnage ne peut activer un palier que si son score
+// dans le pouvoir l'atteint.
+const POWER_LEVELS = [15, 20, 25, 30, 35];
+
+/**
+ * "Concentration psy" est le seul pouvoir du catalogue à avoir un effet
+ * chiffré codé (bonus de Réflexe pour le Rang d'Action, cf.
+ * calc-engine.getActivePsyPowerRefBonus) — aux paliers 15/20, ce pouvoir
+ * ne boost qu'un seul attribut physique au choix du joueur. PRE (Présence)
+ * du classeur d'origine n'a pas d'équivalent dans les 8 attributs de l'app
+ * (cf. ATTRIBUTES) : seuls REF/DEX/VIT sont proposés.
+ */
+const CONCENTRATION_PSY_ATTRIBUTES: Attribute[] = ["REF", "DEX", "VIT"];
+
+/**
+ * Active/désactive un pouvoir "à la demande" (bouton dédié, réservé au
+ * joueur propriétaire ou au MJ — canEdit) : choix d'un palier ≤ au score du
+ * personnage dans ce pouvoir, et pour "Concentration psy" aux paliers
+ * 15/20, de l'attribut physique à améliorer. Sauvegarde immédiate via
+ * `onChange`, comme le reste des toggles hors mode édition (armure, arme
+ * équipée) — pas besoin d'ouvrir la fiche en édition pour ça, c'est une
+ * action de jeu, pas une modification de la fiche elle-même.
+ */
+function PsyPowerActivation({
+  powerName,
+  score,
+  active,
+  onChange,
+}: {
+  powerName: string;
+  score: number;
+  active: ActivePsyPower | undefined;
+  onChange: (next: ActivePsyPower | null) => void;
+}) {
+  const availableLevels = POWER_LEVELS.filter((lvl) => lvl <= score);
+  const [level, setLevel] = useState(active?.level ?? availableLevels[availableLevels.length - 1] ?? 15);
+  const [attribute, setAttribute] = useState<Attribute>(active?.attribute ?? "REF");
+
+  if (availableLevels.length === 0) return null;
+  const needsAttribute = powerName === CONCENTRATION_PSY_NAME && (level === 15 || level === 20);
+
+  if (active) {
+    return (
+      <div className="flex items-center gap-2 text-xs">
+        <span className="rounded-full bg-emerald-600/20 px-2 py-0.5 text-emerald-300">
+          Actif · niveau {active.level}
+          {active.attribute ? ` · ${active.attribute}` : ""}
+        </span>
+        <button type="button" onClick={() => onChange(null)} className="text-slate-500 hover:text-red-400">
+          Désactiver
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <select
+        value={level}
+        onChange={(e) => setLevel(Number(e.target.value))}
+        className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
+      >
+        {availableLevels.map((lvl) => (
+          <option key={lvl} value={lvl}>
+            Niveau {lvl}
+          </option>
+        ))}
+      </select>
+      {needsAttribute && (
+        <select
+          value={attribute}
+          onChange={(e) => setAttribute(e.target.value as Attribute)}
+          className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
+        >
+          {CONCENTRATION_PSY_ATTRIBUTES.map((attr) => (
+            <option key={attr} value={attr}>
+              {attr}
+            </option>
+          ))}
+        </select>
+      )}
+      <button
+        type="button"
+        onClick={() => onChange({ name: powerName, level, attribute: needsAttribute ? attribute : undefined })}
+        className="rounded bg-indigo-600 px-2 py-0.5 font-medium text-white hover:bg-indigo-500"
+      >
+        Activer
+      </button>
+    </div>
+  );
+}
+
+const CONCENTRATION_PSY_NAME = "Concentration psy";
+
 export function PsyPowersPanel({
   character,
   computed,
   editing,
+  canEdit,
   update,
+  onSetActivePower,
   referenceData,
 }: {
   character: Character;
   computed: CharacterComputed;
   editing: boolean;
+  canEdit: boolean;
   update: Update;
+  onSetActivePower: (powerName: string, next: ActivePsyPower | null) => void;
   referenceData: ReferenceData;
 }) {
   const powers = character.psyPowers;
+  const activePowers = character.activePsyPowers ?? [];
   if (powers.length === 0 && !editing) return null;
   return (
     <Section title="Pouvoirs Psy">
       <ul className="space-y-1">
         {powers.map((p, i) => {
           const total = getPsyPowerTotal(p, character, computed.attributeTotals);
+          const active = activePowers.find((ap) => ap.name === p.name);
           return (
-            <li key={i} className="flex items-center justify-between gap-2 text-sm">
-              {editing ? (
-                <CatalogSelect
-                  value={p.name}
-                  options={referenceData.psyPowers.map((pd) => pd.name)}
-                  onPick={(name) => {
-                    const def = referenceData.psyPowers.find((pd) => pd.name === name);
-                    update({
-                      psyPowers: powers.map((x, idx) =>
-                        idx === i ? { ...x, name, discipline: def?.discipline ?? x.discipline } : x,
-                      ),
-                    });
-                  }}
-                  placeholder="— choisir un pouvoir —"
-                  className="flex-1"
-                />
-              ) : (
-                <span className="text-slate-200">
-                  {p.name} <span className="text-slate-500">({p.discipline})</span>
-                </span>
-              )}
-              <div className="flex items-center gap-3">
+            <li key={i} className="space-y-1 text-sm">
+              <div className="flex items-center justify-between gap-2">
                 {editing ? (
-                  <NumberInput
-                    value={p.score}
-                    onChange={(n) => update({ psyPowers: powers.map((x, idx) => (idx === i ? { ...x, score: n } : x)) })}
+                  <CatalogSelect
+                    value={p.name}
+                    options={referenceData.psyPowers.map((pd) => pd.name)}
+                    onPick={(name) => {
+                      const def = referenceData.psyPowers.find((pd) => pd.name === name);
+                      update({
+                        psyPowers: powers.map((x, idx) =>
+                          idx === i ? { ...x, name, discipline: def?.discipline ?? x.discipline } : x,
+                        ),
+                      });
+                    }}
+                    placeholder="— choisir un pouvoir —"
+                    className="flex-1"
                   />
                 ) : (
-                  <span className="text-slate-300">{p.score}</span>
+                  <span className="text-slate-200">
+                    {p.name} <span className="text-slate-500">({p.discipline})</span>
+                  </span>
                 )}
-                <span className="w-8 text-right text-xs text-slate-500" title="Score + Volonté + Affinité">
-                  Σ
-                </span>
-                <span className="w-8 text-right font-semibold text-indigo-300">{total}</span>
+                <div className="flex items-center gap-3">
+                  {editing ? (
+                    <NumberInput
+                      value={p.score}
+                      onChange={(n) => update({ psyPowers: powers.map((x, idx) => (idx === i ? { ...x, score: n } : x)) })}
+                    />
+                  ) : (
+                    <span className="text-slate-300">{p.score}</span>
+                  )}
+                  <span className="w-8 text-right text-xs text-slate-500" title="Score + Volonté + Affinité">
+                    Σ
+                  </span>
+                  <span className="w-8 text-right font-semibold text-indigo-300">{total}</span>
+                </div>
               </div>
+              {!editing && canEdit && p.name && (
+                <PsyPowerActivation
+                  powerName={p.name}
+                  score={p.score}
+                  active={active}
+                  onChange={(next) => onSetActivePower(p.name, next)}
+                />
+              )}
             </li>
           );
         })}

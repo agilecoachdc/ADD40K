@@ -18,9 +18,12 @@
 //   3. Rang d'Action (getWeaponTotals.ra) : la réimplémentation du 16/08
 //      (cf. investigation weapon-modifiers) avait traité le RA comme les
 //      autres stats d'arme (base + somme des modificateurs), en oubliant la
-//      partie "8 - Réflexe" de la formule — confirmé par le MJ le 18/08 sur
-//      le cas réel Wild Predator de Conrad Lingus (RA final 7, pas le simple
-//      total base+modificateurs qui donnait 1). Voir BASE_RA plus bas.
+//      partie "BASE_RA - Réflexe" de la formule — confirmé par le MJ le
+//      18/08 sur le cas réel Wild Predator de Conrad Lingus (RA final 4,
+//      pas le simple total base+modificateurs qui donnait 1). Le MJ a
+//      ensuite corrigé la constante elle-même le 19/08 (5, pas 8, valeur
+//      initialement supposée pour coller au premier calcul manuel). Voir
+//      BASE_RA plus bas.
 
 import type {
   Attribute,
@@ -191,12 +194,13 @@ export interface WeaponTotals {
 
 /**
  * Rang d'Action par défaut avant réflexes/arme : plus le RA final est bas,
- * plus le personnage agit tôt (confirmé par le MJ le 18/08). Le RA de
+ * plus le personnage agit tôt (confirmé par le MJ le 18/08 ; valeur 5
+ * confirmée le 19/08, après un premier calcul manuel supposant 8). Le RA de
  * catalogue d'une arme (WeaponEntry.ra, ex. 2 pour Wild Predator) et ses
  * modificateurs justifiés ne sont donc pas le RA final — ils viennent en
  * déduction de ce socle, avec le Réflexe total du personnage.
  */
-const BASE_RA = 8;
+const BASE_RA = 5;
 
 /**
  * Dégâts/Score réellement joués = valeur de base + somme des modificateurs
@@ -209,17 +213,116 @@ const BASE_RA = 8;
  * d'arme, propagée par copier-coller à des personnages qui n'avaient
  * pourtant pas l'amélioration — cf. investigation du 16/08).
  */
+/** RA de catalogue d'une arme + ses modificateurs justifiés — terme de la formule complète (cf. getWeaponTotals/getActionRank), pas une valeur jouée en soi. */
+function getWeaponRaModifier(weapon: Pick<WeaponEntry, "ra" | "modifiers">): number {
+  const modifiers = weapon.modifiers ?? [];
+  return weapon.ra + modifiers.reduce((sum, m) => sum + (m.ra ?? 0), 0);
+}
+
 export function getWeaponTotals(
   weapon: Pick<WeaponEntry, "ra" | "damage" | "baseScore" | "modifiers">,
   refTotal: number,
 ): WeaponTotals {
   const modifiers = weapon.modifiers ?? [];
-  const raModifier = weapon.ra + modifiers.reduce((sum, m) => sum + (m.ra ?? 0), 0);
   return {
-    ra: BASE_RA - refTotal - raModifier,
+    ra: BASE_RA - refTotal - getWeaponRaModifier(weapon),
     damage: weapon.damage + modifiers.reduce((sum, m) => sum + (m.damage ?? 0), 0),
     baseScore: weapon.baseScore + modifiers.reduce((sum, m) => sum + (m.score ?? 0), 0),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Rang d'Action "courant" du personnage (écran MJ "Suivi des constantes") —
+// même socle BASE_RA - Réflexe - arme équipée que getWeaponTotals ci-dessus,
+// avec en plus les deux seuls éléments du catalogue (Règles ADD40K V0.2, cf.
+// investigation du 18/08) qui modifient le Réflexe pour le calcul du RA :
+//   - Avantages "Concentration rapide" (+10, REF+3) / "Concentration lente"
+//     (-20, REF-3) — ne s'appliquent QUE quand le personnage a un pouvoir
+//     actif ("quand vous utilisez vos pouvoirs" / "pour actionner vos
+//     pouvoirs" dans le texte des avantages), pas en combat normal à l'arme.
+//   - Pouvoir "Concentration psy" (Maîtrise de soi), activé "à la demande"
+//     (Character.activePsyPowers) à un palier ≤ son score : seul pouvoir du
+//     catalogue à moduler le Réflexe parmi les ~19 décrits dans les règles —
+//     tous les autres pouvoirs peuvent être activés via la même UI mais
+//     n'ont aucun effet chiffré sur le RA (portée hors périmètre de ce
+//     calcul : dégâts, création de matière, téléportation...).
+// ---------------------------------------------------------------------------
+
+const CONCENTRATION_RAPIDE_LABEL = "Concentration rapide";
+const CONCENTRATION_LENTE_LABEL = "Concentration lente";
+const CONCENTRATION_PSY_NAME = "Concentration psy";
+
+/**
+ * +3/-3 de Réflexe pour l'activation de pouvoirs (Concentration rapide/lente,
+ * cf. catalogue avantages) — appliqué seulement si le personnage a
+ * effectivement un pouvoir actif (`hasActivePower`), conformément au texte
+ * des avantages ("quand vous utilisez vos pouvoirs").
+ */
+function getConcentrationAdvantageRefDelta(
+  character: Pick<Character, "advantages">,
+  hasActivePower: boolean,
+): number {
+  if (!hasActivePower) return 0;
+  const labels = character.advantages.map((a) => a.label);
+  if (labels.some((l) => l.startsWith(CONCENTRATION_RAPIDE_LABEL))) return 3;
+  if (labels.some((l) => l.startsWith(CONCENTRATION_LENTE_LABEL))) return -3;
+  return 0;
+}
+
+/**
+ * Bonus de Réflexe du pouvoir "Concentration psy" actif, selon le palier
+ * choisi et le score du personnage dans ce pouvoir (Règles ADD40K V0.2,
+ * §Maîtrise de soi) :
+ *   Niveau 15 : +1 REF par tranche de 5 dans le score — seulement si REF
+ *     est l'attribut choisi à l'activation (le pouvoir ne boost qu'un seul
+ *     attribut physique à ce palier).
+ *   Niveau 20 : +1 REF par tranche de 2 dans le score — idem, un seul
+ *     attribut choisi.
+ *   Niveau 25 : +1 par tranche de 3, sur TOUTES les caractéristiques
+ *     physiques (donc REF inclus sans avoir à le choisir).
+ *   Niveau 30 : +1 par point de score, toutes caractéristiques physiques.
+ *   Niveau 35 ("Appel de l'avatar") : +5 fixe, toutes caractéristiques
+ *     physiques.
+ * PRE (Présence) du classeur d'origine n'a pas d'équivalent dans les 8
+ * attributs de l'app (cf. ATTRIBUTES) — hors périmètre, seul REF/DEX/VIT
+ * sont proposés au choix pour les paliers 15/20 (cf. ActivePsyPower).
+ */
+function getActivePsyPowerRefBonus(character: Pick<Character, "psyPowers" | "activePsyPowers">): number {
+  const active = (character.activePsyPowers ?? []).find((p) => p.name === CONCENTRATION_PSY_NAME);
+  if (!active) return 0;
+  const score = character.psyPowers.find((p) => p.name === CONCENTRATION_PSY_NAME)?.score ?? 0;
+  switch (active.level) {
+    case 15:
+      return active.attribute === "REF" ? Math.floor(score / 5) : 0;
+    case 20:
+      return active.attribute === "REF" ? Math.floor(score / 2) : 0;
+    case 25:
+      return Math.floor(score / 3);
+    case 30:
+      return score;
+    case 35:
+      return 5;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Rang d'Action courant du personnage, tous éléments combinés — cf. les
+ * commentaires ci-dessus pour le détail de chaque terme. Plus la valeur est
+ * basse, plus le personnage agit tôt (confirmé par le MJ le 18/08).
+ */
+export function getActionRank(
+  character: Pick<Character, "race" | "attributeScores" | "attributeTechBonus" | "weapons" | "advantages" | "psyPowers" | "activePsyPowers">,
+  reference: ReferenceData,
+): number {
+  const refTotal = getAttributeTotal(character, reference, "REF");
+  const hasActivePower = (character.activePsyPowers ?? []).length > 0;
+  const effectiveRef =
+    refTotal + getConcentrationAdvantageRefDelta(character, hasActivePower) + getActivePsyPowerRefBonus(character);
+  const equippedWeapon = character.weapons.find((w) => w.equipped);
+  const weaponRaModifier = equippedWeapon ? getWeaponRaModifier(equippedWeapon) : 0;
+  return BASE_RA - effectiveRef - weaponRaModifier;
 }
 
 // Armes -> compétence liée, pour dériver le score de base (cf. getWeaponSuggestedScore).
@@ -341,6 +444,7 @@ export interface CharacterComputed {
   pspMax: number;
   budget: BudgetSummary;
   armorTotals: ArmorTotals;
+  actionRank: number;
 }
 
 /** Calcule en une passe tout ce que l'UI a besoin d'afficher en lecture seule. */
@@ -352,5 +456,6 @@ export function computeCharacter(character: Character, reference: ReferenceData)
     pspMax: getPspMax(character, reference),
     budget: getBudgetSummary(character, reference),
     armorTotals: getArmorTotals(character),
+    actionRank: getActionRank(character, reference),
   };
 }

@@ -72,18 +72,37 @@ L'XP d'un personnage est distribuée par le MJ, jamais auto-attribuée par le jo
 points") et sur chaque tuile de l'écran "Suivi des constantes". Deux champs distincts, à ne pas
 confondre :
 
-- **`Character.xp`** ("XP gagnée (depuis la création)" à l'écran) — historique cumulatif : la
-  valeur importée depuis la fiche Excel d'origine, plus toutes les distributions positives du MJ
-  depuis. Contribue au budget total dispo (additionné aux points raciaux + points de départ, cf.
-  calc-engine.getTotalDispo). Ne descend jamais sous 0 et n'est **jamais réduit**, y compris par un
-  retrait du MJ — c'est un historique permanent, pas un solde courant.
+- **`Character.xp`** ("XP gagnée (depuis la création)" à l'écran) — total net : la valeur importée
+  depuis la fiche Excel d'origine, plus/moins toutes les distributions du MJ depuis (positives ou
+  négatives — un retrait décidé par le MJ vaut son approbation). Contribue au budget total dispo
+  (additionné aux points raciaux + points de départ, cf. calc-engine.getTotalDispo).
 - **`Character.xpAvailable`** ("XP disponible" à l'écran) — pool d'appoint géré par le MJ, séparé
-  du budget total dispo (n'y contribue pas). Augmente du même montant que `xp` à chaque
-  distribution positive ; un retrait du MJ (pénalité ou correction — le fait que ce soit le MJ qui
-  l'applique vaut son approbation) diminue uniquement ce champ, qui peut devenir négatif (pas de
-  plancher, contrairement à `xp`).
+  du budget total dispo (n'y contribue pas). Bouge du même montant que `xp` à chaque distribution/
+  retrait du MJ, et diminue aussi séparément quand le coût de la fiche augmente (compétence/pouvoir
+  psy monté, avantage ajouté — remboursé symétriquement en cas d'allègement). Peut devenir négatif
+  dans les deux cas (aucun plancher).
 
 Voir `POST /api/characters/:id/xp` dans `docs/API_REFERENCE.md`.
+
+## Rang d'Action (RA)
+
+Le Rang d'Action détermine l'ordre de jeu en combat : plus le RA final est bas, plus le personnage
+agit tôt. Calculé (`calc-engine.getActionRank`, jamais stocké) comme `BASE_RA(5) - Réflexe total -
+(RA de l'arme équipée + ses modificateurs)` — une arme non équipée compte comme mains nues (RA 0).
+Une seule arme peut être marquée "équipée" à la fois (case à cocher sur la fiche, à côté du nom de
+chaque arme, même principe que l'armure).
+
+Deux éléments du catalogue (Règles ADD40K V0.2) modifient le Réflexe pris en compte, mais
+seulement pendant qu'un pouvoir est actif :
+- Avantages "Concentration rapide" (+10, REF+3) / "Concentration lente" (-20, REF-3).
+- Pouvoir "Concentration psy" — activé "à la demande" sur la fiche (bouton dédié sous chaque
+  pouvoir, réservé au propriétaire ou au MJ) à un palier ≤ son score (`Character.activePsyPowers`,
+  cf. `ActivePsyPower` dans `shared/types.ts`) ; seul pouvoir du catalogue à avoir un effet chiffré
+  sur le RA parmi la vingtaine décrite dans les règles.
+
+L'écran "Suivi des constantes" affiche le RA de chaque personnage sur sa tuile, un rang courant en
+haut de l'écran (boutons Précédent/Suivant pour dérouler le round) et surligne les tuiles dont le
+RA correspond exactement au rang affiché — plusieurs personnages peuvent agir au même rang.
 
 ## Comptes et plateforme
 

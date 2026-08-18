@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import type { Character, ReferenceData } from "@shared/types";
+import type { ActivePsyPower, Character, ReferenceData } from "@shared/types";
 import { computeCharacter, type CharacterComputed } from "@shared/calc-engine";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
@@ -105,6 +105,42 @@ export default function CharacterSheet() {
     }
   }
 
+  // Active/désactive un pouvoir "à la demande" et sauvegarde immédiatement
+  // — même principe que toggleArmor/toggleWeaponEquipped. Un seul pouvoir
+  // actif par nom (activePsyPowers est une petite liste, pas indexée par
+  // pouvoir) : on retire l'entrée existante puis on ajoute la nouvelle si
+  // `next` n'est pas null.
+  async function setActivePower(powerName: string, next: ActivePsyPower | null) {
+    if (!character || !id) return;
+    const previous = character.activePsyPowers ?? [];
+    const nextActivePowers = previous.filter((p) => p.name !== powerName);
+    if (next) nextActivePowers.push(next);
+    update({ activePsyPowers: nextActivePowers });
+    try {
+      await api.updateCharacter(id, { activePsyPowers: nextActivePowers });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de l'activation du pouvoir");
+      update({ activePsyPowers: previous });
+    }
+  }
+
+  // Bascule "arme équipée" et sauvegarde immédiatement, même principe que
+  // toggleArmor ci-dessus — seule l'arme équipée compte dans le Rang
+  // d'Action (cf. calc-engine.getActionRank), pas besoin d'ouvrir le mode
+  // édition pour ça.
+  async function toggleWeaponEquipped(index: number) {
+    if (!character || !id) return;
+    const previousWeapons = character.weapons;
+    const nextWeapons = previousWeapons.map((w, i) => (i === index ? { ...w, equipped: !w.equipped } : w));
+    update({ weapons: nextWeapons });
+    try {
+      await api.updateCharacter(id, { weapons: nextWeapons });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de la sauvegarde de l'arme");
+      update({ weapons: previousWeapons });
+    }
+  }
+
   async function handleGrantXp(amount: number) {
     if (!id) return;
     setError(null);
@@ -193,9 +229,18 @@ export default function CharacterSheet() {
         canEdit={canEdit}
         update={update}
         onToggleArmor={toggleArmor}
+        onToggleWeaponEquipped={toggleWeaponEquipped}
         referenceData={referenceData}
       />
-      <PsyPowersPanel character={character} computed={computed} editing={editing} update={update} referenceData={referenceData} />
+      <PsyPowersPanel
+        character={character}
+        computed={computed}
+        editing={editing}
+        canEdit={canEdit}
+        update={update}
+        onSetActivePower={setActivePower}
+        referenceData={referenceData}
+      />
       <AdvantagesPanel character={character} editing={editing} update={update} referenceData={referenceData} />
       <EquipmentPanel character={character} editing={editing} update={update} />
       <BudgetPanel character={character} computed={computed} isGm={isGm} onGrantXp={handleGrantXp} />

@@ -48,6 +48,29 @@ export interface PsyPowerEntry {
   discipline: string;
 }
 
+/**
+ * Pouvoir psy activé "à la demande" en séance (bouton dédié sur la fiche,
+ * réservé au joueur propriétaire ou au MJ) — distinct de la simple
+ * possession du pouvoir (PsyPowerEntry ci-dessus, fixée à la création).
+ * `level` est le palier de règle choisi (15/20/25/30/35, cf. Règles ADD40K
+ * V0.2 §Description des pouvoirs psys) et doit être ≤ au score du
+ * personnage dans ce pouvoir. `attribute` ne s'applique qu'à "Concentration
+ * psy" aux paliers 15/20 (le joueur choisit REF/DEX/VIT à améliorer — PRE
+ * du classeur d'origine n'a pas d'équivalent dans les 8 attributs de
+ * l'app, cf. ATTRIBUTES) ; ignoré pour les autres pouvoirs/paliers.
+ *
+ * Seul "Concentration psy" a un effet mécanique codé pour l'instant (bonus
+ * de Réflexe pris en compte dans calc-engine.getActionRank, cf. Règles
+ * ADD40K V0.2) — les autres pouvoirs peuvent être activés via cette même
+ * UI mais n'ont aucun effet chiffré tant que leur mécanique n'a pas été
+ * pareillement codée.
+ */
+export interface ActivePsyPower {
+  name: string;
+  level: number;
+  attribute?: Attribute;
+}
+
 export interface WeaponEntry {
   name: string;
   type: WeaponType;
@@ -68,6 +91,16 @@ export interface WeaponEntry {
    * existantes — champ ajouté après coup, cf. plan de la fiche PNJ/Excel).
    */
   modifiers?: WeaponModifier[];
+  /**
+   * Arme actuellement en main — même principe que ArmorEntry.active pour
+   * l'armure. Seule une arme équipée compte dans le calcul du Rang d'Action
+   * (cf. calc-engine.getActionRank) : son RA de catalogue + modificateurs
+   * s'ajoute au malus de base, comme mains nues (RA 0) si aucune arme n'est
+   * équipée. Absent des fiches créées avant l'ajout de ce champ — traité
+   * comme `false` côté route, pas de migration nécessaire (colonne `data`
+   * JSON libre).
+   */
+  equipped?: boolean;
 }
 
 export interface WeaponModifier {
@@ -158,6 +191,13 @@ export interface Character {
   armor: ArmorEntry[];
   advantages: AdvantageEntry[];
   equipment: EquipmentEntry[];
+  /**
+   * Pouvoirs actuellement activés en séance — cf. ActivePsyPower. Absent des
+   * fiches créées avant l'ajout de ce champ, traité comme `[]` côté route
+   * (GET /api/characters, GET/PUT /api/characters/:id), pas de migration
+   * nécessaire (colonne `data` JSON libre).
+   */
+  activePsyPowers?: ActivePsyPower[];
 
   // Budget de points — voir BudgetPanel (CharacterSheetPanels.tsx) pour le
   // détail affiché à l'écran ("Total dispo" = raceSkillPoints + pointsDepart
@@ -412,4 +452,12 @@ export interface CharacterSummary {
   /** XP gagnée (cumulatif) et XP disponible (pool géré par le MJ) — cf. Character.xp/xpAvailable. Affichés sur la tuile de l'écran "Suivi des constantes". */
   xp: number;
   xpAvailable: number;
+  /**
+   * Rang d'Action courant — cf. calc-engine.getActionRank (Réflexe total,
+   * arme équipée, avantages/pouvoir psy "Concentration" actifs). Plus bas =
+   * agit plus tôt. Affiché sur la tuile de l'écran "Suivi des constantes",
+   * qui surligne les personnages dont le RA correspond au rang courant du
+   * round affiché en haut de l'écran (plusieurs peuvent agir au même RA).
+   */
+  actionRank: number;
 }

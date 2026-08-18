@@ -221,6 +221,7 @@ function CharacterTile({
   c,
   isNpc,
   groupId,
+  highlighted,
   onAdjust,
   onRemove,
   onGrantXp,
@@ -228,6 +229,8 @@ function CharacterTile({
   c: CharacterSummary;
   isNpc: boolean;
   groupId: string;
+  /** RA de ce personnage == rang courant du round (cf. currentRank plus bas) — plusieurs tuiles peuvent être surlignées en même temps. */
+  highlighted: boolean;
   onAdjust?: (field: "hpCurrent" | "pspCurrent", delta: number) => void;
   onRemove?: () => void;
   onGrantXp?: (amount: number) => void | Promise<void>;
@@ -236,7 +239,9 @@ function CharacterTile({
     <Link
       to={`/personnages/${c.id}`}
       state={{ from: "suivi", groupId }}
-      className="flex items-stretch overflow-hidden rounded-xl bg-slate-900 shadow transition hover:bg-slate-800"
+      className={`flex items-stretch overflow-hidden rounded-xl bg-slate-900 shadow transition hover:bg-slate-800 ${
+        highlighted ? "ring-2 ring-amber-400" : ""
+      }`}
     >
       {/* Silhouette d'armure sur toute la hauteur — taille réduite par rapport à la fiche personnage (SIL_SIZE) pour tenir sur mobile. */}
       <div className="flex shrink-0 items-center justify-center self-stretch bg-slate-950/40 px-3">
@@ -245,6 +250,19 @@ function CharacterTile({
       <div className="flex min-w-0 flex-1 flex-col p-3">
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-sm font-medium text-slate-100">{c.name}</p>
+          {/*
+            Rang d'Action courant — cf. calc-engine.getActionRank (Réflexe,
+            arme équipée, Concentration rapide/lente + Concentration psy
+            actifs). Plus bas = agit plus tôt.
+          */}
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
+              highlighted ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300"
+            }`}
+            title="Rang d'Action"
+          >
+            RA {c.actionRank}
+          </span>
           {isNpc && onRemove && (
             <button
               type="button"
@@ -322,6 +340,16 @@ export default function GmTracker() {
   const [groupImageUrl, setGroupImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Rang d'Action affiché en haut de l'écran — le MJ avance/recule dans le
+  // round au fil des actions (cf. calc-engine.getActionRank : plus bas =
+  // agit plus tôt, donc "Suivant" incrémente). État purement local à cette
+  // page (pas de synchro serveur) : seul le MJ pilote cet écran, pas besoin
+  // de le partager. Initialisé une seule fois, au premier chargement, sur
+  // le RA le plus bas parmi les personnages en jeu (celui qui agit en
+  // premier) — rankInitialized évite de réinitialiser à chaque poll (1s).
+  const [currentRank, setCurrentRank] = useState(0);
+  const rankInitialized = useRef(false);
+
   const [showNpcForm, setShowNpcForm] = useState(false);
   const [npcName, setNpcName] = useState("");
   const [npcRace, setNpcRace] = useState("");
@@ -361,6 +389,14 @@ export default function GmTracker() {
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
+
+  useEffect(() => {
+    if (rankInitialized.current || !rows) return;
+    const inGame = rows.filter((c) => c.inGame && !c.archived);
+    if (inGame.length === 0) return;
+    setCurrentRank(Math.min(...inGame.map((c) => c.actionRank)));
+    rankInitialized.current = true;
+  }, [rows]);
 
   // Vue réservée au MJ, membre de ce groupe — un joueur, ou un MJ d'un
   // autre groupe, qui atterrit ici (URL directe) repart à l'accueil.
@@ -468,6 +504,34 @@ export default function GmTracker() {
           </Link>
         </header>
 
+        {/*
+          Rang d'Action du round en cours — le MJ avance ("Suivant", RA plus
+          haut = agit plus tard) ou recule ("Précédent", pour corriger un
+          oubli) au fil des actions. Les tuiles dont le RA correspond
+          exactement sont surlignées ci-dessous (plusieurs personnages
+          peuvent agir au même rang).
+        */}
+        <div className="mb-6 flex items-center justify-center gap-3 rounded-xl bg-slate-900 px-4 py-3 shadow">
+          <button
+            type="button"
+            onClick={() => setCurrentRank((r) => r - 1)}
+            className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
+          >
+            ← Précédent
+          </button>
+          <div className="text-center">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Rang d'Action</p>
+            <p className="text-2xl font-bold text-amber-300">{currentRank}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCurrentRank((r) => r + 1)}
+            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
+          >
+            Suivant →
+          </button>
+        </div>
+
         {error && <p className="mb-3 text-red-400">{error}</p>}
         {!rows && !error && <p className="text-slate-400">Chargement…</p>}
 
@@ -490,7 +554,13 @@ export default function GmTracker() {
             <ul className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2">
               {players?.map((c) => (
                 <li key={c.id}>
-                  <CharacterTile c={c} isNpc={false} groupId={groupId!} onGrantXp={(amount) => grantXp(c, amount)} />
+                  <CharacterTile
+                    c={c}
+                    isNpc={false}
+                    groupId={groupId!}
+                    highlighted={c.actionRank === currentRank}
+                    onGrantXp={(amount) => grantXp(c, amount)}
+                  />
                 </li>
               ))}
             </ul>
@@ -601,6 +671,7 @@ export default function GmTracker() {
                     c={c}
                     isNpc
                     groupId={groupId!}
+                    highlighted={c.actionRank === currentRank}
                     onAdjust={(field, delta) => adjustNpc(c, field, delta)}
                     onRemove={() => removeNpc(c)}
                     onGrantXp={(amount) => grantXp(c, amount)}

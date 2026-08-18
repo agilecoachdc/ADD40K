@@ -7,6 +7,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeCharacter,
+  getActionRank,
   getAllAttributeTotals,
   getArmorTotals,
   getAttributeTotal,
@@ -87,10 +88,10 @@ describe("getArmorTotals", () => {
 
 describe("getWeaponTotals", () => {
   it("Dmg/Score = base (RA = BASE_RA - Réflexe - RA catalogue, pas un simple passthrough)", () => {
-    expect(getWeaponTotals({ ra: 6, damage: 8, baseScore: 7 }, 0)).toEqual({ ra: 2, damage: 8, baseScore: 7 });
+    expect(getWeaponTotals({ ra: 6, damage: 8, baseScore: 7 }, 0)).toEqual({ ra: -1, damage: 8, baseScore: 7 });
   });
 
-  it("cas réel Wild Predator de Conrad Lingus (Réflexe total 0, un seul modificateur 'Améliorations WP') : RA final 8 - 0 - (2 - 1) = 7 — confirmé par le MJ le 18/08", () => {
+  it("cas réel Wild Predator de Conrad Lingus (Réflexe total 0, un seul modificateur 'Améliorations WP') : RA final 5 - 0 - (2 - 1) = 4 — confirmé par le MJ le 19/08 (base RA 5, pas 8)", () => {
     const totals = getWeaponTotals(
       {
         ra: 2,
@@ -100,11 +101,11 @@ describe("getWeaponTotals", () => {
       },
       0,
     );
-    expect(totals).toEqual({ ra: 7, damage: 7, baseScore: 8 });
+    expect(totals).toEqual({ ra: 4, damage: 7, baseScore: 8 });
   });
 
   it("un Réflexe total plus élevé abaisse le RA final (agit plus tôt)", () => {
-    expect(getWeaponTotals({ ra: 2, damage: 6, baseScore: 7 }, 3)).toEqual({ ra: 3, damage: 6, baseScore: 7 });
+    expect(getWeaponTotals({ ra: 2, damage: 6, baseScore: 7 }, 3)).toEqual({ ra: 0, damage: 6, baseScore: 7 });
   });
 
   it("cumule plusieurs modificateurs de RA, chacun ne touchant pas forcément les 3 stats", () => {
@@ -120,7 +121,7 @@ describe("getWeaponTotals", () => {
       },
       0,
     );
-    expect(totals).toEqual({ ra: 3, damage: 9, baseScore: 9 });
+    expect(totals).toEqual({ ra: 0, damage: 9, baseScore: 9 });
   });
 
   it("modificateurs ne touchant pas le RA (score/dégâts uniquement)", () => {
@@ -136,7 +137,116 @@ describe("getWeaponTotals", () => {
       },
       0,
     );
-    expect(totals).toEqual({ ra: 3, damage: 6, baseScore: 7 });
+    expect(totals).toEqual({ ra: 0, damage: 6, baseScore: 7 });
+  });
+});
+
+describe("getActionRank", () => {
+  // gith (bonus racial REF nul, cf. reference-data.ts) — mêmes hypothèses
+  // que Conrad Lingus (REF total 0) pour rester comparable aux tests
+  // getWeaponTotals ci-dessus.
+  function baseCharacter(): Pick<
+    Character,
+    "race" | "attributeScores" | "attributeTechBonus" | "weapons" | "advantages" | "psyPowers" | "activePsyPowers"
+  > {
+    return {
+      race: "gith",
+      attributeScores: { FO: 0, VIT: 0, DEX: 0, REF: 0, PER: 0, COM: 0, INT: 0, VOL: 0 },
+      attributeTechBonus: {},
+      weapons: [],
+      advantages: [],
+      psyPowers: [],
+      activePsyPowers: [],
+    };
+  }
+
+  it("mains nues (aucune arme équipée) : RA = BASE_RA - Réflexe = 5", () => {
+    expect(getActionRank(baseCharacter(), referenceData)).toBe(5);
+  });
+
+  it("arme équipée : reprend le même terme que getWeaponTotals (cas réel Wild Predator, RA 4 — base RA 5, confirmé par le MJ le 19/08)", () => {
+    const character = {
+      ...baseCharacter(),
+      weapons: [
+        {
+          name: "Wild Predator",
+          type: "Fire" as const,
+          ra: 2,
+          damage: 6,
+          baseScore: 7,
+          equipped: true,
+          modifiers: [{ justification: "Améliorations WP : 1,1,1", ra: -1, damage: 1, score: 1 }],
+        },
+      ],
+    };
+    expect(getActionRank(character, referenceData)).toBe(4);
+  });
+
+  it("une arme présente sur la fiche mais NON équipée ne compte pas (comme mains nues)", () => {
+    const character = {
+      ...baseCharacter(),
+      weapons: [{ name: "Widowmaker", type: "Fire" as const, ra: 5, damage: 11, baseScore: 7, equipped: false }],
+    };
+    expect(getActionRank(character, referenceData)).toBe(5);
+  });
+
+  it("Concentration rapide (REF+3) sans pouvoir actif : aucun effet — ne s'applique qu'en cours d'activation d'un pouvoir", () => {
+    const character = { ...baseCharacter(), advantages: [{ label: "Concentration rapide: +10", value: 10 }] };
+    expect(getActionRank(character, referenceData)).toBe(5);
+  });
+
+  it("Concentration rapide (REF+3) avec un pouvoir actif : RA abaissé de 3", () => {
+    const character = {
+      ...baseCharacter(),
+      advantages: [{ label: "Concentration rapide: +10", value: 10 }],
+      activePsyPowers: [{ name: "Illusion", level: 15 }],
+    };
+    expect(getActionRank(character, referenceData)).toBe(2);
+  });
+
+  it("Concentration lente (REF-3) avec un pouvoir actif : RA relevé de 3", () => {
+    const character = {
+      ...baseCharacter(),
+      advantages: [{ label: "Concentration lente: -20", value: -20 }],
+      activePsyPowers: [{ name: "Illusion", level: 15 }],
+    };
+    expect(getActionRank(character, referenceData)).toBe(8);
+  });
+
+  it("Concentration psy niveau 25 (score 9) : +1 REF par tranche de 3 = +3, sur toutes les caractéristiques sans avoir à choisir REF", () => {
+    const character = {
+      ...baseCharacter(),
+      psyPowers: [{ name: "Concentration psy", score: 9, discipline: "Maîtrise de soi" }],
+      activePsyPowers: [{ name: "Concentration psy", level: 25 }],
+    };
+    expect(getActionRank(character, referenceData)).toBe(2);
+  });
+
+  it("Concentration psy niveau 15, attribut choisi DEX (pas REF) : aucun bonus sur le RA", () => {
+    const character = {
+      ...baseCharacter(),
+      psyPowers: [{ name: "Concentration psy", score: 12, discipline: "Maîtrise de soi" }],
+      activePsyPowers: [{ name: "Concentration psy", level: 15, attribute: "DEX" as const }],
+    };
+    expect(getActionRank(character, referenceData)).toBe(5);
+  });
+
+  it("Concentration psy niveau 15, attribut choisi REF (score 12) : +1 par tranche de 5 = +2", () => {
+    const character = {
+      ...baseCharacter(),
+      psyPowers: [{ name: "Concentration psy", score: 12, discipline: "Maîtrise de soi" }],
+      activePsyPowers: [{ name: "Concentration psy", level: 15, attribute: "REF" as const }],
+    };
+    expect(getActionRank(character, referenceData)).toBe(3);
+  });
+
+  it("Concentration psy niveau 35 (Appel de l'avatar) : +5 fixe", () => {
+    const character = {
+      ...baseCharacter(),
+      psyPowers: [{ name: "Concentration psy", score: 3, discipline: "Maîtrise de soi" }],
+      activePsyPowers: [{ name: "Concentration psy", level: 35 }],
+    };
+    expect(getActionRank(character, referenceData)).toBe(0);
   });
 });
 

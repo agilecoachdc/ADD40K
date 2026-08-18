@@ -37,12 +37,15 @@ chaque réponse.
 ### `GET /api/characters?groupId=`
 - Auth : session ; `groupId` doit être dans `user.memberships` (403 sinon).
 - Sortie : `{ characters: CharacterSummary[], referenceData: ReferenceData, groupImageUrl: string | null, groupDriveUrl: string | null }`
-  — résumé enrichi (portrait, statut `inGame`, `isNpc`, `archived`, PV/PSP courant + max calculé)
-  utilisé par l'écran "Personnages" et l'écran "Suivi des constantes" (MJ), tous deux scopés
-  `/groupe/:groupId` et `/suivi/:groupId`. `groupImageUrl` est l'image du groupe
-  (`player_groups.image_url`, fond d'écran) ; `groupDriveUrl` est le lien Drive personnalisable du
-  groupe (`player_groups.drive_url`, affiché en bouton "Dossier Drive" — plus de lien ADD40K en
-  dur). Voir `src/shared/types.ts`.
+  — résumé enrichi (portrait, statut `inGame`, `isNpc`, `archived`, PV/PSP courant + max calculé,
+  `xp`/`xpAvailable`, `actionRank`) utilisé par l'écran "Personnages" et l'écran "Suivi des
+  constantes" (MJ), tous deux scopés `/groupe/:groupId` et `/suivi/:groupId`. `groupImageUrl` est
+  l'image du groupe (`player_groups.image_url`, fond d'écran) ; `groupDriveUrl` est le lien Drive
+  personnalisable du groupe (`player_groups.drive_url`, affiché en bouton "Dossier Drive" — plus
+  de lien ADD40K en dur). `actionRank` (cf. `calc-engine.getActionRank`) est le Rang d'Action
+  courant du personnage — plus bas = agit plus tôt ; l'écran "Suivi des constantes" affiche un
+  rang courant (boutons Précédent/Suivant) et surligne les tuiles dont `actionRank` correspond
+  exactement (plusieurs personnages peuvent agir au même rang). Voir `src/shared/types.ts`.
 
 ### `GET /api/characters/:id`
 - Auth : session ; lecture ouverte à tout membre du groupe du personnage.
@@ -69,10 +72,15 @@ chaque réponse.
 - Entrée : `Partial<Character>` — fusionné avec les données existantes côté serveur
   (`id` et `ownerUsername` du client sont ignorés). `xp` ("XP gagnée depuis la création" à
   l'écran) est clampé à `0` minimum si le patch en envoie un négatif (import Excel ou autre) —
-  c'est un historique cumulatif qui ne descend jamais sous 0 et n'est jamais réduit, y compris par
-  cette route ; cf. `POST /:id/xp` ci-dessous pour les retraits (réservés au MJ, qui touchent
-  `xpAvailable` à la place).
-- Sortie : `{ character: Character, computed: CharacterComputed, canEdit: true, referenceData: ReferenceData }`.
+  cf. `POST /:id/xp` ci-dessous pour les retraits du MJ (qui touchent `xp` et `xpAvailable`
+  ensemble). C'est aussi cette route qui gère, en dehors du mode édition de la fiche,
+  `weapons[].equipped` (arme en main — un des termes du Rang d'Action, cf. `computed.actionRank`
+  et `calc-engine.getActionRank`) et `activePsyPowers` (pouvoirs activés "à la demande" en séance,
+  cf. `ActivePsyPower` dans `shared/types.ts` — seul "Concentration psy" y a un effet chiffré, un
+  bonus de Réflexe pris en compte dans le calcul du RA).
+- Sortie : `{ character: Character, computed: CharacterComputed, canEdit: true, referenceData: ReferenceData }`
+  — `computed.actionRank` est dérivé à la volée (Réflexe, arme équipée, avantages/pouvoir
+  "Concentration" actifs), jamais stocké tel quel.
 - Erreurs : `403` (pas le propriétaire ni MJ du groupe), `404` (personnage introuvable), `400` (JSON invalide).
 
 ### `POST /api/characters/:id/xp`
