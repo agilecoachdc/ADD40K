@@ -174,6 +174,7 @@ const EN: Record<string, string> = {
   "Activer": "Activate",
   "Niveau": "Level",
   "gratuit": "free",
+  "Total avant jet": "Total before roll",
   "Effet (optionnel)": "Effect (optional)",
   "— caractéristique —": "— attribute —",
   "ou compétence": "or skill",

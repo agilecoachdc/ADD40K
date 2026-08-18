@@ -977,15 +977,18 @@ function PsyPowerActivation({
   onChange: (next: ActivePsyPower | null) => void;
 }) {
   const { t } = useTranslation();
-  const availableLevels = PSY_POWER_LEVELS.filter((lvl) => lvl <= score);
-  const [level, setLevel] = useState(active?.level ?? availableLevels[availableLevels.length - 1] ?? 10);
+  // Tous les paliers restent sélectionnables quel que soit le score : la
+  // réussite se joue au dé (score + palier + jet 1-10, comparé au seuil du
+  // pouvoir), pas par un seuil dur côté app — un score bas reste jouable
+  // grâce au jet. Le total avant jet (score + palier) est affiché pour
+  // aider au choix.
+  const [level, setLevel] = useState(active?.level ?? PSY_POWER_LEVELS[0]);
   const [attribute, setAttribute] = useState<Attribute>(active?.attribute ?? "REF");
   const [boostAttribute, setBoostAttribute] = useState<Attribute | "">(active?.boostAttribute ?? "");
   const [boostSkillName, setBoostSkillName] = useState(active?.boostSkillName ?? "");
   const [boostAmount, setBoostAmount] = useState(active?.boostAmount ?? 0);
   const [duration, setDuration] = useState<"turn" | "combat">(active?.duration ?? "turn");
 
-  if (availableLevels.length === 0) return null;
   const isConcentrationPsy = powerName === CONCENTRATION_PSY_NAME;
   const needsAttribute = isConcentrationPsy && (level === 15 || level === 20);
 
@@ -1015,7 +1018,7 @@ function PsyPowerActivation({
           onChange={(e) => setLevel(Number(e.target.value))}
           className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
         >
-          {availableLevels.map((lvl) => {
+          {PSY_POWER_LEVELS.map((lvl) => {
             const cost = getPsyPowerActivationCost(lvl);
             return (
               <option key={lvl} value={lvl}>
@@ -1024,6 +1027,8 @@ function PsyPowerActivation({
             );
           })}
         </select>
+        {/* Total avant jet = score + palier — la réussite se joue ensuite au dé (1-10) contre le seuil du pouvoir. */}
+        <span className="text-slate-500">{t("Total avant jet")} : {score + level}</span>
         {needsAttribute && (
           <select
             value={attribute}

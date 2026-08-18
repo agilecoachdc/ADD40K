@@ -109,11 +109,16 @@ exactement au rang affiché — plusieurs personnages peuvent agir au même rang
 
 ## Activation des pouvoirs psy et coût en PSP
 
-Chaque pouvoir possédé (`PsyPowersPanel`) a un bouton "Activer" dédié (réservé au propriétaire ou
-au MJ) : choix d'un palier ≤ au score du personnage dans ce pouvoir — 10 (gratuit), 15, 20, 25, 30
-ou 35 (`calc-engine.PSY_POWER_LEVELS`) — dont le coût en PSP (0/1/2/3/4/5, cf.
-`getPsyPowerActivationCost`) est décompté de `Character.pspCurrent` à l'activation et remboursé à
-la désactivation (clampé entre 0 et `pspMax`, cf. `CharacterSheet.setActivePower`). "Concentration
+Chaque pouvoir possédé (`PsyPowersPanel`) a un bouton "Activer" dédié, réservé au propriétaire du
+personnage ou à un MJ membre du groupe (`canEditCharacter`, comme le reste de l'édition de la
+fiche) — un simple lecteur (autre joueur du groupe consultant la fiche) ne le voit pas. Tous les
+paliers restent sélectionnables quel que soit le score du personnage dans ce pouvoir — 10
+(gratuit), 15, 20, 25, 30 ou 35 (`calc-engine.PSY_POWER_LEVELS`) : la réussite se joue au dé (score
++ palier, puis un jet 1-10, comparés au seuil du pouvoir), pas par un seuil dur côté app, donc un
+score plus bas reste jouable via le jet — le total "avant jet" (score + palier choisi) est affiché
+pour aider au choix. Le coût en PSP du palier (0/1/2/3/4/5, cf. `getPsyPowerActivationCost`) est
+décompté de `Character.pspCurrent` à l'activation et remboursé à la désactivation (clampé entre 0
+et `pspMax`, cf. `CharacterSheet.setActivePower`). "Concentration
 psy" garde son mécanisme dédié (bonus de Réflexe chiffré selon le palier, cf. section RA
 ci-dessus) ; pour tout autre pouvoir qui modifie une caractéristique ou une compétence (règle non
 structurée en formule dans ce moteur), un "effet" optionnel se choisit manuellement à
