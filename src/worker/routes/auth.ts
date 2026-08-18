@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import type { Env } from "../lib/session";
 import { createSession, destroySession, getMembershipsForUser, getUserForToken, toPublicUser } from "../lib/session";
 import { verifyPassword, parseSessionCookie, serializeSessionCookie, clearSessionCookie } from "../lib/auth";
-import type { UserRole } from "../../shared/types";
+import type { Language, UserRole } from "../../shared/types";
 
 interface UserRow {
   id: string;
@@ -14,6 +14,7 @@ interface UserRow {
   password_salt: string;
   role: UserRole;
   character_id: string | null;
+  language: Language;
 }
 
 export const authRoutes = new Hono<{ Bindings: Env }>();

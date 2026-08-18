@@ -4,6 +4,7 @@ import type { ActivePsyPower, Character, ReferenceData } from "@shared/types";
 import { computeCharacter, type CharacterComputed } from "@shared/calc-engine";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
+import { useTranslation } from "../lib/i18n";
 import {
   IdentityHeader,
   HpPspBar,
@@ -19,6 +20,7 @@ import {
 export default function CharacterSheet() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { t } = useTranslation();
   // Distribution d'XP réservée au MJ (jamais au joueur propriétaire, même
   // avec canEdit) — cf. BudgetPanel/routes/characters.ts.
   const isGm = user?.role === "gm";
@@ -35,7 +37,11 @@ export default function CharacterSheet() {
       ? `/suivi/${navState.groupId}`
       : `/groupe/${navState.groupId}`
     : "/";
-  const backLabel = navState?.groupId ? (navState.from === "suivi" ? "← Suivi des constantes" : "← Personnages") : "← Groupes";
+  const backLabel = navState?.groupId
+    ? navState.from === "suivi"
+      ? t("← Suivi des constantes")
+      : t("← Personnages")
+    : t("← Groupes");
   const [character, setCharacter] = useState<Character | null>(null);
   // Catalogue du groupe de ce personnage — renvoyé par GET /characters/:id
   // (scopé serveur via sa règle), plus d'import statique ADD40K.
@@ -62,7 +68,7 @@ export default function CharacterSheet() {
   }, [id]);
 
   if (error) return <p className="p-6 text-red-400">{error}</p>;
-  if (!character || !referenceData) return <p className="p-6 text-slate-400">Chargement…</p>;
+  if (!character || !referenceData) return <p className="p-6 text-slate-400">{t("Chargement…")}</p>;
 
   const computed: CharacterComputed = computeCharacter(character, referenceData);
 
@@ -220,7 +226,7 @@ export default function CharacterSheet() {
                     onClick={() => setEditing(false)}
                     className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
                   >
-                    Annuler
+                    {t("Annuler")}
                   </button>
                   <button
                     onClick={save}
@@ -228,7 +234,7 @@ export default function CharacterSheet() {
                     title={computed.budget.solde < 0 ? "Solde négatif — ajustez la fiche avant d'enregistrer" : undefined}
                     className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
                   >
-                    {saving ? "Enregistrement…" : "Enregistrer"}
+                    {saving ? t("Enregistrement…") : t("Enregistrer")}
                   </button>
                 </div>
               ) : (
@@ -236,7 +242,7 @@ export default function CharacterSheet() {
                   onClick={() => setEditing(true)}
                   className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
                 >
-                  Modifier
+                  {t("Modifier")}
                 </button>
               ))}
           </header>

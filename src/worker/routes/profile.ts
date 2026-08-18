@@ -14,7 +14,9 @@
 
 import { Hono } from "hono";
 import type { Env } from "../lib/session";
-import type { Game, MembershipInfo, MembershipStatus, PlayerGroup, PublicUser, ProfileInfo, Ruleset } from "../../shared/types";
+import type { Game, Language, MembershipInfo, MembershipStatus, PlayerGroup, PublicUser, ProfileInfo, Ruleset } from "../../shared/types";
+
+const VALID_LANGUAGES: Language[] = ["fr", "en"];
 
 type HonoEnv = { Bindings: Env; Variables: { user: PublicUser } };
 
@@ -116,4 +118,19 @@ profileRoutes.get("/", async (c) => {
 
   const info: ProfileInfo = { user, memberships };
   return c.json(info);
+});
+
+// Préférence de langue d'affichage — self-service, tout rôle (cf.
+// migrations/0007_language.sql, Language dans shared/types.ts). Route
+// dédiée plutôt qu'un PUT générique sur /profile : c'est le seul champ que
+// le compte peut modifier lui-même sur son propre profil.
+profileRoutes.put("/language", async (c) => {
+  const user = c.get("user");
+  const body = await c.req.json<{ language?: Language }>().catch(() => null);
+  if (!body?.language || !VALID_LANGUAGES.includes(body.language)) {
+    return c.json({ error: "Langue invalide" }, 400);
+  }
+  await c.env.DB.prepare("UPDATE users SET language = ?1 WHERE id = ?2").bind(body.language, user.id).run();
+  const updated: PublicUser = { ...user, language: body.language };
+  return c.json({ user: updated });
 });

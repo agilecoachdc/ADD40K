@@ -2,7 +2,7 @@
 // (lib/auth.ts) de l'accès base de données, pour rester testable/lisible.
 
 import type { Context, Next } from "hono";
-import type { PublicUser, UserRole } from "../../shared/types";
+import type { Language, PublicUser, UserRole } from "../../shared/types";
 import { generateSessionToken, parseSessionCookie, sessionExpiry } from "./auth";
 
 export interface Env {
@@ -16,6 +16,7 @@ interface UserRow {
   display_name: string;
   role: UserRole;
   character_id: string | null;
+  language: Language;
 }
 
 /**
@@ -41,6 +42,7 @@ export function toPublicUser(row: UserRow, memberships: string[]): PublicUser {
     role: row.role,
     characterId: row.character_id,
     memberships,
+    language: row.language,
   };
 }
 
@@ -60,7 +62,7 @@ export async function destroySession(db: D1Database, token: string): Promise<voi
 export async function getUserForToken(db: D1Database, token: string): Promise<PublicUser | null> {
   const row = await db
     .prepare(
-      `SELECT u.id, u.username, u.display_name, u.role, u.character_id
+      `SELECT u.id, u.username, u.display_name, u.role, u.character_id, u.language
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token = ?1 AND s.expires_at > datetime('now')`,
     )

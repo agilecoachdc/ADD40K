@@ -19,6 +19,7 @@ import type { CharacterComputed } from "@shared/calc-engine";
 import { getPsyPowerTotal, getSkillTotal, getWeaponSuggestedScore, getWeaponTotals } from "@shared/calc-engine";
 import { LocalisationSilhouette, RaceArmorSilhouette } from "./RaceArmorSilhouette";
 import { resizePortraitToDataUrl } from "../lib/image";
+import { useTranslation } from "../lib/i18n";
 
 type Update = (patch: Partial<Character>) => void;
 
@@ -129,11 +130,12 @@ export function IdentityHeader({
   update: Update;
   referenceData: ReferenceData;
 }) {
+  const { t } = useTranslation();
   const fields: [string, keyof Character][] = [
-    ["Faction", "faction"],
-    ["Fonction", "fonction"],
-    ["Loyauté", "loyaute"],
-    ["Poids", "weightLabel"],
+    [t("Faction"), "faction"],
+    [t("Fonction"), "fonction"],
+    [t("Loyauté"), "loyaute"],
+    [t("Poids"), "weightLabel"],
   ];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [portraitError, setPortraitError] = useState<string | null>(null);
@@ -156,7 +158,7 @@ export function IdentityHeader({
   }
 
   return (
-    <Section title="Identité">
+    <Section title={t("Identité")}>
       <div className="flex flex-wrap items-start gap-4">
         {editing ? (
           <div className="flex flex-col items-center gap-1">
@@ -171,7 +173,7 @@ export function IdentityHeader({
                 <span className="flex h-full w-full items-center justify-center">{character.name.charAt(0)}</span>
               )}
               <span className="absolute inset-0 flex items-center justify-center bg-black/60 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
-                Changer
+                {t("Changer")}
               </span>
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePortraitChange} />
@@ -181,7 +183,7 @@ export function IdentityHeader({
                 onClick={() => update({ portraitUrl: null })}
                 className="text-xs text-slate-500 hover:text-red-400"
               >
-                Retirer la photo
+                {t("Retirer la photo")}
               </button>
             )}
             {portraitError && <p className="w-24 text-center text-xs text-red-400">{portraitError}</p>}
@@ -235,6 +237,7 @@ export function HpPspBar({
   computed: CharacterComputed;
   onAdjust: (field: "hpCurrent" | "pspCurrent", value: number) => void;
 }) {
+  const { t } = useTranslation();
   function Bar(label: string, current: number, max: number, onChange: (n: number) => void, color: string) {
     const pct = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
     return (
@@ -269,10 +272,10 @@ export function HpPspBar({
   }
 
   return (
-    <Section title="PV / PSP">
+    <Section title={t("PV / PSP")}>
       <div className="flex gap-6">
-        {Bar("PV", character.hpCurrent, computed.hpMax, (n) => onAdjust("hpCurrent", n), "bg-red-500")}
-        {Bar("PSP", character.pspCurrent, computed.pspMax, (n) => onAdjust("pspCurrent", n), "bg-sky-500")}
+        {Bar(t("PV"), character.hpCurrent, computed.hpMax, (n) => onAdjust("hpCurrent", n), "bg-red-500")}
+        {Bar(t("PSP"), character.pspCurrent, computed.pspMax, (n) => onAdjust("pspCurrent", n), "bg-sky-500")}
       </div>
     </Section>
   );
@@ -296,11 +299,12 @@ export function AttributesPanel({
   update: Update;
   referenceData: ReferenceData;
 }) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<Attribute | null>(null);
   const raceDef = referenceData.races.find((r) => r.race === character.race);
 
   return (
-    <Section title="Attributs">
+    <Section title={t("Attributs")}>
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
         {ATTRIBUTES.map((attr) => {
           const isOpen = editing && selected === attr;
@@ -311,24 +315,24 @@ export function AttributesPanel({
                 onClick={() => editing && setSelected(isOpen ? null : attr)}
                 className={`flex w-full items-center justify-between px-3 py-2 text-left ${editing ? "cursor-pointer hover:bg-slate-800" : "cursor-default"}`}
               >
-                <span className="text-sm text-slate-300">{ATTRIBUTE_LABELS[attr]}</span>
+                <span className="text-sm text-slate-300">{t(ATTRIBUTE_LABELS[attr])}</span>
                 <span className="text-lg font-semibold text-slate-100">{computed.attributeTotals[attr]}</span>
               </button>
               {isOpen && (
                 <div className="space-y-1.5 border-t border-slate-700 px-3 py-2 text-xs text-slate-400" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-between">
-                    <span>Base</span>
+                    <span>{t("Base")}</span>
                     <NumberInput
                       value={character.attributeScores[attr]}
                       onChange={(n) => update({ attributeScores: { ...character.attributeScores, [attr]: n } })}
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Racial ({raceDef?.label ?? character.race})</span>
+                    <span>{t("Racial")} ({raceDef?.label ?? character.race})</span>
                     <span className="text-slate-300">{raceDef?.attributeBonus[attr] ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Tech</span>
+                    <span>{t("Tech")}</span>
                     <NumberInput
                       value={character.attributeTechBonus[attr] ?? 0}
                       onChange={(n) =>
@@ -337,7 +341,7 @@ export function AttributesPanel({
                     />
                   </div>
                   <div className="flex items-center justify-between border-t border-slate-700 pt-1.5 font-semibold text-slate-200">
-                    <span>Total</span>
+                    <span>{t("Total")}</span>
                     <span>{computed.attributeTotals[attr]}</span>
                   </div>
                 </div>
@@ -346,7 +350,9 @@ export function AttributesPanel({
           );
         })}
       </div>
-      <p className="mt-2 text-xs text-slate-500">Total des 8 attributs : {computed.attributeSum} (règle : +7 à la création)</p>
+      <p className="mt-2 text-xs text-slate-500">
+        {t("Total des 8 attributs")} : {computed.attributeSum} ({t("règle : +7 à la création")})
+      </p>
     </Section>
   );
 }
@@ -364,17 +370,18 @@ export function SkillsPanel({
   update: Update;
   referenceData: ReferenceData;
 }) {
+  const { t } = useTranslation();
   const skills = character.skills;
   function setSkill(i: number, patch: Partial<(typeof skills)[number]>) {
     update({ skills: skills.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) });
   }
   return (
-    <Section title="Compétences">
+    <Section title={t("Compétences")}>
       <div className="mb-1 hidden grid-cols-[1fr_auto_auto_auto] gap-2 px-1 text-xs text-slate-500 sm:grid">
-        <span>Compétence</span>
-        <span className="text-right">Score</span>
-        <span className="text-right">Attribut</span>
-        <span className="text-right">Total</span>
+        <span>{t("Compétence")}</span>
+        <span className="text-right">{t("Score")}</span>
+        <span className="text-right">{t("Attribut")}</span>
+        <span className="text-right">{t("Total")}</span>
       </div>
       <ul className="space-y-1">
         {skills.map((s, i) => {
@@ -386,7 +393,7 @@ export function SkillsPanel({
                   value={s.name}
                   options={referenceData.skills.map((sd) => sd.name)}
                   onPick={(name) => setSkill(i, { name })}
-                  placeholder="— choisir une compétence —"
+                  placeholder={t("— choisir une compétence —")}
                   className="flex-1"
                 />
               ) : (
@@ -421,7 +428,7 @@ export function SkillsPanel({
           onClick={() => update({ skills: [...skills, { name: "", score: 0 }] })}
           className="mt-2 text-sm text-indigo-400 hover:underline"
         >
-          + Ajouter une compétence
+          {t("+ Ajouter une compétence")}
         </button>
       )}
     </Section>
@@ -447,6 +454,7 @@ export function WeaponsArmorPanel({
   onToggleWeaponEquipped: (index: number) => void;
   referenceData: ReferenceData;
 }) {
+  const { t } = useTranslation();
   const weapons = character.weapons;
   const armor = character.armor;
   const activeArmor = armor.filter((a) => a.active);
@@ -458,7 +466,7 @@ export function WeaponsArmorPanel({
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <Section title="Armes">
+      <Section title={t("Armes")}>
         <ul className="space-y-2">
           {weapons.map((w, i) => {
             const totals = getWeaponTotals(w, computed.attributeTotals.REF);
@@ -525,7 +533,7 @@ export function WeaponsArmorPanel({
                           ),
                         });
                       }}
-                      placeholder="— choisir une arme —"
+                      placeholder={t("— choisir une arme —")}
                       className="flex-1"
                     />
                     ) : (
@@ -548,7 +556,7 @@ export function WeaponsArmorPanel({
                     getWeaponTotals. */}
                 <div className="mt-1 flex flex-wrap items-center gap-3 text-slate-400">
                   <span>
-                    Score{" "}
+                    {t("Score")}{" "}
                     {editing ? (
                       <NumberInput
                         value={w.baseScore}
@@ -559,7 +567,7 @@ export function WeaponsArmorPanel({
                     )}
                   </span>
                   <span>
-                    Dmg{" "}
+                    {t("Dmg")}{" "}
                     {editing ? (
                       <NumberInput
                         value={w.damage}
@@ -570,7 +578,7 @@ export function WeaponsArmorPanel({
                     )}
                   </span>
                   <span>
-                    RA{" "}
+                    {t("RA")}{" "}
                     {editing ? (
                       <NumberInput
                         value={w.ra}
@@ -603,7 +611,7 @@ export function WeaponsArmorPanel({
                       onClick={() => setExpandedWeapon(expandedWeapon === i ? null : i)}
                       className="text-xs text-indigo-400 hover:underline"
                     >
-                      {modifiers.length > 0 ? `Modificateurs (${modifiers.length})` : "+ Modificateur"}
+                      {modifiers.length > 0 ? `${t("Modificateurs")} (${modifiers.length})` : t("+ Modificateur")}
                     </button>
                   )}
                   {!editing && modifiers.length > 0 && (
@@ -611,7 +619,7 @@ export function WeaponsArmorPanel({
                       className="text-xs text-emerald-400"
                       title={modifiers.map((m) => m.justification || "(sans justification)").join(", ")}
                     >
-                      base {w.baseScore}/{w.damage}/{w.ra} + {modifiers.length} modif.
+                      {t("base")} {w.baseScore}/{w.damage}/{w.ra} + {modifiers.length} {t("modif.")}
                     </span>
                   )}
                 </div>
@@ -635,11 +643,11 @@ export function WeaponsArmorPanel({
                               modifiers.map((x, idx) => (idx === mi ? { ...x, justification: e.target.value } : x)),
                             )
                           }
-                          placeholder="Justification (ligne d'équipement)"
+                          placeholder={t("Justification (ligne d'équipement)")}
                           className="min-w-[160px] flex-1 rounded border border-slate-700 bg-slate-800 px-2 py-1"
                         />
                         <span className="flex items-center gap-1">
-                          RA
+                          {t("RA")}
                           <NumberInput
                             value={m.ra ?? 0}
                             onChange={(n) => setWeaponModifiers(i, modifiers.map((x, idx) => (idx === mi ? { ...x, ra: n } : x)))}
@@ -647,7 +655,7 @@ export function WeaponsArmorPanel({
                           />
                         </span>
                         <span className="flex items-center gap-1">
-                          Dmg
+                          {t("Dmg")}
                           <NumberInput
                             value={m.damage ?? 0}
                             onChange={(n) => setWeaponModifiers(i, modifiers.map((x, idx) => (idx === mi ? { ...x, damage: n } : x)))}
@@ -655,7 +663,7 @@ export function WeaponsArmorPanel({
                           />
                         </span>
                         <span className="flex items-center gap-1">
-                          Score
+                          {t("Score")}
                           <NumberInput
                             value={m.score ?? 0}
                             onChange={(n) => setWeaponModifiers(i, modifiers.map((x, idx) => (idx === mi ? { ...x, score: n } : x)))}
@@ -678,10 +686,10 @@ export function WeaponsArmorPanel({
                       }
                       className="text-xs text-indigo-400 hover:underline"
                     >
-                      + Ajouter un modificateur
+                      {t("+ Ajouter un modificateur")}
                     </button>
                     <p className="text-xs text-slate-500">
-                      Total joué : Score {totals.baseScore} · Dmg {totals.damage} · RA {totals.ra}
+                      {t("Total joué")} : {t("Score")} {totals.baseScore} · {t("Dmg")} {totals.damage} · {t("RA")} {totals.ra}
                     </p>
                   </div>
                 )}
@@ -694,12 +702,12 @@ export function WeaponsArmorPanel({
             onClick={() => update({ weapons: [...weapons, { name: "", type: "Fire", damage: 0, ra: 0, baseScore: 0 }] })}
             className="mt-2 text-sm text-indigo-400 hover:underline"
           >
-            + Ajouter une arme
+            {t("+ Ajouter une arme")}
           </button>
         )}
       </Section>
 
-      <Section title="Armures">
+      <Section title={t("Armures")}>
         {/*
           Silhouette d'armure (VP par membre) et silhouette de localisation
           (table de touches d10, générique — remplace l'ancienne section
@@ -713,7 +721,7 @@ export function WeaponsArmorPanel({
 
         {!editing && canEdit && (
           <ul className="space-y-1 text-sm text-slate-300">
-            {armor.length === 0 && <li className="text-slate-500">Aucune armure sur la fiche</li>}
+            {armor.length === 0 && <li className="text-slate-500">{t("Aucune armure sur la fiche")}</li>}
             {armor.map((a, i) => (
               <li key={i} className="flex items-center gap-2">
                 <input
@@ -730,7 +738,7 @@ export function WeaponsArmorPanel({
 
         {!editing && !canEdit && (
           <ul className="space-y-1 text-sm text-slate-300">
-            {activeArmor.length === 0 && <li className="text-slate-500">Aucune armure équipée</li>}
+            {activeArmor.length === 0 && <li className="text-slate-500">{t("Aucune armure équipée")}</li>}
             {activeArmor.map((a, i) => (
               <li key={i}>{a.name}</li>
             ))}
@@ -771,7 +779,7 @@ export function WeaponsArmorPanel({
                         ),
                       });
                     }}
-                    placeholder="— choisir une armure —"
+                    placeholder={t("— choisir une armure —")}
                     className="flex-1"
                   />
                   <button
@@ -783,16 +791,16 @@ export function WeaponsArmorPanel({
                 </div>
                 <div className="mt-1 flex flex-wrap gap-3 text-slate-400">
                   <span>
-                    Tête <NumberInput value={a.vpTete} onChange={(n) => update({ armor: armor.map((x, idx) => (idx === i ? { ...x, vpTete: n } : x)) })} />
+                    {t("Tête")} <NumberInput value={a.vpTete} onChange={(n) => update({ armor: armor.map((x, idx) => (idx === i ? { ...x, vpTete: n } : x)) })} />
                   </span>
                   <span>
-                    Bras <NumberInput value={a.vpBras} onChange={(n) => update({ armor: armor.map((x, idx) => (idx === i ? { ...x, vpBras: n } : x)) })} />
+                    {t("Bras")} <NumberInput value={a.vpBras} onChange={(n) => update({ armor: armor.map((x, idx) => (idx === i ? { ...x, vpBras: n } : x)) })} />
                   </span>
                   <span>
-                    Torse <NumberInput value={a.vpTorse} onChange={(n) => update({ armor: armor.map((x, idx) => (idx === i ? { ...x, vpTorse: n } : x)) })} />
+                    {t("Torse")} <NumberInput value={a.vpTorse} onChange={(n) => update({ armor: armor.map((x, idx) => (idx === i ? { ...x, vpTorse: n } : x)) })} />
                   </span>
                   <span>
-                    Jambes <NumberInput value={a.vpJambes} onChange={(n) => update({ armor: armor.map((x, idx) => (idx === i ? { ...x, vpJambes: n } : x)) })} />
+                    {t("Jambes")} <NumberInput value={a.vpJambes} onChange={(n) => update({ armor: armor.map((x, idx) => (idx === i ? { ...x, vpJambes: n } : x)) })} />
                   </span>
                 </div>
               </li>
@@ -801,7 +809,7 @@ export function WeaponsArmorPanel({
               onClick={() => update({ armor: [...armor, { name: "", vpTete: 0, vpBras: 0, vpTorse: 0, vpJambes: 0, active: true }] })}
               className="text-sm text-indigo-400 hover:underline"
             >
-              + Ajouter une armure
+              {t("+ Ajouter une armure")}
             </button>
           </ul>
         )}
@@ -845,6 +853,7 @@ function PsyPowerActivation({
   active: ActivePsyPower | undefined;
   onChange: (next: ActivePsyPower | null) => void;
 }) {
+  const { t } = useTranslation();
   const availableLevels = POWER_LEVELS.filter((lvl) => lvl <= score);
   const [level, setLevel] = useState(active?.level ?? availableLevels[availableLevels.length - 1] ?? 15);
   const [attribute, setAttribute] = useState<Attribute>(active?.attribute ?? "REF");
@@ -856,11 +865,11 @@ function PsyPowerActivation({
     return (
       <div className="flex items-center gap-2 text-xs">
         <span className="rounded-full bg-emerald-600/20 px-2 py-0.5 text-emerald-300">
-          Actif · niveau {active.level}
+          {t("Actif · niveau")} {active.level}
           {active.attribute ? ` · ${active.attribute}` : ""}
         </span>
         <button type="button" onClick={() => onChange(null)} className="text-slate-500 hover:text-red-400">
-          Désactiver
+          {t("Désactiver")}
         </button>
       </div>
     );
@@ -875,7 +884,7 @@ function PsyPowerActivation({
       >
         {availableLevels.map((lvl) => (
           <option key={lvl} value={lvl}>
-            Niveau {lvl}
+            {t("Niveau")} {lvl}
           </option>
         ))}
       </select>
@@ -897,7 +906,7 @@ function PsyPowerActivation({
         onClick={() => onChange({ name: powerName, level, attribute: needsAttribute ? attribute : undefined })}
         className="rounded bg-indigo-600 px-2 py-0.5 font-medium text-white hover:bg-indigo-500"
       >
-        Activer
+        {t("Activer")}
       </button>
     </div>
   );
@@ -922,11 +931,12 @@ export function PsyPowersPanel({
   onSetActivePower: (powerName: string, next: ActivePsyPower | null) => void;
   referenceData: ReferenceData;
 }) {
+  const { t } = useTranslation();
   const powers = character.psyPowers;
   const activePowers = character.activePsyPowers ?? [];
   if (powers.length === 0 && !editing) return null;
   return (
-    <Section title="Pouvoirs Psy">
+    <Section title={t("Pouvoirs Psy")}>
       <ul className="space-y-1">
         {powers.map((p, i) => {
           const total = getPsyPowerTotal(p, character, computed.attributeTotals);
@@ -946,7 +956,7 @@ export function PsyPowersPanel({
                         ),
                       });
                     }}
-                    placeholder="— choisir un pouvoir —"
+                    placeholder={t("— choisir un pouvoir —")}
                     className="flex-1"
                   />
                 ) : (
@@ -989,7 +999,7 @@ export function PsyPowersPanel({
           onClick={() => update({ psyPowers: [...powers, { name: "", score: 0, discipline: "" }] })}
           className="mt-2 text-sm text-indigo-400 hover:underline"
         >
-          + Ajouter un pouvoir
+          {t("+ Ajouter un pouvoir")}
         </button>
       )}
     </Section>
@@ -1007,9 +1017,10 @@ export function AdvantagesPanel({
   update: Update;
   referenceData: ReferenceData;
 }) {
+  const { t } = useTranslation();
   const advantages = character.advantages;
   return (
-    <Section title="Avantages et inconvénients">
+    <Section title={t("Avantages et inconvénients")}>
       <ul className="space-y-1">
         {advantages.map((a, i) => (
           <li key={i} className="flex items-center justify-between gap-2 text-sm">
@@ -1028,7 +1039,7 @@ export function AdvantagesPanel({
                     advantages: advantages.map((x, idx) => (idx === i ? { label, value: def?.value ?? 0 } : x)),
                   });
                 }}
-                placeholder="— choisir —"
+                placeholder={t("— choisir —")}
                 className="flex-1"
               />
             ) : (
@@ -1056,7 +1067,7 @@ export function AdvantagesPanel({
           onClick={() => update({ advantages: [...advantages, { label: "", value: 0 }] })}
           className="mt-2 text-sm text-indigo-400 hover:underline"
         >
-          + Ajouter un avantage/inconvénient
+          {t("+ Ajouter un avantage/inconvénient")}
         </button>
       )}
     </Section>
@@ -1072,9 +1083,10 @@ export function EquipmentPanel({
   editing: boolean;
   update: Update;
 }) {
+  const { t } = useTranslation();
   const equipment = character.equipment;
   return (
-    <Section title="Équipement">
+    <Section title={t("Équipement")}>
       <ul className="list-inside list-disc space-y-1 text-sm text-slate-200">
         {equipment.map((e, i) => (
           <li key={i} className="flex items-center gap-2">
@@ -1095,7 +1107,7 @@ export function EquipmentPanel({
           onClick={() => update({ equipment: [...equipment, { label: "" }] })}
           className="mt-2 text-sm text-indigo-400 hover:underline"
         >
-          + Ajouter un objet
+          {t("+ Ajouter un objet")}
         </button>
       )}
     </Section>
@@ -1122,6 +1134,7 @@ export function BudgetPanel({
   /** Absorbe le solde négatif dans les points de départ — réservé au MJ, cf. CharacterSheet.tsx handleAcceptDeficit. */
   onAcceptDeficit?: () => void | Promise<void>;
 }) {
+  const { t } = useTranslation();
   const { budget } = computed;
   const [xpAmount, setXpAmount] = useState("");
   const [xpBusy, setXpBusy] = useState(false);
@@ -1166,25 +1179,27 @@ export function BudgetPanel({
         le MJ, augmente symétriquement sinon (cf. PUT et POST
         /api/characters/:id/xp) — et ne compte PAS dans le total dispo.
       */}
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Total dispo</p>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{t("Total dispo")}</p>
       <dl className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-        <Metric label="Points raciaux" value={budget.raceSkillPoints} />
-        <Metric label="Points de départ" value={character.pointsDepart} />
-        <Metric label="XP gagnée (depuis la création)" value={character.xp} />
-        <Metric label="XP disponible" value={character.xpAvailable} />
-        <Metric label="Total" value={budget.totalDispo} emphasis />
+        <Metric label={t("Points raciaux")} value={budget.raceSkillPoints} />
+        <Metric label={t("Points de départ")} value={character.pointsDepart} />
+        <Metric label={t("XP gagnée (depuis la création)")} value={character.xp} />
+        <Metric label={t("XP disponible")} value={character.xpAvailable} />
+        <Metric label={t("Total")} value={budget.totalDispo} emphasis />
       </dl>
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Dépenses</p>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{t("Dépenses")}</p>
       <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-        <Metric label="Coût compétences" value={-budget.skillsCost} />
-        <Metric label="Coût pouvoirs psy" value={-budget.psyPowersCost} />
-        <Metric label="Net avantages" value={budget.advantagesNet} />
-        <Metric label="XP utilisée" value={xpUsed} />
-        <Metric label="Solde" value={budget.solde} emphasis />
+        <Metric label={t("Coût compétences")} value={-budget.skillsCost} />
+        <Metric label={t("Coût pouvoirs psy")} value={-budget.psyPowersCost} />
+        <Metric label={t("Net avantages")} value={budget.advantagesNet} />
+        <Metric label={t("XP utilisée")} value={xpUsed} />
+        <Metric label={t("Solde")} value={budget.solde} emphasis />
       </dl>
       {budget.solde < 0 && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-950 px-3 py-2 text-sm text-red-300">
-          <span>⚠️ Solde négatif : ce personnage dépasse son budget de points de {Math.abs(budget.solde)}.</span>
+          <span>
+            ⚠️ {t("Solde négatif : ce personnage dépasse son budget de points de")} {Math.abs(budget.solde)}.
+          </span>
           {isGm && onAcceptDeficit && (
             <button
               type="button"
@@ -1193,14 +1208,14 @@ export function BudgetPanel({
               title="Ajoute le déficit aux points de départ pour ramener le solde à 0"
               className="shrink-0 rounded-lg bg-red-800 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
             >
-              {deficitBusy ? "…" : "Accepter"}
+              {deficitBusy ? "…" : t("Accepter")}
             </button>
           )}
         </div>
       )}
       {isGm && onGrantXp && (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-800 pt-3">
-          <label className="text-sm text-slate-400">Donner de l'XP</label>
+          <label className="text-sm text-slate-400">{t("Donner de l'XP")}</label>
           <input
             type="number"
             value={xpAmount}
@@ -1214,7 +1229,7 @@ export function BudgetPanel({
             disabled={xpBusy || !xpAmount}
             className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
           >
-            {xpBusy ? "…" : "Valider"}
+            {xpBusy ? "…" : t("Valider")}
           </button>
         </div>
       )}

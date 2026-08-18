@@ -1,0 +1,208 @@
+// Traduction minimale : le texte source (français, langue d'origine de
+// l'app) sert lui-même de clé de dictionnaire — pas de clés sémantiques
+// séparées à inventer/maintenir. `t("Texte français exact")` renvoie la
+// traduction si `EN` en a une entrée pour la langue courante, sinon
+// retombe sur le texte français tel quel (dégradation silencieuse : un
+// texte pas encore traduit reste lisible plutôt que de planter ou
+// d'afficher une clé brute). Langue courante = préférence du compte
+// (PublicUser.language, cf. migrations/0007_language.sql), "fr" pour un
+// visiteur non connecté (page de connexion).
+//
+// Étendre à une 3e langue : ajouter son dictionnaire ci-dessous et
+// l'inclure dans DICTIONARIES ; Language (shared/types.ts) doit aussi
+// lister le nouveau code.
+
+import { useAuth } from "./auth-context";
+import type { Language } from "@shared/types";
+
+const EN: Record<string, string> = {
+  // Navigation / actions communes
+  "Déconnexion": "Log out",
+  "Mon profil": "My profile",
+  "Retour": "Back",
+  "← Retour": "← Back",
+  "← Groupes": "← Groups",
+  "← Personnages": "← Characters",
+  "← Suivi des constantes": "← Vitals tracker",
+  "Modifier": "Edit",
+  "Annuler": "Cancel",
+  "Enregistrer": "Save",
+  "Enregistrement…": "Saving…",
+  "Chargement…": "Loading…",
+
+  // Login.tsx
+  "Identifiant": "Username",
+  "Mot de passe": "Password",
+  "Se connecter": "Log in",
+  "Connexion…": "Logging in…",
+  "Identifiants invalides": "Invalid credentials",
+
+  // Home.tsx
+  "Aucun groupe pour l'instant — créez un jeu et une règle depuis « Jeux & règles », puis un groupe depuis « Groupes ».":
+    "No groups yet — create a game and a ruleset from “Games & rules”, then a group from “Groups”.",
+  "Vous n'êtes membre d'aucun groupe.": "You are not a member of any group.",
+  "Rejoindre ou créer un groupe": "Join or create a group",
+  "Administration": "Administration",
+  "Jeux & règles": "Games & rules",
+  "Groupes": "Groups",
+  "Comptes": "Accounts",
+  "Mes groupes": "My groups",
+
+  // Profile.tsx
+  "Identité": "Identity",
+  "Nom": "Name",
+  "Rôle": "Role",
+  "Administrateur": "Administrator",
+  "Maître du jeu": "Game master",
+  "Joueur": "Player",
+  "Personnage": "Character",
+  "Voir la fiche": "View sheet",
+  "Compte administrateur — pas de groupe de joueurs assigné.":
+    "Administrator account — no player group assigned.",
+  "Vous n'êtes membre d'aucun groupe pour l'instant.": "You are not a member of any group yet.",
+  "En attente d'approbation du MJ": "Awaiting GM approval",
+  "Quitter": "Leave",
+  "Annuler la demande": "Cancel request",
+  "Demander à rejoindre un groupe": "Request to join a group",
+  "Aucun autre groupe disponible.": "No other group available.",
+  "Demander": "Request",
+  "Créer un nouveau groupe": "Create a new group",
+  "Nom du groupe": "Group name",
+  "Description (optionnel)": "Description (optional)",
+  "Lien du dossier Drive (optionnel)": "Drive folder link (optional)",
+  "— Règle —": "— Ruleset —",
+  "Création…": "Creating…",
+  "Créer et rejoindre": "Create and join",
+  "Jeu": "Game",
+  "Règle": "Ruleset",
+  "Description": "Description",
+  "Langue de l'interface": "Interface language",
+  "Français": "French",
+  "Anglais": "English",
+
+  // CharacterList.tsx
+  "Personnages": "Characters",
+  "Suivi des constantes": "Vitals tracker",
+  "Dossier Drive": "Drive folder",
+  "Vous n'êtes pas membre de ce groupe.": "You are not a member of this group.",
+  "Retour à l'accueil": "Back to home",
+  "Joueurs": "Players",
+  "PNJ": "NPCs",
+  "Ma fiche": "My sheet",
+  "En jeu": "In play",
+  "→ PNJ": "→ NPC",
+  "→ Joueur": "→ Player",
+  "Archiver": "Archive",
+  "Désarchiver": "Unarchive",
+  "Personnages archivés": "Archived characters",
+  "Aucun personnage archivé.": "No archived characters.",
+  "Demandes d'adhésion en attente": "Pending join requests",
+  "Approuver": "Approve",
+  "Rejeter": "Reject",
+
+  // GmTracker.tsx
+  "Personnages en jeu — PV / PSP en direct": "Characters in play — live HP / PSP",
+  "Aucun personnage en jeu. Coche \"En jeu\" sur l'écran d'accueil pour l'ajouter ici.":
+    "No characters in play. Check \"In play\" on the home screen to add one here.",
+  "+ Nouveau PNJ": "+ New NPC",
+  "Aucun PNJ en jeu.": "No NPCs in play.",
+  "Créer le PNJ": "Create NPC",
+  "Photo": "Photo",
+  "Race": "Race",
+  "Vitalité (VIT)": "Vitality (VIT)",
+  "Volonté (VOL)": "Will (VOL)",
+  "Rang d'Action": "Action Rank",
+  "← Précédent": "← Previous",
+  "Suivant →": "Next →",
+  "PV max": "HP max",
+  "PSP max": "PSP max",
+  "même calcul que pour un joueur — VIT/VOL + race + taille": "same calculation as for a player — VIT/WIL + race + size",
+
+  // CharacterSheet.tsx / CharacterSheetPanels.tsx
+  "PV / PSP": "HP / PSP",
+  "PV": "HP",
+  "PSP": "PSP",
+  "Faction": "Faction",
+  "Fonction": "Role",
+  "Loyauté": "Loyalty",
+  "Poids": "Weight",
+  "Changer": "Change",
+  "Retirer la photo": "Remove photo",
+  "Base": "Base",
+  "Racial": "Racial",
+  "Tech": "Tech",
+  "Total des 8 attributs": "Total of the 8 attributes",
+  "règle : +7 à la création": "rule: +7 at creation",
+  "Score": "Score",
+  "Dmg": "Dmg",
+  "RA": "AR",
+  "Armes": "Weapons",
+  "Armures": "Armor",
+  "Aucune armure sur la fiche": "No armor on the sheet",
+  "Aucune armure équipée": "No armor equipped",
+  "+ Ajouter une arme": "+ Add a weapon",
+  "+ Ajouter une armure": "+ Add armor",
+  "— choisir une arme —": "— choose a weapon —",
+  "— choisir une armure —": "— choose armor —",
+  "Modificateurs": "Modifiers",
+  "+ Modificateur": "+ Modifier",
+  "base": "base",
+  "modif.": "mod.",
+  "Justification (ligne d'équipement)": "Justification (equipment line)",
+  "+ Ajouter un modificateur": "+ Add a modifier",
+  "Total joué": "Total in play",
+  "Tête": "Head",
+  "Bras": "Arms",
+  "Torse": "Torso",
+  "Jambes": "Legs",
+  "Attributs": "Attributes",
+  "Compétences": "Skills",
+  "Compétence": "Skill",
+  "Attribut": "Attribute",
+  "Total": "Total",
+  "— choisir une compétence —": "— choose a skill —",
+  "Pouvoirs Psy": "Psychic Powers",
+  "+ Ajouter un pouvoir": "+ Add a power",
+  "— choisir un pouvoir —": "— choose a power —",
+  "Actif · niveau": "Active · level",
+  "Désactiver": "Deactivate",
+  "Activer": "Activate",
+  "Niveau": "Level",
+  "Avantages et inconvénients": "Advantages and disadvantages",
+  "+ Ajouter un avantage/inconvénient": "+ Add an advantage/disadvantage",
+  "— choisir —": "— choose —",
+  "Équipement": "Equipment",
+  "+ Ajouter un objet": "+ Add an item",
+  "Budget de points": "Point budget",
+  "Total dispo": "Total available",
+  "Dépenses": "Spending",
+  "Points raciaux": "Racial points",
+  "Points de départ": "Starting points",
+  "XP gagnée (depuis la création)": "XP earned (since creation)",
+  "XP disponible": "XP available",
+  "Coût compétences": "Skill cost",
+  "Coût pouvoirs psy": "Psychic power cost",
+  "Net avantages": "Net advantages",
+  "XP utilisée": "XP used",
+  "Solde": "Balance",
+  "Accepter": "Accept",
+  "Donner de l'XP": "Give XP",
+  "Valider": "Confirm",
+  "XP gagnée": "XP earned",
+  "gagnée": "earned",
+  "Solde négatif : ce personnage dépasse son budget de points de": "Negative balance: this character exceeds its point budget by",
+  "dispo": "avail.",
+};
+
+const DICTIONARIES: Partial<Record<Language, Record<string, string>>> = { en: EN };
+
+export function translate(language: Language, text: string): string {
+  return DICTIONARIES[language]?.[text] ?? text;
+}
+
+/** `t(text)` traduit `text` (français) vers la langue courante du compte connecté (fr par défaut, y compris déconnecté). */
+export function useTranslation() {
+  const { user } = useAuth();
+  const language: Language = user?.language ?? "fr";
+  return { language, t: (text: string) => translate(language, text) };
+}

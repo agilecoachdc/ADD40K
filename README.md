@@ -140,6 +140,23 @@ il faut d'abord ajuster la fiche, ou passer par le MJ : soit une distribution d'
 le bouton "Accepter" du message d'avertissement rouge, qui absorbe le déficit dans les points de
 départ pour ramener le solde à 0 (`onAcceptDeficit`, `BudgetPanel`).
 
+## Traduction
+
+Chaque compte choisit sa langue d'interface (`users.language`, `migrations/0007_language.sql`,
+`fr` ou `en` — champ modifiable en self-service depuis la page Profil, `PUT
+/api/profile/language`). Traduction minimale côté frontend (`src/frontend/lib/i18n.ts`) : le texte
+français d'origine sert lui-même de clé de dictionnaire (pas de clés sémantiques séparées à
+maintenir) ; `t("Texte français exact")` renvoie la traduction anglaise si elle existe, sinon
+retombe silencieusement sur le français — un texte pas encore traduit reste donc lisible plutôt que
+de planter ou d'afficher une clé brute. Couvre aujourd'hui les écrans joueur/MJ (Accueil, Profil,
+Personnages, Suivi des constantes, Fiche personnage et ses panneaux). Restent en français
+uniquement : les pages d'administration (`admin/GamesRulesets.tsx`, `admin/PlayerGroups.tsx`,
+`admin/Accounts.tsx`) et la page de connexion (langue du compte pas encore connue avant
+authentification) — pistes pour une prochaine itération si une couverture complète est nécessaire.
+Ajouter une 3ᵉ langue : créer son dictionnaire dans `i18n.ts`, l'ajouter à `DICTIONARIES`, et
+lister le nouveau code dans `Language` (`shared/types.ts`) et `VALID_LANGUAGES`
+(`routes/profile.ts`).
+
 ## Comptes et plateforme
 
 Trois rôles : `admin` (gère jeux/règles/groupes de joueurs et les comptes, pages `/admin/jeux` et

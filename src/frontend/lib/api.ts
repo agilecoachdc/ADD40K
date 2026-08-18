@@ -7,6 +7,7 @@ import type {
   CharacterSummary,
   Game,
   JoinRequest,
+  Language,
   PlayerGroup,
   PlayerGroupDetail,
   ProfileInfo,
@@ -37,6 +38,8 @@ export const api = {
   logout: () => request<{ ok: true }>("/auth/logout", { method: "POST" }),
   me: () => request<{ user: PublicUser }>("/auth/me"),
   getProfile: () => request<ProfileInfo>("/profile"),
+  updateLanguage: (language: Language) =>
+    request<{ user: PublicUser }>("/profile/language", { method: "PUT", body: JSON.stringify({ language }) }),
 
   // groupId requis : un compte peut être membre de plusieurs groupes en
   // même temps (cf. migrations/0005_memberships.sql), il n'y a plus de

@@ -27,6 +27,7 @@ import { ATTRIBUTES, type AttributeScores, type CharacterSummary, type Reference
 import { getHpMax, getPspMax } from "@shared/calc-engine";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
+import { useTranslation } from "../lib/i18n";
 import { LocalisationSilhouette, RaceArmorSilhouette } from "../components/RaceArmorSilhouette";
 import { resizePortraitToDataUrl } from "../lib/image";
 
@@ -235,6 +236,7 @@ function CharacterTile({
   onRemove?: () => void;
   onGrantXp?: (amount: number) => void | Promise<void>;
 }) {
+  const { t } = useTranslation();
   return (
     <Link
       to={`/personnages/${c.id}`}
@@ -261,7 +263,7 @@ function CharacterTile({
             }`}
             title="Rang d'Action"
           >
-            RA {c.actionRank}
+            {t("RA")} {c.actionRank}
           </span>
           {isNpc && onRemove && (
             <button
@@ -306,8 +308,8 @@ function CharacterTile({
         */}
         <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-400">
           <span>
-            XP gagnée <span className="font-semibold text-amber-300">{c.xp}</span>
-            <span className="text-slate-600"> · dispo {c.xpAvailable}</span>
+            {t("XP gagnée")} <span className="font-semibold text-amber-300">{c.xp}</span>
+            <span className="text-slate-600"> · {t("dispo")} {c.xpAvailable}</span>
           </span>
           {onGrantXp && <GrantXpControl onGrant={onGrantXp} />}
         </div>
@@ -333,6 +335,7 @@ function CharacterTile({
 export default function GmTracker() {
   const { groupId } = useParams<{ groupId: string }>();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [rows, setRows] = useState<CharacterSummary[] | null>(null);
   const [referenceData, setReferenceData] = useState<ReferenceData>(EMPTY_REFERENCE_DATA);
   // Image du groupe (fond d'écran) — remplace le fond ADD40K en dur, cf.
@@ -501,11 +504,11 @@ export default function GmTracker() {
       <div className="mx-auto max-w-5xl px-4 py-6">
         <header className="mb-6 flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-semibold">Suivi des constantes</h1>
-            <p className="text-sm text-slate-400">Personnages en jeu — PV / PSP en direct</p>
+            <h1 className="text-lg font-semibold">{t("Suivi des constantes")}</h1>
+            <p className="text-sm text-slate-400">{t("Personnages en jeu — PV / PSP en direct")}</p>
           </div>
           <Link to={`/groupe/${groupId}`} className="text-sm text-indigo-400 hover:underline">
-            ← Personnages
+            {t("← Personnages")}
           </Link>
         </header>
 
@@ -526,10 +529,10 @@ export default function GmTracker() {
             onClick={() => setCurrentRank((r) => r - 1)}
             className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
           >
-            ← Précédent
+            {t("← Précédent")}
           </button>
           <div className="text-center">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Rang d'Action</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">{t("Rang d'Action")}</p>
             <p className="text-2xl font-bold text-amber-300">{currentRank}</p>
           </div>
           <button
@@ -537,19 +540,19 @@ export default function GmTracker() {
             onClick={() => setCurrentRank((r) => (r >= maxRank ? 0 : r + 1))}
             className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
           >
-            Suivant →
+            {t("Suivant →")}
           </button>
         </div>
 
         {error && <p className="mb-3 text-red-400">{error}</p>}
-        {!rows && !error && <p className="text-slate-400">Chargement…</p>}
+        {!rows && !error && <p className="text-slate-400">{t("Chargement…")}</p>}
 
         {rows && (
           <>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Joueurs</h2>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">{t("Joueurs")}</h2>
             {players && players.length === 0 && (
               <p className="mb-6 text-sm text-slate-500">
-                Aucun personnage en jeu. Coche "En jeu" sur l'écran d'accueil pour l'ajouter ici.
+                {t("Aucun personnage en jeu. Coche \"En jeu\" sur l'écran d'accueil pour l'ajouter ici.")}
               </p>
             )}
             {/*
@@ -575,13 +578,13 @@ export default function GmTracker() {
             </ul>
 
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">PNJ</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">{t("PNJ")}</h2>
               <button
                 type="button"
                 onClick={() => setShowNpcForm((v) => !v)}
                 className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
               >
-                {showNpcForm ? "Annuler" : "+ Nouveau PNJ"}
+                {showNpcForm ? t("Annuler") : t("+ Nouveau PNJ")}
               </button>
             </div>
 
@@ -596,7 +599,7 @@ export default function GmTracker() {
                     {npcPortraitUrl ? (
                       <img src={npcPortraitUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <span className="text-xs">Photo</span>
+                      <span className="text-xs">{t("Photo")}</span>
                     )}
                   </button>
                   <input
@@ -608,7 +611,7 @@ export default function GmTracker() {
                   />
                   <div className="flex-1 space-y-3">
                     <div>
-                      <label className="mb-1 block text-xs text-slate-500">Nom</label>
+                      <label className="mb-1 block text-xs text-slate-500">{t("Nom")}</label>
                       <input
                         type="text"
                         required
@@ -619,7 +622,7 @@ export default function GmTracker() {
                     </div>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="mb-1 block text-xs text-slate-500">Race</label>
+                        <label className="mb-1 block text-xs text-slate-500">{t("Race")}</label>
                         <select
                           value={npcRace}
                           onChange={(e) => setNpcRace(e.target.value)}
@@ -634,7 +637,7 @@ export default function GmTracker() {
                         </select>
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs text-slate-500">Vitalité (VIT)</label>
+                        <label className="mb-1 block text-xs text-slate-500">{t("Vitalité (VIT)")}</label>
                         <input
                           type="number"
                           value={npcVit}
@@ -643,7 +646,7 @@ export default function GmTracker() {
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs text-slate-500">Volonté (VOL)</label>
+                        <label className="mb-1 block text-xs text-slate-500">{t("Volonté (VOL)")}</label>
                         <input
                           type="number"
                           value={npcVol}
@@ -653,9 +656,8 @@ export default function GmTracker() {
                       </div>
                     </div>
                     <p className="text-xs text-slate-500">
-                      PV max : <span className="text-red-400">{npcHpPreview}</span> · PSP max :{" "}
-                      <span className="text-sky-400">{npcPspPreview}</span> (même calcul que pour un joueur — VIT/VOL
-                      + race + taille)
+                      {t("PV max")} : <span className="text-red-400">{npcHpPreview}</span> · {t("PSP max")} :{" "}
+                      <span className="text-sky-400">{npcPspPreview}</span> ({t("même calcul que pour un joueur — VIT/VOL + race + taille")})
                     </p>
                   </div>
                 </div>
@@ -665,13 +667,13 @@ export default function GmTracker() {
                   disabled={npcSaving}
                   className="mt-3 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
                 >
-                  {npcSaving ? "Création…" : "Créer le PNJ"}
+                  {npcSaving ? t("Création…") : t("Créer le PNJ")}
                 </button>
               </form>
             )}
 
             {npcs && npcs.length === 0 && !showNpcForm && (
-              <p className="text-sm text-slate-500">Aucun PNJ en jeu.</p>
+              <p className="text-sm text-slate-500">{t("Aucun PNJ en jeu.")}</p>
             )}
             <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {npcs?.map((c) => (

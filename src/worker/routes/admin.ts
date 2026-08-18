@@ -11,6 +11,7 @@ import { uniqueSlugId } from "../lib/ids";
 import type {
   Game,
   GroupMember,
+  Language,
   PlayerGroup,
   PlayerGroupDetail,
   PublicUser,
@@ -380,13 +381,14 @@ interface UserRow {
   display_name: string;
   role: UserRole;
   character_id: string | null;
+  language: Language;
 }
 
 const VALID_ROLES: UserRole[] = ["admin", "gm", "player"];
 
 adminRoutes.get("/users", async (c) => {
   const { results } = await c.env.DB.prepare(
-    "SELECT id, username, display_name, role, character_id FROM users ORDER BY display_name",
+    "SELECT id, username, display_name, role, character_id, language FROM users ORDER BY display_name",
   ).all<UserRow>();
   const users: PublicUser[] = [];
   for (const row of results ?? []) {
@@ -434,6 +436,7 @@ adminRoutes.post("/users", async (c) => {
     role: body.role,
     characterId: null,
     memberships,
+    language: "fr",
   };
   // Mot de passe généré renvoyé une seule fois — à communiquer hors-ligne, cf. scripts/add_user.mjs.
   return c.json({ user, password }, 201);
@@ -445,7 +448,7 @@ adminRoutes.put("/users/:id", async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json<{ displayName?: string; role?: UserRole }>().catch(() => null);
   const existing = await c.env.DB.prepare(
-    "SELECT id, username, display_name, role, character_id FROM users WHERE id = ?1",
+    "SELECT id, username, display_name, role, character_id, language FROM users WHERE id = ?1",
   )
     .bind(id)
     .first<UserRow>();

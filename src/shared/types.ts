@@ -323,6 +323,14 @@ export interface ReferenceData {
 
 export type UserRole = "admin" | "gm" | "player";
 
+/**
+ * Langue d'affichage de l'interface — préférence par compte (cf.
+ * PublicUser.language), sélectionnable sur la page Profil. "fr" est la
+ * langue d'origine de l'app (tout le contenu existant), "en" la première
+ * traduction ajoutée. Voir src/frontend/lib/i18n.ts pour les dictionnaires.
+ */
+export type Language = "fr" | "en";
+
 export interface PublicUser {
   id: string;
   username: string;
@@ -338,6 +346,8 @@ export interface PublicUser {
    * est MJ dans tous ses groupes, pas seulement certains.
    */
   memberships: string[];
+  /** Langue d'affichage — cf. Language ci-dessus. "fr" par défaut (comptes existants). */
+  language: Language;
 }
 
 // ---------------------------------------------------------------------------

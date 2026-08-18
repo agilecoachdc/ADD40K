@@ -111,6 +111,21 @@ chaque réponse.
   l'appelant est membre (page "Mon profil", section "Mes groupes"). Tableau vide pour un compte
   sans groupe (admin).
 
+### `PUT /api/profile/language`
+- Auth : session (tout rôle) — self-service, un compte ne modifie que son propre champ.
+- Entrée : `{ language: Language }` (`Language = "fr" | "en"`, cf. `shared/types.ts` et
+  `migrations/0007_language.sql`).
+- Sortie : `{ user: PublicUser }` avec le nouveau `language`.
+- Erreurs : `400` (langue absente ou hors de `["fr", "en"]`).
+- Utilisé par le sélecteur "Langue de l'interface" de la page Profil. `language` par défaut
+  `'fr'` pour tout compte (y compris non authentifié — page de connexion, où la préférence n'est
+  pas encore connue). Traduction gérée côté frontend par `src/frontend/lib/i18n.ts`
+  (`useTranslation()`/`t()`) : dictionnaire anglais indexé par le texte source français, avec
+  retombée silencieuse sur le français pour tout texte non encore traduit. Actuellement couvre les
+  écrans joueur/MJ (Accueil, Profil, Personnages, Suivi des constantes, Fiche personnage) ; les
+  pages d'administration (`admin/GamesRulesets.tsx`, `admin/PlayerGroups.tsx`, `admin/Accounts.tsx`)
+  et la page de connexion restent en français uniquement.
+
 ## Administration (`src/worker/routes/admin.ts`)
 
 Toutes les routes ci-dessous sont montées sous `/api/admin/*` avec

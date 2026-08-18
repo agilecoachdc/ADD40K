@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import type { PlayerGroup } from "@shared/types";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
+import { useTranslation } from "../lib/i18n";
 import { GroupThumb } from "../components/GroupThumb";
 
 function errMsg(err: unknown): string {
@@ -18,6 +19,7 @@ function errMsg(err: unknown): string {
 
 export default function Home() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const isAdmin = user?.role === "admin";
   const [groups, setGroups] = useState<PlayerGroup[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,40 +50,42 @@ export default function Home() {
             {isAdmin && (
               <>
                 <Link to="/admin/jeux" className="text-indigo-400 hover:underline">
-                  Jeux &amp; règles
+                  {t("Jeux & règles")}
                 </Link>
                 <Link to="/admin/groupes" className="text-indigo-400 hover:underline">
-                  Groupes
+                  {t("Groupes")}
                 </Link>
                 <Link to="/admin/comptes" className="text-indigo-400 hover:underline">
-                  Comptes
+                  {t("Comptes")}
                 </Link>
               </>
             )}
             <Link to="/profil" className="text-indigo-400 hover:underline">
-              Mon profil
+              {t("Mon profil")}
             </Link>
             <span>{user?.displayName}</span>
             <button onClick={() => logout()} className="text-indigo-400 hover:underline">
-              Déconnexion
+              {t("Déconnexion")}
             </button>
           </div>
         </header>
 
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Groupes</h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">{t("Groupes")}</h2>
 
         {error && <p className="text-red-400">{error}</p>}
-        {!groups && !error && <p className="text-slate-400">Chargement…</p>}
+        {!groups && !error && <p className="text-slate-400">{t("Chargement…")}</p>}
 
         {groups && groups.length === 0 && (
           <p className="text-sm text-slate-500">
             {isAdmin ? (
-              "Aucun groupe pour l'instant — créez un jeu et une règle depuis « Jeux & règles », puis un groupe depuis « Groupes »."
+              t(
+                "Aucun groupe pour l'instant — créez un jeu et une règle depuis « Jeux & règles », puis un groupe depuis « Groupes ».",
+              )
             ) : (
               <>
-                Vous n'êtes membre d'aucun groupe.{" "}
+                {t("Vous n'êtes membre d'aucun groupe.")}{" "}
                 <Link to="/profil" className="text-indigo-400 hover:underline">
-                  Rejoindre ou créer un groupe
+                  {t("Rejoindre ou créer un groupe")}
                 </Link>
                 .
               </>

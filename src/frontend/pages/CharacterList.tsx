@@ -13,10 +13,12 @@ import { Link, useParams } from "react-router-dom";
 import type { CharacterSummary, JoinRequest, ReferenceData } from "@shared/types";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
+import { useTranslation } from "../lib/i18n";
 
 export default function CharacterList() {
   const { groupId } = useParams<{ groupId: string }>();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const [rows, setRows] = useState<CharacterSummary[] | null>(null);
   // Catalogue du groupe — renvoyé par GET /characters (scopé serveur), plus
   // d'import statique ADD40K (cf. lib/reference.ts).
@@ -219,9 +221,9 @@ export default function CharacterList() {
         <header className="mb-6 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link to="/" className="text-sm text-indigo-400 hover:underline">
-              ← Groupes
+              {t("← Groupes")}
             </Link>
-            <h1 className="text-lg font-semibold">Personnages</h1>
+            <h1 className="text-lg font-semibold">{t("Personnages")}</h1>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-400">
             {isGm && groupId && (
@@ -229,36 +231,36 @@ export default function CharacterList() {
                 to={`/suivi/${groupId}`}
                 className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
               >
-                Suivi des constantes
+                {t("Suivi des constantes")}
               </Link>
             )}
             {groupDriveUrl && (
               <a href={groupDriveUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
-                Dossier Drive
+                {t("Dossier Drive")}
               </a>
             )}
             <Link to="/profil" className="text-indigo-400 hover:underline">
-              Mon profil
+              {t("Mon profil")}
             </Link>
             <span>{user?.displayName}</span>
             <button onClick={() => logout()} className="text-indigo-400 hover:underline">
-              Déconnexion
+              {t("Déconnexion")}
             </button>
           </div>
         </header>
 
         {!isMember ? (
           <p className="text-sm text-slate-500">
-            Vous n'êtes pas membre de ce groupe.{" "}
+            {t("Vous n'êtes pas membre de ce groupe.")}{" "}
             <Link to="/" className="text-indigo-400 hover:underline">
-              Retour à l'accueil
+              {t("Retour à l'accueil")}
             </Link>
             .
           </p>
         ) : (
           <>
             {error && <p className="text-red-400">{error}</p>}
-            {!rows && !error && <p className="text-slate-400">Chargement…</p>}
+            {!rows && !error && <p className="text-slate-400">{t("Chargement…")}</p>}
 
             {/*
               Demandes d'adhésion en attente — MJ uniquement (cf.
@@ -269,7 +271,7 @@ export default function CharacterList() {
             {isGm && joinRequests && joinRequests.length > 0 && (
               <section className="mb-6 rounded-xl bg-amber-950/40 p-4 shadow">
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-amber-300">
-                  Demandes d'adhésion en attente
+                  {t("Demandes d'adhésion en attente")}
                 </h2>
                 <ul className="space-y-2">
                   {joinRequests.map((r) => (
@@ -282,7 +284,7 @@ export default function CharacterList() {
                           disabled={requestBusyId === r.userId}
                           className="rounded-lg bg-indigo-600 px-3 py-1 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
                         >
-                          {requestBusyId === r.userId ? "…" : "Approuver"}
+                          {requestBusyId === r.userId ? "…" : t("Approuver")}
                         </button>
                         <button
                           type="button"
@@ -290,7 +292,7 @@ export default function CharacterList() {
                           disabled={requestBusyId === r.userId}
                           className="rounded-lg bg-slate-800 px-3 py-1 text-xs text-slate-300 hover:bg-slate-700 disabled:opacity-50"
                         >
-                          Rejeter
+                          {t("Rejeter")}
                         </button>
                       </div>
                     </li>
@@ -299,7 +301,7 @@ export default function CharacterList() {
               </section>
             )}
 
-            {isGm && <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Joueurs</h2>}
+            {isGm && <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">{t("Joueurs")}</h2>}
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {rows?.filter((c) => !c.isNpc && !c.archived).map((c) => {
                 const canEdit = isGm || c.owner_username === user?.username;
@@ -316,7 +318,7 @@ export default function CharacterList() {
                         <p className="text-sm text-slate-400">{raceLabel(c.race)}</p>
                       </div>
                       {c.owner_username === user?.username && (
-                        <span className="rounded-full bg-indigo-600/20 px-2 py-1 text-xs text-indigo-300">Ma fiche</span>
+                        <span className="rounded-full bg-indigo-600/20 px-2 py-1 text-xs text-indigo-300">{t("Ma fiche")}</span>
                       )}
                     </Link>
                     <div className="flex shrink-0 flex-col items-center gap-1">
@@ -328,7 +330,7 @@ export default function CharacterList() {
                             onChange={() => toggleInGame(c)}
                             aria-label={`${c.name} en jeu`}
                           />
-                          En jeu
+                          {t("En jeu")}
                         </label>
                       )}
                       <div className="flex gap-1">
@@ -364,7 +366,7 @@ export default function CharacterList() {
                             aria-label={`Passer ${c.name} en PNJ`}
                             className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
                           >
-                            → PNJ
+                            {t("→ PNJ")}
                           </button>
                           <button
                             type="button"
@@ -373,7 +375,7 @@ export default function CharacterList() {
                             aria-label={`Archiver ${c.name}`}
                             className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
                           >
-                            Archiver
+                            {t("Archiver")}
                           </button>
                         </div>
                       )}
@@ -392,7 +394,7 @@ export default function CharacterList() {
             */}
             {isGm && rows && rows.some((c) => c.isNpc && !c.archived) && (
               <>
-                <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wide text-slate-400">PNJ</h2>
+                <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wide text-slate-400">{t("PNJ")}</h2>
                 <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {rows.filter((c) => c.isNpc && !c.archived).map((c) => (
                     <li key={c.id} className="flex items-center gap-2">
@@ -414,7 +416,7 @@ export default function CharacterList() {
                             onChange={() => toggleInGame(c)}
                             aria-label={`${c.name} en jeu`}
                           />
-                          En jeu
+                          {t("En jeu")}
                         </label>
                         <div className="flex gap-1">
                           <button
@@ -424,7 +426,7 @@ export default function CharacterList() {
                             aria-label={`Passer ${c.name} en personnage joueur`}
                             className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
                           >
-                            → Joueur
+                            {t("→ Joueur")}
                           </button>
                           <button
                             type="button"
@@ -433,7 +435,7 @@ export default function CharacterList() {
                             aria-label={`Archiver ${c.name}`}
                             className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
                           >
-                            Archiver
+                            {t("Archiver")}
                           </button>
                         </div>
                       </div>
@@ -455,7 +457,7 @@ export default function CharacterList() {
                   onClick={() => setShowArchived((v) => !v)}
                   className="mb-3 mt-8 text-sm text-indigo-400 hover:underline"
                 >
-                  {showArchived ? "▾" : "▸"} Personnages archivés ({rows.filter((c) => c.archived).length})
+                  {showArchived ? "▾" : "▸"} {t("Personnages archivés")} ({rows.filter((c) => c.archived).length})
                 </button>
 
                 {showArchived && (
@@ -470,7 +472,7 @@ export default function CharacterList() {
                           <div>
                             <p className="font-medium text-slate-300">{c.name}</p>
                             <p className="text-sm text-slate-500">
-                              {raceLabel(c.race)} · {c.isNpc ? "PNJ" : "Joueur"}
+                              {raceLabel(c.race)} · {c.isNpc ? t("PNJ") : t("Joueur")}
                             </p>
                           </div>
                           <button
@@ -480,12 +482,12 @@ export default function CharacterList() {
                             aria-label={`Désarchiver ${c.name}`}
                             className="shrink-0 rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
                           >
-                            Désarchiver
+                            {t("Désarchiver")}
                           </button>
                         </li>
                       ))}
                     {rows.filter((c) => c.archived).length === 0 && (
-                      <p className="text-sm text-slate-500">Aucun personnage archivé.</p>
+                      <p className="text-sm text-slate-500">{t("Aucun personnage archivé.")}</p>
                     )}
                   </ul>
                 )}
