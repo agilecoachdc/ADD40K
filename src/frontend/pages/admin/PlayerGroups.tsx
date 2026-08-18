@@ -1,7 +1,11 @@
 // Page d'admin "Groupes" — CRUD des groupes de joueurs (nom, description,
-// règle assignée) et gestion de leurs membres : réassigner un compte
-// existant au groupe, ou en créer un nouveau directement rattaché. Réservée
-// au rôle admin (route protégée côté App.tsx + API /api/admin/*).
+// règle assignée, image, dossier Drive) et gestion de leurs membres :
+// assigner un compte existant au groupe, en créer un nouveau directement
+// rattaché, ou en retirer un. Un compte peut être membre de plusieurs
+// groupes en même temps (cf. migrations/0005_memberships.sql) — le rôle
+// (gm/player) reste global au compte, ces routes ne gèrent que
+// l'appartenance. Réservée au rôle admin (route protégée côté App.tsx +
+// API /api/admin/*).
 
 import { useEffect, useState } from "react";
 import type { PlayerGroupDetail, PublicUser, Ruleset, UserRole } from "@shared/types";
@@ -38,12 +42,12 @@ export default function PlayerGroups() {
   const [description, setDescription] = useState("");
   const [rulesetId, setRulesetId] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [driveUrl, setDriveUrl] = useState("");
 
   const [newUsername, setNewUsername] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
   const [newRole, setNewRole] = useState<UserRole>("player");
   const [assignUserId, setAssignUserId] = useState("");
-  const [assignRole, setAssignRole] = useState<UserRole>("player");
 
   function loadAll() {
     return Promise.all([
@@ -65,11 +69,10 @@ export default function PlayerGroups() {
 
   const selected = groups.find((g) => g.id === selectedId) ?? null;
   // Un compte admin n'appartient à aucun groupe (cf. lib/session.ts /
-  // routes/admin.ts) — l'exclure ici, sinon "Assigner" l'affecte au groupe
-  // ET force son rôle à joueur/MJ (le sélecteur ci-dessous n'a que ces deux
-  // options), le rétrogradant silencieusement. Incident vécu le 18/08 sur
-  // le compte admin lui-même.
-  const unassignedUsers = allUsers.filter((u) => u.playerGroupId !== selectedId && u.role !== "admin");
+  // routes/admin.ts) — l'exclure ici. Un compte déjà membre du groupe
+  // sélectionné n'a plus besoin d'être ré-assignable (INSERT OR IGNORE
+  // côté serveur le rendrait de toute façon sans effet).
+  const unassignedUsers = allUsers.filter((u) => u.role !== "admin" && !u.memberships.includes(selectedId ?? ""));
 
   async function handleCreateGroup(e: React.FormEvent) {
     e.preventDefault();
@@ -80,11 +83,13 @@ export default function PlayerGroups() {
         description: description.trim(),
         rulesetId,
         imageUrl,
+        driveUrl: driveUrl.trim() || null,
       });
       setName("");
       setDescription("");
       setRulesetId("");
       setImageUrl(null);
+      setDriveUrl("");
       await loadAll();
       setSelectedId(group.id);
     } catch (err) {
@@ -110,6 +115,7 @@ export default function PlayerGroups() {
         description: selected.description,
         rulesetId: selected.rulesetId,
         imageUrl: selected.imageUrl,
+        driveUrl: selected.driveUrl,
       });
       await loadAll();
     } catch (err) {
@@ -130,7 +136,7 @@ export default function PlayerGroups() {
         username: newUsername.trim(),
         displayName: newDisplayName.trim(),
         role: newRole,
-        playerGroupId: selected.id,
+        groupId: selected.id,
       });
       setLastPassword({ username: user.username, password });
       setNewUsername("");
@@ -146,7 +152,7 @@ export default function PlayerGroups() {
     e.preventDefault();
     if (!selected || !assignUserId) return;
     try {
-      await api.updateUser(assignUserId, { role: assignRole, playerGroupId: selected.id });
+      await api.addGroupMember(selected.id, assignUserId);
       setAssignUserId("");
       await loadAll();
     } catch (err) {
@@ -155,8 +161,9 @@ export default function PlayerGroups() {
   }
 
   async function handleRemoveMember(userId: string) {
+    if (!selected) return;
     try {
-      await api.updateUser(userId, { playerGroupId: null });
+      await api.removeGroupMember(selected.id, userId);
       await loadAll();
     } catch (err) {
       setError(errMsg(err));
@@ -224,6 +231,13 @@ export default function PlayerGroups() {
                 <div className="flex-1 space-y-2">
                   <TextInput value={name} onChange={setName} className="w-full" />
                   <TextInput value={description} onChange={setDescription} className="w-full" />
+                  <input
+                    type="url"
+                    placeholder="Lien du dossier Drive (optionnel)"
+                    value={driveUrl}
+                    onChange={(e) => setDriveUrl(e.target.value)}
+                    className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
+                  />
                   <select
                     value={rulesetId}
                     onChange={(e) => setRulesetId(e.target.value)}
@@ -257,6 +271,13 @@ export default function PlayerGroups() {
                   />
                   <TextInput value={selected.name} onChange={(v) => updateSelected({ name: v })} className="w-full" />
                   <TextInput value={selected.description} onChange={(v) => updateSelected({ description: v })} className="w-full" />
+                  <input
+                    type="url"
+                    placeholder="Lien du dossier Drive (optionnel)"
+                    value={selected.driveUrl ?? ""}
+                    onChange={(e) => updateSelected({ driveUrl: e.target.value || null })}
+                    className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
+                  />
                   <select
                     value={selected.rulesetId}
                     onChange={(e) => updateSelected({ rulesetId: e.target.value })}
@@ -310,17 +331,9 @@ export default function PlayerGroups() {
                       <option value="">— Compte —</option>
                       {unassignedUsers.map((u) => (
                         <option key={u.id} value={u.id}>
-                          {u.displayName} ({u.username})
+                          {u.displayName} ({u.username}) — {ROLE_LABELS[u.role]}
                         </option>
                       ))}
-                    </select>
-                    <select
-                      value={assignRole}
-                      onChange={(e) => setAssignRole(e.target.value as UserRole)}
-                      className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
-                    >
-                      <option value="player">Joueur</option>
-                      <option value="gm">MJ</option>
                     </select>
                     <button type="submit" className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">
                       Assigner

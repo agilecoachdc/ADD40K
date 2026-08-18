@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import type { Env } from "../lib/session";
 import { hashPassword } from "../lib/auth";
+import { getMembershipsForUser, toPublicUser } from "../lib/session";
 import { uniqueSlugId } from "../lib/ids";
 import type {
   Game,
@@ -228,6 +229,7 @@ interface GroupRow {
   description: string;
   ruleset_id: string;
   image_url: string | null;
+  drive_url: string | null;
   created_at: string;
 }
 
@@ -238,28 +240,27 @@ function toGroup(row: GroupRow): PlayerGroup {
     description: row.description,
     rulesetId: row.ruleset_id,
     imageUrl: row.image_url,
+    driveUrl: row.drive_url,
     createdAt: row.created_at,
   };
 }
 
+const GROUP_COLUMNS = "id, name, description, ruleset_id, image_url, drive_url, created_at";
+
 adminRoutes.get("/groups", async (c) => {
-  const { results } = await c.env.DB.prepare(
-    "SELECT id, name, description, ruleset_id, image_url, created_at FROM player_groups ORDER BY name",
-  ).all<GroupRow>();
+  const { results } = await c.env.DB.prepare(`SELECT ${GROUP_COLUMNS} FROM player_groups ORDER BY name`).all<GroupRow>();
   return c.json({ groups: (results ?? []).map(toGroup) });
 });
 
 adminRoutes.get("/groups/:id", async (c) => {
   const id = c.req.param("id");
-  const row = await c.env.DB.prepare(
-    "SELECT id, name, description, ruleset_id, image_url, created_at FROM player_groups WHERE id = ?1",
-  )
-    .bind(id)
-    .first<GroupRow>();
+  const row = await c.env.DB.prepare(`SELECT ${GROUP_COLUMNS} FROM player_groups WHERE id = ?1`).bind(id).first<GroupRow>();
   if (!row) return c.json({ error: "Groupe introuvable" }, 404);
 
   const { results: memberRows } = await c.env.DB.prepare(
-    "SELECT id, username, display_name, role, character_id FROM users WHERE player_group_id = ?1 ORDER BY display_name",
+    `SELECT u.id, u.username, u.display_name, u.role, u.character_id
+     FROM group_memberships gm JOIN users u ON u.id = gm.user_id
+     WHERE gm.group_id = ?1 ORDER BY u.display_name`,
   )
     .bind(id)
     .all<{ id: string; username: string; display_name: string; role: UserRole; character_id: string | null }>();
@@ -277,7 +278,7 @@ adminRoutes.get("/groups/:id", async (c) => {
 
 adminRoutes.post("/groups", async (c) => {
   const body = await c.req
-    .json<{ name?: string; description?: string; rulesetId?: string; imageUrl?: string | null }>()
+    .json<{ name?: string; description?: string; rulesetId?: string; imageUrl?: string | null; driveUrl?: string | null }>()
     .catch(() => null);
   if (!body?.name?.trim() || !body.rulesetId) return c.json({ error: "Nom et règle requis" }, 400);
 
@@ -286,15 +287,11 @@ adminRoutes.post("/groups", async (c) => {
 
   const id = await uniqueSlugId(c.env.DB, "player_groups", body.name);
   await c.env.DB.prepare(
-    "INSERT INTO player_groups (id, name, description, ruleset_id, image_url) VALUES (?1, ?2, ?3, ?4, ?5)",
+    "INSERT INTO player_groups (id, name, description, ruleset_id, image_url, drive_url) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
   )
-    .bind(id, body.name.trim(), body.description?.trim() ?? "", body.rulesetId, body.imageUrl ?? null)
+    .bind(id, body.name.trim(), body.description?.trim() ?? "", body.rulesetId, body.imageUrl ?? null, body.driveUrl ?? null)
     .run();
-  const row = await c.env.DB.prepare(
-    "SELECT id, name, description, ruleset_id, image_url, created_at FROM player_groups WHERE id = ?1",
-  )
-    .bind(id)
-    .first<GroupRow>();
+  const row = await c.env.DB.prepare(`SELECT ${GROUP_COLUMNS} FROM player_groups WHERE id = ?1`).bind(id).first<GroupRow>();
   const detail: PlayerGroupDetail = { ...toGroup(row!), members: [] };
   return c.json({ group: detail }, 201);
 });
@@ -302,13 +299,9 @@ adminRoutes.post("/groups", async (c) => {
 adminRoutes.put("/groups/:id", async (c) => {
   const id = c.req.param("id");
   const body = await c.req
-    .json<{ name?: string; description?: string; rulesetId?: string; imageUrl?: string | null }>()
+    .json<{ name?: string; description?: string; rulesetId?: string; imageUrl?: string | null; driveUrl?: string | null }>()
     .catch(() => null);
-  const existing = await c.env.DB.prepare(
-    "SELECT id, name, description, ruleset_id, image_url, created_at FROM player_groups WHERE id = ?1",
-  )
-    .bind(id)
-    .first<GroupRow>();
+  const existing = await c.env.DB.prepare(`SELECT ${GROUP_COLUMNS} FROM player_groups WHERE id = ?1`).bind(id).first<GroupRow>();
   if (!existing) return c.json({ error: "Groupe introuvable" }, 404);
 
   if (body?.rulesetId) {
@@ -320,19 +313,49 @@ adminRoutes.put("/groups/:id", async (c) => {
   const description = body?.description ?? existing.description;
   const rulesetId = body?.rulesetId ?? existing.ruleset_id;
   const imageUrl = body?.imageUrl !== undefined ? body.imageUrl : existing.image_url;
+  const driveUrl = body?.driveUrl !== undefined ? body.driveUrl : existing.drive_url;
   await c.env.DB.prepare(
-    "UPDATE player_groups SET name = ?1, description = ?2, ruleset_id = ?3, image_url = ?4 WHERE id = ?5",
+    "UPDATE player_groups SET name = ?1, description = ?2, ruleset_id = ?3, image_url = ?4, drive_url = ?5 WHERE id = ?6",
   )
-    .bind(name, description, rulesetId, imageUrl, id)
+    .bind(name, description, rulesetId, imageUrl, driveUrl, id)
     .run();
-  return c.json({ group: { id, name, description, rulesetId, imageUrl, createdAt: existing.created_at } });
+  return c.json({ group: { id, name, description, rulesetId, imageUrl, driveUrl, createdAt: existing.created_at } });
 });
 
 adminRoutes.delete("/groups/:id", async (c) => {
   const id = c.req.param("id");
-  const hasMembers = await c.env.DB.prepare("SELECT 1 FROM users WHERE player_group_id = ?1").bind(id).first();
+  const hasMembers = await c.env.DB.prepare("SELECT 1 FROM group_memberships WHERE group_id = ?1").bind(id).first();
   if (hasMembers) return c.json({ error: "Ce groupe a des comptes rattachés — réassignez-les d'abord" }, 409);
   await c.env.DB.prepare("DELETE FROM player_groups WHERE id = ?1").bind(id).run();
+  return c.json({ ok: true });
+});
+
+// Ajouter/retirer un membre d'un groupe — le rôle (gm/player) reste celui
+// du compte (users.role, global) : ces routes ne gèrent que l'appartenance,
+// jamais le rôle (cf. incident du 18/08 — l'ancienne PUT /users/:id
+// combinait les deux et a rétrogradé un admin par erreur).
+adminRoutes.post("/groups/:id/members", async (c) => {
+  const groupId = c.req.param("id");
+  const group = await c.env.DB.prepare("SELECT 1 FROM player_groups WHERE id = ?1").bind(groupId).first();
+  if (!group) return c.json({ error: "Groupe introuvable" }, 404);
+
+  const body = await c.req.json<{ userId?: string }>().catch(() => null);
+  if (!body?.userId) return c.json({ error: "Compte requis" }, 400);
+
+  const user = await c.env.DB.prepare("SELECT role FROM users WHERE id = ?1").bind(body.userId).first<{ role: UserRole }>();
+  if (!user) return c.json({ error: "Compte introuvable" }, 404);
+  if (user.role === "admin") return c.json({ error: "Un compte admin n'appartient à aucun groupe" }, 400);
+
+  await c.env.DB.prepare("INSERT OR IGNORE INTO group_memberships (user_id, group_id) VALUES (?1, ?2)")
+    .bind(body.userId, groupId)
+    .run();
+  return c.json({ ok: true }, 201);
+});
+
+adminRoutes.delete("/groups/:id/members/:userId", async (c) => {
+  const groupId = c.req.param("id");
+  const userId = c.req.param("userId");
+  await c.env.DB.prepare("DELETE FROM group_memberships WHERE group_id = ?1 AND user_id = ?2").bind(groupId, userId).run();
   return c.json({ ok: true });
 });
 
@@ -346,32 +369,24 @@ interface UserRow {
   display_name: string;
   role: UserRole;
   character_id: string | null;
-  player_group_id: string | null;
 }
-
-function toPublicUser(row: UserRow): PublicUser {
-  return {
-    id: row.id,
-    username: row.username,
-    displayName: row.display_name,
-    role: row.role,
-    characterId: row.character_id,
-    playerGroupId: row.player_group_id,
-  };
-}
-
-adminRoutes.get("/users", async (c) => {
-  const { results } = await c.env.DB.prepare(
-    "SELECT id, username, display_name, role, character_id, player_group_id FROM users ORDER BY display_name",
-  ).all<UserRow>();
-  return c.json({ users: (results ?? []).map(toPublicUser) });
-});
 
 const VALID_ROLES: UserRole[] = ["admin", "gm", "player"];
 
+adminRoutes.get("/users", async (c) => {
+  const { results } = await c.env.DB.prepare(
+    "SELECT id, username, display_name, role, character_id FROM users ORDER BY display_name",
+  ).all<UserRow>();
+  const users: PublicUser[] = [];
+  for (const row of results ?? []) {
+    users.push(toPublicUser(row, await getMembershipsForUser(c.env.DB, row.id)));
+  }
+  return c.json({ users });
+});
+
 adminRoutes.post("/users", async (c) => {
   const body = await c.req
-    .json<{ username?: string; displayName?: string; role?: UserRole; playerGroupId?: string | null }>()
+    .json<{ username?: string; displayName?: string; role?: UserRole; groupId?: string | null }>()
     .catch(() => null);
   const username = body?.username?.trim().toLowerCase();
   if (!username || !body?.displayName?.trim()) return c.json({ error: "Identifiant et nom requis" }, 400);
@@ -380,21 +395,26 @@ adminRoutes.post("/users", async (c) => {
   const existing = await c.env.DB.prepare("SELECT 1 FROM users WHERE username = ?1").bind(username).first();
   if (existing) return c.json({ error: "Cet identifiant est déjà pris" }, 409);
 
-  if (body.playerGroupId) {
-    const group = await c.env.DB.prepare("SELECT 1 FROM player_groups WHERE id = ?1").bind(body.playerGroupId).first();
+  if (body.groupId) {
+    const group = await c.env.DB.prepare("SELECT 1 FROM player_groups WHERE id = ?1").bind(body.groupId).first();
     if (!group) return c.json({ error: "Groupe introuvable" }, 404);
   }
 
   const id = crypto.randomUUID();
   const password = randomPassword();
   const { hash, salt } = await hashPassword(password);
-  const playerGroupId = body.role === "admin" ? null : (body.playerGroupId ?? null);
 
   await c.env.DB.prepare(
-    "INSERT INTO users (id, username, display_name, password_hash, password_salt, role, player_group_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+    "INSERT INTO users (id, username, display_name, password_hash, password_salt, role) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
   )
-    .bind(id, username, body.displayName.trim(), hash, salt, body.role, playerGroupId)
+    .bind(id, username, body.displayName.trim(), hash, salt, body.role)
     .run();
+
+  const memberships: string[] = [];
+  if (body.role !== "admin" && body.groupId) {
+    await c.env.DB.prepare("INSERT INTO group_memberships (user_id, group_id) VALUES (?1, ?2)").bind(id, body.groupId).run();
+    memberships.push(body.groupId);
+  }
 
   const user: PublicUser = {
     id,
@@ -402,37 +422,38 @@ adminRoutes.post("/users", async (c) => {
     displayName: body.displayName.trim(),
     role: body.role,
     characterId: null,
-    playerGroupId,
+    memberships,
   };
   // Mot de passe généré renvoyé une seule fois — à communiquer hors-ligne, cf. scripts/add_user.mjs.
   return c.json({ user, password }, 201);
 });
 
+// Ne touche plus qu'au nom affiché et au rôle — l'appartenance aux groupes
+// se gère désormais via POST/DELETE /groups/:id/members (cf. plus haut).
 adminRoutes.put("/users/:id", async (c) => {
   const id = c.req.param("id");
-  const body = await c.req
-    .json<{ displayName?: string; role?: UserRole; playerGroupId?: string | null }>()
-    .catch(() => null);
+  const body = await c.req.json<{ displayName?: string; role?: UserRole }>().catch(() => null);
   const existing = await c.env.DB.prepare(
-    "SELECT id, username, display_name, role, character_id, player_group_id FROM users WHERE id = ?1",
+    "SELECT id, username, display_name, role, character_id FROM users WHERE id = ?1",
   )
     .bind(id)
     .first<UserRow>();
   if (!existing) return c.json({ error: "Compte introuvable" }, 404);
 
   if (body?.role && !VALID_ROLES.includes(body.role)) return c.json({ error: "Rôle invalide" }, 400);
-  if (body?.playerGroupId) {
-    const group = await c.env.DB.prepare("SELECT 1 FROM player_groups WHERE id = ?1").bind(body.playerGroupId).first();
-    if (!group) return c.json({ error: "Groupe introuvable" }, 404);
-  }
 
   const displayName = body?.displayName?.trim() || existing.display_name;
   const role = body?.role ?? existing.role;
-  const playerGroupId = role === "admin" ? null : (body?.playerGroupId ?? existing.player_group_id);
 
-  await c.env.DB.prepare("UPDATE users SET display_name = ?1, role = ?2, player_group_id = ?3 WHERE id = ?4")
-    .bind(displayName, role, playerGroupId, id)
-    .run();
+  await c.env.DB.prepare("UPDATE users SET display_name = ?1, role = ?2 WHERE id = ?3").bind(displayName, role, id).run();
 
-  return c.json({ user: toPublicUser({ ...existing, display_name: displayName, role, player_group_id: playerGroupId }) });
+  // Devenir admin retire toute appartenance à un groupe (un admin
+  // plateforme n'en a pas) — symétrique du garde-fou déjà appliqué à la
+  // création (POST /users ci-dessus).
+  if (role === "admin") {
+    await c.env.DB.prepare("DELETE FROM group_memberships WHERE user_id = ?1").bind(id).run();
+  }
+
+  const memberships = await getMembershipsForUser(c.env.DB, id);
+  return c.json({ user: toPublicUser({ ...existing, display_name: displayName, role }, memberships) });
 });

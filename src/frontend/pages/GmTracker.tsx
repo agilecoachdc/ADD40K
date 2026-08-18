@@ -14,7 +14,7 @@
 // aperçu en direct de ce calcul pendant la saisie.
 
 import { useEffect, useRef, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { ATTRIBUTES, type AttributeScores, type CharacterSummary, type ReferenceData } from "@shared/types";
 import { getHpMax, getPspMax } from "@shared/calc-engine";
 import { useAuth } from "../lib/auth-context";
@@ -133,18 +133,20 @@ function StepButton({ label, onClick }: { label: string; onClick: () => void }) 
 function CharacterTile({
   c,
   isNpc,
+  groupId,
   onAdjust,
   onRemove,
 }: {
   c: CharacterSummary;
   isNpc: boolean;
+  groupId: string;
   onAdjust?: (field: "hpCurrent" | "pspCurrent", delta: number) => void;
   onRemove?: () => void;
 }) {
   return (
     <Link
       to={`/personnages/${c.id}`}
-      state={{ from: "suivi" }}
+      state={{ from: "suivi", groupId }}
       className="flex items-stretch overflow-hidden rounded-xl bg-slate-900 shadow transition hover:bg-slate-800"
     >
       {/* Silhouette d'armure sur toute la hauteur — taille réduite par rapport à la fiche personnage (SIL_SIZE) pour tenir sur mobile. */}
@@ -208,6 +210,7 @@ function CharacterTile({
 }
 
 export default function GmTracker() {
+  const { groupId } = useParams<{ groupId: string }>();
   const { user } = useAuth();
   const [rows, setRows] = useState<CharacterSummary[] | null>(null);
   const [referenceData, setReferenceData] = useState<ReferenceData>(EMPTY_REFERENCE_DATA);
@@ -238,8 +241,9 @@ export default function GmTracker() {
   const npcPspPreview = getPspMax(npcPreviewCharacter, referenceData);
 
   function loadCharacters() {
+    if (!groupId) return Promise.resolve();
     return api
-      .listCharacters()
+      .listCharacters(groupId)
       .then(({ characters, referenceData, groupImageUrl }) => {
         setRows(characters);
         if (referenceData) setReferenceData(referenceData);
@@ -252,10 +256,14 @@ export default function GmTracker() {
     loadCharacters();
     const interval = setInterval(loadCharacters, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
 
-  // Vue réservée au MJ — un joueur qui atterrit ici (URL directe) repart à l'accueil.
-  if (user && user.role !== "gm") return <Navigate to="/" replace />;
+  // Vue réservée au MJ, membre de ce groupe — un joueur, ou un MJ d'un
+  // autre groupe, qui atterrit ici (URL directe) repart à l'accueil.
+  if (user && (user.role !== "gm" || !groupId || !user.memberships.includes(groupId))) {
+    return <Navigate to="/" replace />;
+  }
 
   const players = rows?.filter((c) => c.inGame && !c.isNpc && !c.archived) ?? null;
   const npcs = rows?.filter((c) => c.inGame && c.isNpc && !c.archived) ?? null;
@@ -299,11 +307,11 @@ export default function GmTracker() {
 
   async function handleCreateNpc(e: React.FormEvent) {
     e.preventDefault();
-    if (!npcName.trim()) return;
+    if (!npcName.trim() || !groupId) return;
     setNpcSaving(true);
     setNpcError(null);
     try {
-      await api.createNpc({
+      await api.createNpc(groupId, {
         name: npcName.trim(),
         portraitUrl: npcPortraitUrl,
         race: npcRace || undefined,
@@ -337,7 +345,7 @@ export default function GmTracker() {
             <h1 className="text-lg font-semibold">Suivi des constantes</h1>
             <p className="text-sm text-slate-400">Personnages en jeu — PV / PSP en direct</p>
           </div>
-          <Link to="/groupe" className="text-sm text-indigo-400 hover:underline">
+          <Link to={`/groupe/${groupId}`} className="text-sm text-indigo-400 hover:underline">
             ← Personnages
           </Link>
         </header>
@@ -364,7 +372,7 @@ export default function GmTracker() {
             <ul className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2">
               {players?.map((c) => (
                 <li key={c.id}>
-                  <CharacterTile c={c} isNpc={false} />
+                  <CharacterTile c={c} isNpc={false} groupId={groupId!} />
                 </li>
               ))}
             </ul>
@@ -474,6 +482,7 @@ export default function GmTracker() {
                   <CharacterTile
                     c={c}
                     isNpc
+                    groupId={groupId!}
                     onAdjust={(field, delta) => adjustNpc(c, field, delta)}
                     onRemove={() => removeNpc(c)}
                   />

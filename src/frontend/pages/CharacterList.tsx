@@ -1,28 +1,34 @@
 // Écran "Personnages" d'un groupe — deuxième étage de la navigation
 // (Accueil "Groupes" -> ce groupe -> personnages -> Suivi des constantes),
-// cf. Home.tsx. Toujours scopé au groupe de l'utilisateur connecté
-// (joueur ou MJ) ; un admin (sans groupe) n'atteint jamais cette route.
+// cf. Home.tsx. Le groupe vient de l'URL (/groupe/:groupId) — un compte
+// peut être membre de plusieurs groupes en même temps (cf.
+// migrations/0005_memberships.sql), il n'y a plus de "groupe courant"
+// implicite. Un admin (aucun groupe) n'atteint jamais cette route.
 
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import type { CharacterSummary, ReferenceData } from "@shared/types";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
 
 export default function CharacterList() {
+  const { groupId } = useParams<{ groupId: string }>();
   const { user, logout } = useAuth();
   const [rows, setRows] = useState<CharacterSummary[] | null>(null);
-  // Catalogue du groupe de l'utilisateur — renvoyé par GET /characters
-  // (scopé serveur), plus d'import statique ADD40K (cf. lib/reference.ts).
+  // Catalogue du groupe — renvoyé par GET /characters (scopé serveur), plus
+  // d'import statique ADD40K (cf. lib/reference.ts).
   const [referenceData, setReferenceData] = useState<ReferenceData | null>(null);
-  // Image du groupe (fond d'écran) — remplace le fond ADD40K en dur : chaque
-  // groupe a la sienne (cf. migrations/0004_images.sql), plateforme par
-  // défaut si le groupe n'en a pas.
+  // Image et dossier Drive du groupe — remplacent le fond et le lien Drive
+  // ADD40K en dur : chaque groupe ont les siens (cf.
+  // migrations/0004_images.sql, 0005_memberships.sql), plateforme par
+  // défaut si non renseignés.
   const [groupImageUrl, setGroupImageUrl] = useState<string | null>(null);
+  const [groupDriveUrl, setGroupDriveUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
-  const isGm = user?.role === "gm";
+  const isMember = !!groupId && !!user?.memberships.includes(groupId);
+  const isGm = user?.role === "gm" && isMember;
   const backgroundUrl = groupImageUrl ?? "/r2t2-banner.jpg";
 
   function raceLabel(race: string) {
@@ -35,13 +41,14 @@ export default function CharacterList() {
   const importTargetId = useRef<string | null>(null);
 
   function loadCharacters() {
-    if (!user?.playerGroupId) return Promise.resolve();
+    if (!groupId || !isMember) return Promise.resolve();
     return api
-      .listCharacters()
-      .then(({ characters, referenceData, groupImageUrl }) => {
+      .listCharacters(groupId)
+      .then(({ characters, referenceData, groupImageUrl, groupDriveUrl }) => {
         setRows(characters);
         setReferenceData(referenceData);
         setGroupImageUrl(groupImageUrl);
+        setGroupDriveUrl(groupDriveUrl);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Erreur"));
   }
@@ -49,7 +56,7 @@ export default function CharacterList() {
   useEffect(() => {
     loadCharacters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.playerGroupId]);
+  }, [groupId, isMember]);
 
   // Bascule le statut "en jeu" et sauvegarde immédiatement (MJ uniquement),
   // même principe que le toggle d'armure sur la fiche : pas de mode édition
@@ -171,22 +178,19 @@ export default function CharacterList() {
             <h1 className="text-lg font-semibold">Personnages</h1>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-400">
-            {isGm && (
+            {isGm && groupId && (
               <Link
-                to="/suivi"
+                to={`/suivi/${groupId}`}
                 className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
               >
                 Suivi des constantes
               </Link>
             )}
-            <a
-              href="https://drive.google.com/drive/folders/1bCHRg2AuKnBwizC9arAxvLRCQ8ikCJ6s"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-indigo-400 hover:underline"
-            >
-              Dossier Drive
-            </a>
+            {groupDriveUrl && (
+              <a href={groupDriveUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+                Dossier Drive
+              </a>
+            )}
             <Link to="/profil" className="text-indigo-400 hover:underline">
               Mon profil
             </Link>
@@ -197,11 +201,11 @@ export default function CharacterList() {
           </div>
         </header>
 
-        {!user?.playerGroupId ? (
+        {!isMember ? (
           <p className="text-sm text-slate-500">
-            Vous n'êtes rattaché à aucun groupe.{" "}
-            <Link to="/profil" className="text-indigo-400 hover:underline">
-              Rejoindre ou créer un groupe
+            Vous n'êtes pas membre de ce groupe.{" "}
+            <Link to="/" className="text-indigo-400 hover:underline">
+              Retour à l'accueil
             </Link>
             .
           </p>
@@ -219,6 +223,7 @@ export default function CharacterList() {
                   <li key={c.id} className="flex items-center gap-2">
                     <Link
                       to={`/personnages/${c.id}`}
+                      state={{ from: "groupe", groupId }}
                       className="flex flex-1 items-center justify-between rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
                     >
                       <div>
@@ -308,6 +313,7 @@ export default function CharacterList() {
                     <li key={c.id} className="flex items-center gap-2">
                       <Link
                         to={`/personnages/${c.id}`}
+                        state={{ from: "groupe", groupId }}
                         className="flex flex-1 items-center justify-between rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
                       >
                         <div>

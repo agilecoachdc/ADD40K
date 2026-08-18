@@ -19,12 +19,19 @@ import {
 export default function CharacterSheet() {
   const { id } = useParams<{ id: string }>();
   // Retour contextuel : la liste et le suivi des constantes passent chacun
-  // leur origine via l'état de navigation (state.from) au clic sur une
-  // fiche ; sans état (accès direct par URL), on retombe sur l'accueil.
+  // leur origine + le groupe via l'état de navigation (state.from/groupId)
+  // au clic sur une fiche (un compte peut être membre de plusieurs
+  // groupes, cf. migrations/0005_memberships.sql, donc plus de "groupe
+  // courant" implicite) ; sans état (accès direct par URL), on retombe sur
+  // l'accueil (liste des groupes).
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from;
-  const backTo = from === "suivi" ? "/suivi" : "/groupe";
-  const backLabel = from === "suivi" ? "← Suivi des constantes" : "← Personnages";
+  const navState = location.state as { from?: string; groupId?: string } | null;
+  const backTo = navState?.groupId
+    ? navState.from === "suivi"
+      ? `/suivi/${navState.groupId}`
+      : `/groupe/${navState.groupId}`
+    : "/";
+  const backLabel = navState?.groupId ? (navState.from === "suivi" ? "← Suivi des constantes" : "← Personnages") : "← Groupes";
   const [character, setCharacter] = useState<Character | null>(null);
   // Catalogue du groupe de ce personnage — renvoyé par GET /characters/:id
   // (scopé serveur via sa règle), plus d'import statique ADD40K.

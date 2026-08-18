@@ -1,10 +1,9 @@
 // Écran d'accueil — première étage de la navigation : liste des groupes de
-// l'utilisateur (un seul pour un joueur/MJ dans le modèle actuel — chaque
-// compte n'appartient qu'à un groupe à la fois, cf. routes/catalog.ts —
-// mais présenté comme une liste pour rester cohérent si ça change, et pour
-// couvrir le cas d'un admin qui voit tous les groupes de la plateforme).
-// Cliquer un groupe mène à /groupe (ses personnages, cf. CharacterList.tsx)
-// pour un joueur/MJ, ou à la gestion admin pour un admin.
+// l'utilisateur. Un joueur ou un MJ peut désormais être membre de plusieurs
+// groupes en même temps (cf. migrations/0005_memberships.sql) — chaque
+// carte mène à /groupe/:groupId (ses personnages, cf. CharacterList.tsx).
+// Un admin (aucun groupe par construction) voit tous les groupes de la
+// plateforme, chacun menant à la gestion admin.
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -32,7 +31,7 @@ export default function Home() {
     } else {
       api
         .getProfile()
-        .then((info) => setGroups(info.group ? [info.group] : []))
+        .then((info) => setGroups(info.memberships.map((m) => m.group)))
         .catch((err) => setError(errMsg(err)));
     }
   }, [isAdmin]);
@@ -80,7 +79,7 @@ export default function Home() {
               "Aucun groupe pour l'instant — créez un jeu et une règle depuis « Jeux & règles », puis un groupe depuis « Groupes »."
             ) : (
               <>
-                Vous n'êtes rattaché à aucun groupe.{" "}
+                Vous n'êtes membre d'aucun groupe.{" "}
                 <Link to="/profil" className="text-indigo-400 hover:underline">
                   Rejoindre ou créer un groupe
                 </Link>
@@ -94,7 +93,7 @@ export default function Home() {
           {groups?.map((g) => (
             <li key={g.id}>
               <Link
-                to={isAdmin ? "/admin/groupes" : "/groupe"}
+                to={isAdmin ? "/admin/groupes" : `/groupe/${g.id}`}
                 className="flex items-center gap-3 rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
               >
                 <GroupThumb url={g.imageUrl} name={g.name} sizePx={56} />

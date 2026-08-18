@@ -37,10 +37,16 @@ export const api = {
   me: () => request<{ user: PublicUser }>("/auth/me"),
   getProfile: () => request<ProfileInfo>("/profile"),
 
-  listCharacters: () =>
-    request<{ characters: CharacterSummary[]; referenceData: ReferenceData | null; groupImageUrl: string | null }>(
-      "/characters",
-    ),
+  // groupId requis : un compte peut être membre de plusieurs groupes en
+  // même temps (cf. migrations/0005_memberships.sql), il n'y a plus de
+  // "groupe courant" implicite côté serveur.
+  listCharacters: (groupId: string) =>
+    request<{
+      characters: CharacterSummary[];
+      referenceData: ReferenceData | null;
+      groupImageUrl: string | null;
+      groupDriveUrl: string | null;
+    }>(`/characters?groupId=${encodeURIComponent(groupId)}`),
   getCharacter: (id: string) =>
     request<{
       character: Character;
@@ -54,9 +60,9 @@ export const api = {
       `/characters/${id}`,
       { method: "PUT", body: JSON.stringify(patch) },
     ),
-  createNpc: (input: { name: string; portraitUrl?: string | null; race?: string; vit: number; vol: number }) =>
+  createNpc: (groupId: string, input: { name: string; portraitUrl?: string | null; race?: string; vit: number; vol: number }) =>
     request<{ character: Character; computed: CharacterComputed; canEdit: boolean; referenceData: ReferenceData }>(
-      "/characters",
+      `/characters?groupId=${encodeURIComponent(groupId)}`,
       { method: "POST", body: JSON.stringify(input) },
     ),
 
@@ -84,23 +90,28 @@ export const api = {
 
   listGroups: () => request<{ groups: PlayerGroup[] }>("/admin/groups"),
   getGroup: (id: string) => request<{ group: PlayerGroupDetail }>(`/admin/groups/${id}`),
-  createGroup: (input: { name: string; description?: string; rulesetId: string; imageUrl?: string | null }) =>
+  createGroup: (input: { name: string; description?: string; rulesetId: string; imageUrl?: string | null; driveUrl?: string | null }) =>
     request<{ group: PlayerGroupDetail }>("/admin/groups", { method: "POST", body: JSON.stringify(input) }),
   updateGroup: (
     id: string,
-    patch: { name?: string; description?: string; rulesetId?: string; imageUrl?: string | null },
+    patch: { name?: string; description?: string; rulesetId?: string; imageUrl?: string | null; driveUrl?: string | null },
   ) => request<{ group: PlayerGroup }>(`/admin/groups/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
   deleteGroup: (id: string) => request<{ ok: true }>(`/admin/groups/${id}`, { method: "DELETE" }),
+  addGroupMember: (groupId: string, userId: string) =>
+    request<{ ok: true }>(`/admin/groups/${groupId}/members`, { method: "POST", body: JSON.stringify({ userId }) }),
+  removeGroupMember: (groupId: string, userId: string) =>
+    request<{ ok: true }>(`/admin/groups/${groupId}/members/${userId}`, { method: "DELETE" }),
 
   listUsers: () => request<{ users: PublicUser[] }>("/admin/users"),
-  createUser: (input: { username: string; displayName: string; role: UserRole; playerGroupId?: string | null }) =>
+  createUser: (input: { username: string; displayName: string; role: UserRole; groupId?: string | null }) =>
     request<{ user: PublicUser; password: string }>("/admin/users", { method: "POST", body: JSON.stringify(input) }),
-  updateUser: (id: string, patch: { displayName?: string; role?: UserRole; playerGroupId?: string | null }) =>
+  updateUser: (id: string, patch: { displayName?: string; role?: UserRole }) =>
     request<{ user: PublicUser }>(`/admin/users/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
 
   // ---------------------------------------------------------------------
-  // Jeux / règles / groupes — parcourir, rejoindre, créer (page Profil).
-  // Ouvert à tout compte authentifié, sans passer par /admin/*.
+  // Jeux / règles / groupes — parcourir, rejoindre/quitter, créer/éditer
+  // les siens (page Profil). Ouvert à tout compte authentifié, sans passer
+  // par /admin/*.
   // ---------------------------------------------------------------------
 
   browseGames: () => request<{ games: Game[] }>("/games"),
@@ -109,6 +120,17 @@ export const api = {
   browseGroups: () => request<{ groups: PlayerGroup[] }>("/groups"),
   joinGroup: (groupId: string) =>
     request<{ user: PublicUser }>("/groups/join", { method: "POST", body: JSON.stringify({ groupId }) }),
-  createGroupSelf: (input: { name: string; description?: string; rulesetId: string; imageUrl?: string | null }) =>
-    request<{ group: PlayerGroup; user: PublicUser }>("/groups", { method: "POST", body: JSON.stringify(input) }),
+  leaveGroup: (groupId: string) =>
+    request<{ user: PublicUser }>("/groups/leave", { method: "POST", body: JSON.stringify({ groupId }) }),
+  createGroupSelf: (input: {
+    name: string;
+    description?: string;
+    rulesetId: string;
+    imageUrl?: string | null;
+    driveUrl?: string | null;
+  }) => request<{ group: PlayerGroup; user: PublicUser }>("/groups", { method: "POST", body: JSON.stringify(input) }),
+  updateGroupSelf: (
+    id: string,
+    patch: { name?: string; description?: string; rulesetId?: string; imageUrl?: string | null; driveUrl?: string | null },
+  ) => request<{ group: PlayerGroup }>(`/groups/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
 };

@@ -254,8 +254,14 @@ export interface PublicUser {
   role: UserRole;
   /** Personnage possédé par ce joueur (null pour le MJ ou l'admin). */
   characterId: string | null;
-  /** Groupe de joueurs auquel ce compte est rattaché (null pour un admin plateforme). */
-  playerGroupId: string | null;
+  /**
+   * Groupes de joueurs dont ce compte est membre (liste d'id) — un joueur ou
+   * un MJ peut appartenir à plusieurs groupes en même temps (cf.
+   * migrations/0005_memberships.sql). Toujours vide pour un admin
+   * plateforme. Le rôle (gm/player) reste global (`role` ci-dessus) : un MJ
+   * est MJ dans tous ses groupes, pas seulement certains.
+   */
+  memberships: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -292,6 +298,8 @@ export interface PlayerGroup {
   description: string;
   rulesetId: string;
   imageUrl: string | null;
+  /** Lien vers le dossier partagé (Google Drive...) de ce groupe — remplace l'ancien lien "Dossier Drive" en dur, spécifique à ADD40K. */
+  driveUrl: string | null;
   createdAt: string;
 }
 
@@ -307,12 +315,18 @@ export interface PlayerGroupDetail extends PlayerGroup {
   members: GroupMember[];
 }
 
+/** Un groupe dont l'utilisateur est membre, avec la règle/le jeu qui en découlent. */
+export interface MembershipInfo {
+  group: PlayerGroup;
+  ruleset: Ruleset | null;
+  game: Game | null;
+}
+
 /** Contexte plateforme de l'utilisateur connecté — voir GET /api/profile. */
 export interface ProfileInfo {
   user: PublicUser;
-  group: PlayerGroup | null;
-  ruleset: Ruleset | null;
-  game: Game | null;
+  /** Un par groupe dont l'utilisateur est membre — vide pour un admin. */
+  memberships: MembershipInfo[];
 }
 
 // ---------------------------------------------------------------------------

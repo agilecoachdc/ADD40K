@@ -1,14 +1,16 @@
 // Page d'admin "Comptes" — vue d'ensemble de tous les comptes de la
-// plateforme et de leur rôle/groupe, pour garder un œil sur les
-// appartenances aux groupes sans avoir à ouvrir chaque groupe un par un
-// (PlayerGroups.tsx reste la vue détaillée par groupe).
+// plateforme, de leur rôle, et des groupes dont ils sont membres (un compte
+// peut désormais appartenir à plusieurs groupes en même temps, cf.
+// migrations/0005_memberships.sql — l'affectation aux groupes se gère
+// depuis la page Groupes, PlayerGroups.tsx ; cette page se concentre sur le
+// rôle et la vue d'ensemble des appartenances).
 //
-// Existe aussi pour repérer/corriger rapidement une assignation erronée :
-// affecter un compte à un groupe depuis PlayerGroups.tsx force un rôle
-// (joueur/MJ) — utilisé par erreur sur un compte admin, ça le rétrograde
-// silencieusement (incident du 18/08). PlayerGroups.tsx exclut désormais
-// les comptes admin de cette liste ; cette page permet en plus de voir tous
-// les comptes d'un coup d'œil et de corriger un rôle/groupe directement.
+// Existe aussi pour repérer rapidement une rétrogradation accidentelle :
+// affecter un compte à un groupe force son rôle en joueur/MJ — utilisé par
+// erreur sur un compte admin, ça le rétrograde silencieusement (incident du
+// 18/08). PlayerGroups.tsx exclut désormais les comptes admin de son
+// sélecteur d'assignation ; cette page permet en plus de voir tous les
+// comptes d'un coup d'œil et de corriger un rôle directement.
 
 import { useEffect, useState } from "react";
 import type { PlayerGroup, PublicUser, UserRole } from "@shared/types";
@@ -21,15 +23,10 @@ function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : "Erreur";
 }
 
-interface Draft {
-  role: UserRole;
-  playerGroupId: string | null;
-}
-
 export default function Accounts() {
   const [users, setUsers] = useState<PublicUser[]>([]);
   const [groups, setGroups] = useState<PlayerGroup[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [drafts, setDrafts] = useState<Record<string, UserRole>>({});
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -38,7 +35,7 @@ export default function Accounts() {
       .then(([{ users }, { groups }]) => {
         setUsers(users);
         setGroups(groups);
-        setDrafts(Object.fromEntries(users.map((u) => [u.id, { role: u.role, playerGroupId: u.playerGroupId }])));
+        setDrafts(Object.fromEntries(users.map((u) => [u.id, u.role])));
       })
       .catch((err) => setError(errMsg(err)));
   }
@@ -47,31 +44,18 @@ export default function Accounts() {
     loadAll();
   }, []);
 
-  function groupName(id: string | null): string {
-    if (!id) return "—";
-    return groups.find((g) => g.id === id)?.name ?? id;
-  }
-
-  function updateDraft(id: string, patch: Partial<Draft>) {
-    setDrafts((d) => {
-      const base = d[id] ?? { role: "player" as UserRole, playerGroupId: null };
-      return { ...d, [id]: { ...base, ...patch } };
-    });
+  function groupNames(ids: string[]): string {
+    if (ids.length === 0) return "—";
+    return ids.map((id) => groups.find((g) => g.id === id)?.name ?? id).join(", ");
   }
 
   async function handleSave(id: string) {
-    const draft = drafts[id];
-    if (!draft) return;
+    const role = drafts[id];
+    if (!role) return;
     setSavingId(id);
     setError(null);
     try {
-      // Un admin n'appartient à aucun groupe — cohérent avec la règle déjà
-      // appliquée côté serveur (admin.ts, PUT /users/:id), mais on l'impose
-      // aussi ici pour ne pas afficher un groupe qu'on sait sans effet.
-      await api.updateUser(id, {
-        role: draft.role,
-        playerGroupId: draft.role === "admin" ? null : draft.playerGroupId,
-      });
+      await api.updateUser(id, { role });
       await loadAll();
     } catch (err) {
       setError(errMsg(err));
@@ -80,10 +64,7 @@ export default function Accounts() {
     }
   }
 
-  const sorted = [...users].sort((a, b) => {
-    const byGroup = groupName(a.playerGroupId).localeCompare(groupName(b.playerGroupId));
-    return byGroup !== 0 ? byGroup : a.displayName.localeCompare(b.displayName);
-  });
+  const sorted = [...users].sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   return (
     <div className="min-h-dvh bg-slate-950">
@@ -94,6 +75,10 @@ export default function Accounts() {
         </header>
 
         {error && <p className="mb-4 text-red-400">{error}</p>}
+        <p className="mb-4 text-sm text-slate-500">
+          L'appartenance aux groupes se gère depuis la page « Groupes » (assigner/retirer un membre). Cette page ne
+          modifie que le rôle du compte.
+        </p>
 
         <div className="overflow-x-auto rounded-xl bg-slate-900 shadow">
           <table className="w-full min-w-max border-collapse text-sm">
@@ -102,22 +87,22 @@ export default function Accounts() {
                 <th className="px-4 py-2">Nom</th>
                 <th className="px-4 py-2">Identifiant</th>
                 <th className="px-4 py-2">Rôle</th>
-                <th className="px-4 py-2">Groupe</th>
+                <th className="px-4 py-2">Groupes</th>
                 <th className="px-4 py-2" />
               </tr>
             </thead>
             <tbody>
               {sorted.map((u) => {
-                const draft = drafts[u.id] ?? { role: u.role, playerGroupId: u.playerGroupId };
-                const dirty = draft.role !== u.role || draft.playerGroupId !== u.playerGroupId;
+                const draft = drafts[u.id] ?? u.role;
+                const dirty = draft !== u.role;
                 return (
                   <tr key={u.id} className="border-t border-slate-800">
                     <td className="px-4 py-2 text-slate-200">{u.displayName}</td>
                     <td className="px-4 py-2 text-slate-400">{u.username}</td>
                     <td className="px-4 py-2">
                       <select
-                        value={draft.role}
-                        onChange={(e) => updateDraft(u.id, { role: e.target.value as UserRole })}
+                        value={draft}
+                        onChange={(e) => setDrafts((d) => ({ ...d, [u.id]: e.target.value as UserRole }))}
                         className="rounded border border-slate-700 bg-slate-800 px-2 py-1"
                       >
                         {(Object.keys(ROLE_LABELS) as UserRole[]).map((role) => (
@@ -127,24 +112,7 @@ export default function Accounts() {
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-2">
-                      {draft.role === "admin" ? (
-                        <span className="text-slate-600">— (aucun groupe)</span>
-                      ) : (
-                        <select
-                          value={draft.playerGroupId ?? ""}
-                          onChange={(e) => updateDraft(u.id, { playerGroupId: e.target.value || null })}
-                          className="rounded border border-slate-700 bg-slate-800 px-2 py-1"
-                        >
-                          <option value="">—</option>
-                          {groups.map((g) => (
-                            <option key={g.id} value={g.id}>
-                              {g.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </td>
+                    <td className="px-4 py-2 text-slate-400">{groupNames(u.memberships)}</td>
                     <td className="px-4 py-2 text-right">
                       <button
                         type="button"

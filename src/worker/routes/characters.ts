@@ -1,19 +1,21 @@
 // Routes /api/characters/* — voir docs/API_REFERENCE.md.
-// Toutes les routes sont désormais scopées au groupe de joueurs de
-// l'utilisateur (user.playerGroupId) : un compte ne voit et ne modifie que
-// les personnages de son propre groupe — cf. migrations/0003_platform.sql.
-// Lecture ouverte à tout membre du groupe (utile en jeu pour consulter la
-// fiche d'un coéquipier) ; écriture réservée au propriétaire ou au MJ du
-// groupe (canEditCharacter, lib/session.ts). Création (PNJ) réservée au MJ.
-// Le catalogue de référence (ReferenceData) n'est plus un import statique
-// ADD40K : il est chargé dynamiquement depuis la règle assignée au groupe
-// (getReferenceDataForGroup, lib/reference.ts) et renvoyé dans chaque
-// réponse pour que le frontend n'ait pas à l'importer lui-même.
+// Un compte peut être membre de plusieurs groupes en même temps (cf.
+// migrations/0005_memberships.sql) : la liste/création prennent désormais
+// un ?groupId= explicite (au lieu de l'ancien user.playerGroupId unique) —
+// require une appartenance à ce groupe (user.memberships). Lecture d'une
+// fiche ouverte à tout membre du groupe du personnage (utile en jeu pour
+// consulter la fiche d'un coéquipier) ; écriture réservée au propriétaire
+// ou à un MJ membre du même groupe (canEditCharacter, lib/session.ts).
+// Création (PNJ) réservée au MJ. Le catalogue de référence (ReferenceData)
+// n'est plus un import statique ADD40K : il est chargé dynamiquement depuis
+// la règle assignée au groupe (getReferenceDataForGroup, lib/reference.ts)
+// et renvoyé dans chaque réponse pour que le frontend n'ait pas à
+// l'importer lui-même.
 
 import { Hono } from "hono";
 import type { Env } from "../lib/session";
 import { canEditCharacter } from "../lib/session";
-import { getGroupImageUrl, getReferenceDataForGroup } from "../lib/reference";
+import { getGroupDriveUrl, getGroupImageUrl, getReferenceDataForGroup } from "../lib/reference";
 import type { PublicUser } from "../../shared/types";
 import type { AttributeScores, Character, CharacterSummary, ReferenceData } from "../../shared/types";
 import { ATTRIBUTES } from "../../shared/types";
@@ -24,6 +26,7 @@ type HonoEnv = { Bindings: Env; Variables: { user: PublicUser } };
 interface CharacterRow {
   id: string;
   data: string;
+  owner_username: string;
   player_group_id: string | null;
 }
 
@@ -31,14 +34,18 @@ export const characterRoutes = new Hono<HonoEnv>();
 
 characterRoutes.get("/", async (c) => {
   const user = c.get("user");
-  if (!user.playerGroupId) return c.json({ characters: [], referenceData: null, groupImageUrl: null });
+  const groupId = c.req.query("groupId");
+  if (!groupId || !user.memberships.includes(groupId)) {
+    return c.json({ error: "Groupe introuvable ou non membre" }, 404);
+  }
 
-  const referenceData = await getReferenceDataForGroup(c.env.DB, user.playerGroupId);
-  const groupImageUrl = await getGroupImageUrl(c.env.DB, user.playerGroupId);
+  const referenceData = await getReferenceDataForGroup(c.env.DB, groupId);
+  const groupImageUrl = await getGroupImageUrl(c.env.DB, groupId);
+  const groupDriveUrl = await getGroupDriveUrl(c.env.DB, groupId);
   const { results } = await c.env.DB.prepare(
     "SELECT id, name, race, owner_username, data FROM characters WHERE player_group_id = ?1 ORDER BY name",
   )
-    .bind(user.playerGroupId)
+    .bind(groupId)
     .all<{ id: string; name: string; race: string; owner_username: string; data: string }>();
 
   // Résumé enrichi (portrait, statut en jeu, PV/PSP) pour l'écran d'accueil
@@ -64,17 +71,18 @@ characterRoutes.get("/", async (c) => {
     };
   });
 
-  return c.json({ characters, referenceData, groupImageUrl });
+  return c.json({ characters, referenceData, groupImageUrl, groupDriveUrl });
 });
 
 characterRoutes.get("/:id", async (c) => {
   const user = c.get("user");
-  const row = await c.env.DB.prepare("SELECT id, data, player_group_id FROM characters WHERE id = ?1")
+  const row = await c.env.DB.prepare("SELECT id, data, owner_username, player_group_id FROM characters WHERE id = ?1")
     .bind(c.req.param("id"))
     .first<CharacterRow>();
-  // Une fiche d'un autre groupe est traitée comme inexistante — évite de
-  // confirmer son existence à un compte qui n'y a pas accès.
-  if (!row || !row.player_group_id || row.player_group_id !== user.playerGroupId) {
+  // Une fiche d'un groupe dont on n'est pas membre est traitée comme
+  // inexistante — évite de confirmer son existence à un compte qui n'y a
+  // pas accès.
+  if (!row || !row.player_group_id || !user.memberships.includes(row.player_group_id)) {
     return c.json({ error: "Personnage introuvable" }, 404);
   }
 
@@ -85,7 +93,7 @@ characterRoutes.get("/:id", async (c) => {
   return c.json({
     character,
     computed,
-    canEdit: canEditCharacter(user, row.id, row.player_group_id),
+    canEdit: canEditCharacter(user, row.owner_username, row.player_group_id),
     referenceData,
     groupImageUrl,
   });
@@ -119,11 +127,14 @@ const EMPTY_ATTRIBUTE_SCORES: AttributeScores = Object.fromEntries(ATTRIBUTES.ma
 // pspMaxOverride — pas d'attributs à saisir). Réservé au MJ : un PNJ n'a pas
 // de joueur propriétaire, seul le MJ doit pouvoir le créer/modifier (déjà
 // garanti par canEditCharacter côté PUT, qui autorise role=gm sur tout
-// personnage de son groupe). Le PNJ est rattaché au groupe du MJ créateur.
+// personnage d'un groupe dont il est membre). Le PNJ est rattaché au
+// groupe explicitement demandé (?groupId=, un MJ pouvant désormais gérer
+// plusieurs groupes).
 characterRoutes.post("/", async (c) => {
   const user = c.get("user");
-  if (user.role !== "gm" || !user.playerGroupId) {
-    return c.json({ error: "Réservé au MJ" }, 403);
+  const groupId = c.req.query("groupId");
+  if (user.role !== "gm" || !groupId || !user.memberships.includes(groupId)) {
+    return c.json({ error: "Réservé au MJ de ce groupe" }, 403);
   }
 
   const body = await c.req
@@ -133,7 +144,7 @@ characterRoutes.post("/", async (c) => {
     return c.json({ error: "Nom requis" }, 400);
   }
 
-  const referenceData = await getReferenceDataForGroup(c.env.DB, user.playerGroupId);
+  const referenceData = await getReferenceDataForGroup(c.env.DB, groupId);
   const id = await uniqueId(c.env.DB, body.name);
   const now = new Date().toISOString();
   const race = body.race?.trim() || "humain";
@@ -182,15 +193,7 @@ characterRoutes.post("/", async (c) => {
   await c.env.DB.prepare(
     "INSERT INTO characters (id, name, race, owner_username, data, updated_at, player_group_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
   )
-    .bind(
-      character.id,
-      character.name,
-      character.race,
-      character.ownerUsername,
-      JSON.stringify(character),
-      now,
-      user.playerGroupId,
-    )
+    .bind(character.id, character.name, character.race, character.ownerUsername, JSON.stringify(character), now, groupId)
     .run();
 
   const computed = computeCharacter(character, referenceData);
@@ -201,11 +204,13 @@ characterRoutes.put("/:id", async (c) => {
   const id = c.req.param("id");
   const user = c.get("user");
 
-  const existing = await c.env.DB.prepare("SELECT id, data, player_group_id FROM characters WHERE id = ?1")
+  const existing = await c.env.DB.prepare(
+    "SELECT id, data, owner_username, player_group_id FROM characters WHERE id = ?1",
+  )
     .bind(id)
     .first<CharacterRow>();
   if (!existing) return c.json({ error: "Personnage introuvable" }, 404);
-  if (!canEditCharacter(user, id, existing.player_group_id)) {
+  if (!canEditCharacter(user, existing.owner_username, existing.player_group_id)) {
     return c.json({ error: "Vous ne pouvez modifier que votre propre fiche" }, 403);
   }
 

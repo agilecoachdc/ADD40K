@@ -40,3 +40,13 @@ export async function getGroupImageUrl(db: D1Database, groupId: string): Promise
   const row = await db.prepare("SELECT image_url FROM player_groups WHERE id = ?1").bind(groupId).first<{ image_url: string | null }>();
   return row?.image_url ?? null;
 }
+
+/**
+ * Dossier partagé (Google Drive...) du groupe — plus un lien en dur
+ * spécifique à ADD40K sur l'écran "Personnages" : chaque groupe a le sien
+ * (cf. migrations/0005_memberships.sql), null si non renseigné.
+ */
+export async function getGroupDriveUrl(db: D1Database, groupId: string): Promise<string | null> {
+  const row = await db.prepare("SELECT drive_url FROM player_groups WHERE id = ?1").bind(groupId).first<{ drive_url: string | null }>();
+  return row?.drive_url ?? null;
+}

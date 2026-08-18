@@ -68,12 +68,15 @@ identique visuellement aux fiches de `Fiches App/`.
 ## Comptes et plateforme
 
 Trois rôles : `admin` (gère jeux/règles/groupes de joueurs et les comptes, pages `/admin/jeux` et
-`/admin/groupes` — pas de groupe ni de personnage assigné), `gm` (MJ d'un groupe : édite tous les
-personnages de son groupe, crée des PNJ) et `player` (lié à un `character_id`, édite uniquement sa
-fiche). Un compte appartient à un seul groupe de joueurs (`player_group_id`, sauf admin) ; les
-données (personnages, catalogue de règle) sont isolées par groupe — un joueur ou MJ ne voit que
-les personnages de son propre groupe, lisibles par tous ses membres (utile en séance pour
-consulter la fiche d'un coéquipier).
+`/admin/groupes` — membre d'aucun groupe), `gm` (MJ d'un ou plusieurs groupes : édite tous les
+personnages de chacun, y crée des PNJ) et `player` (lié à un `character_id` par groupe, édite
+uniquement sa fiche). Un compte peut appartenir à **plusieurs groupes de joueurs en même temps**
+(table `group_memberships`, `migrations/0005_memberships.sql` — remplace l'ancien
+`player_group_id` unique) ; les données (personnages, catalogue de règle) restent isolées par
+groupe — un joueur ou MJ ne voit que les personnages des groupes dont il est membre, lisibles par
+tous les autres membres de chacun (utile en séance pour consulter la fiche d'un coéquipier).
+L'accueil liste les groupes du compte ; chacun a son propre lien de dossier Drive personnalisable
+(`player_groups.drive_url`, réglable par un admin ou en self-service par un MJ membre du groupe).
 
 Les données existantes (import Excel initial) forment le jeu/règle/groupe "ADD40K"
 (`migrations/0003_platform.sql`, généré par `scripts/generate_platform_seed_sql.mjs`) — un admin

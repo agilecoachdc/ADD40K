@@ -1,19 +1,21 @@
 // Page "Mon profil" — accessible à tout rôle (admin/gm/player). Montre
-// l'identité du compte et le contexte plateforme (groupe de joueurs, règle,
-// jeu) renvoyé par GET /api/profile. Un admin sans groupe voit un message
-// dédié plutôt qu'un groupe vide.
+// l'identité du compte et les groupes dont il est membre (un joueur ou un
+// MJ peut désormais appartenir à plusieurs groupes en même temps, cf.
+// migrations/0005_memberships.sql), avec la règle/le jeu de chacun. Un
+// admin (aucun groupe) voit un message dédié plutôt qu'une liste vide.
 //
-// Joueurs et MJ peuvent aussi y rejoindre un groupe existant, et un MJ peut
-// y créer un nouveau groupe (nom, image, règle) — cf. routes/catalog.ts
-// (self-service, distinct des routes CRUD complètes /api/admin/*).
+// Joueurs et MJ peuvent aussi y rejoindre un groupe existant ou en quitter
+// un, et un MJ peut y créer un nouveau groupe (nom, image, dossier Drive,
+// règle) — cf. routes/catalog.ts (self-service, distinct des routes CRUD
+// complètes /api/admin/*).
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { PlayerGroup, ProfileInfo, Ruleset } from "@shared/types";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
-import { resizePortraitToDataUrl } from "../lib/image";
 import { GroupThumb } from "../components/GroupThumb";
+import { ImagePicker } from "../components/ImagePicker";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrateur",
@@ -38,6 +40,7 @@ export default function Profile() {
   const [newDescription, setNewDescription] = useState("");
   const [newRulesetId, setNewRulesetId] = useState("");
   const [newImageUrl, setNewImageUrl] = useState<string | null>(null);
+  const [newDriveUrl, setNewDriveUrl] = useState("");
   const [creating, setCreating] = useState(false);
 
   const canJoinOrCreate = user?.role === "player" || user?.role === "gm";
@@ -79,14 +82,17 @@ export default function Profile() {
     }
   }
 
-  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  async function handleLeave(groupId: string) {
+    setError(null);
+    setBusyGroupId(groupId);
     try {
-      setNewImageUrl(await resizePortraitToDataUrl(file));
+      await api.leaveGroup(groupId);
+      await refreshUser();
+      await loadProfile();
     } catch (err) {
       setError(errMsg(err));
+    } finally {
+      setBusyGroupId(null);
     }
   }
 
@@ -101,11 +107,13 @@ export default function Profile() {
         description: newDescription.trim(),
         rulesetId: newRulesetId,
         imageUrl: newImageUrl,
+        driveUrl: newDriveUrl.trim() || null,
       });
       setNewName("");
       setNewDescription("");
       setNewRulesetId("");
       setNewImageUrl(null);
+      setNewDriveUrl("");
       await refreshUser();
       await loadProfile();
       loadCatalog();
@@ -116,7 +124,8 @@ export default function Profile() {
     }
   }
 
-  const joinableGroups = groups.filter((g) => g.id !== info?.group?.id);
+  const joinedIds = new Set(info?.memberships.map((m) => m.group.id));
+  const joinableGroups = groups.filter((g) => !joinedIds.has(g.id));
 
   return (
     <div
@@ -165,36 +174,48 @@ export default function Profile() {
             </section>
 
             <section className="rounded-xl bg-slate-900 p-4 shadow">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Groupe de joueurs</h2>
-              {info.group && info.ruleset && info.game ? (
-                <div className="flex gap-3">
-                  <GroupThumb url={info.group.imageUrl} name={info.group.name} />
-                  <dl className="grid flex-1 grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <dt className="text-slate-500">Groupe</dt>
-                      <dd className="text-slate-200">{info.group.name}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-slate-500">Jeu</dt>
-                      <dd className="text-slate-200">{info.game.name}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-slate-500">Règle</dt>
-                      <dd className="text-slate-200">{info.ruleset.name}</dd>
-                    </div>
-                    {info.group.description && (
-                      <div className="col-span-2">
-                        <dt className="text-slate-500">Description</dt>
-                        <dd className="text-slate-300">{info.group.description}</dd>
-                      </div>
-                    )}
-                  </dl>
-                </div>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Mes groupes</h2>
+              {info.memberships.length > 0 ? (
+                <ul className="space-y-3">
+                  {info.memberships.map(({ group, ruleset, game }) => (
+                    <li key={group.id} className="flex gap-3 rounded-lg bg-slate-800/50 p-3">
+                      <GroupThumb url={group.imageUrl} name={group.name} />
+                      <dl className="grid flex-1 grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <dt className="text-slate-500">Groupe</dt>
+                          <dd className="text-slate-200">{group.name}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-500">Jeu</dt>
+                          <dd className="text-slate-200">{game?.name ?? "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-500">Règle</dt>
+                          <dd className="text-slate-200">{ruleset?.name ?? "—"}</dd>
+                        </div>
+                        {group.description && (
+                          <div className="col-span-2">
+                            <dt className="text-slate-500">Description</dt>
+                            <dd className="text-slate-300">{group.description}</dd>
+                          </div>
+                        )}
+                      </dl>
+                      <button
+                        type="button"
+                        onClick={() => handleLeave(group.id)}
+                        disabled={busyGroupId === group.id}
+                        className="shrink-0 self-start text-xs text-slate-500 hover:text-red-400 disabled:opacity-50"
+                      >
+                        {busyGroupId === group.id ? "…" : "Quitter"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               ) : (
                 <p className="text-sm text-slate-500">
                   {info.user.role === "admin"
                     ? "Compte administrateur — pas de groupe de joueurs assigné."
-                    : "Aucun groupe de joueurs assigné pour l'instant."}
+                    : "Vous n'êtes membre d'aucun groupe pour l'instant."}
                 </p>
               )}
             </section>
@@ -234,14 +255,7 @@ export default function Profile() {
                 </h2>
                 <form onSubmit={handleCreateGroup} className="space-y-3">
                   <div className="flex items-start gap-4">
-                    <label className="flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-slate-800 text-slate-500 hover:bg-slate-700">
-                      {newImageUrl ? (
-                        <img src={newImageUrl} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="text-xs">Image</span>
-                      )}
-                      <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                    </label>
+                    <ImagePicker value={newImageUrl} onChange={setNewImageUrl} sizePx={80} />
                     <div className="flex-1 space-y-2">
                       <input
                         type="text"
@@ -256,6 +270,13 @@ export default function Profile() {
                         placeholder="Description (optionnel)"
                         value={newDescription}
                         onChange={(e) => setNewDescription(e.target.value)}
+                        className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
+                      />
+                      <input
+                        type="url"
+                        placeholder="Lien du dossier Drive (optionnel)"
+                        value={newDriveUrl}
+                        onChange={(e) => setNewDriveUrl(e.target.value)}
                         className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
                       />
                       <select

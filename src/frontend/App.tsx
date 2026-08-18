@@ -44,7 +44,7 @@ export default function App() {
         }
       />
       <Route
-        path="/groupe"
+        path="/groupe/:groupId"
         element={
           <RequireAuth>
             <CharacterList />
@@ -60,7 +60,7 @@ export default function App() {
         }
       />
       <Route
-        path="/suivi"
+        path="/suivi/:groupId"
         element={
           <RequireAuth>
             <GmTracker />

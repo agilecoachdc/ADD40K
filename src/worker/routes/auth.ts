@@ -2,9 +2,9 @@
 
 import { Hono } from "hono";
 import type { Env } from "../lib/session";
-import { createSession, destroySession, getUserForToken } from "../lib/session";
+import { createSession, destroySession, getMembershipsForUser, getUserForToken, toPublicUser } from "../lib/session";
 import { verifyPassword, parseSessionCookie, serializeSessionCookie, clearSessionCookie } from "../lib/auth";
-import type { PublicUser, UserRole } from "../../shared/types";
+import type { UserRole } from "../../shared/types";
 
 interface UserRow {
   id: string;
@@ -14,7 +14,6 @@ interface UserRow {
   password_salt: string;
   role: UserRole;
   character_id: string | null;
-  player_group_id: string | null;
 }
 
 export const authRoutes = new Hono<{ Bindings: Env }>();
@@ -37,14 +36,8 @@ authRoutes.post("/login", async (c) => {
 
   const token = await createSession(c.env.DB, row.id);
   c.header("Set-Cookie", serializeSessionCookie(token));
-  const user: PublicUser = {
-    id: row.id,
-    username: row.username,
-    displayName: row.display_name,
-    role: row.role,
-    characterId: row.character_id,
-    playerGroupId: row.player_group_id,
-  };
+  const memberships = await getMembershipsForUser(c.env.DB, row.id);
+  const user = toPublicUser(row, memberships);
   return c.json({ user });
 });
 
