@@ -91,13 +91,15 @@ agit tôt. Calculé (`calc-engine.getActionRank`, jamais stocké) comme `BASE_RA
 (RA de l'arme équipée + ses modificateurs)` — le RA de catalogue d'une arme (ex. 2 pour Wild
 Predator) est déjà un rang à part entière, lu tel quel dans la table du classeur : il s'additionne
 au socle, il ne s'en soustrait pas. Une arme non équipée compte comme mains nues (RA 0 de
-catalogue). Une seule arme peut être marquée "équipée" à la fois (case à cocher sur la fiche, à
-côté du nom de chaque arme, même principe que l'armure) — deux avec l'avantage "Ambidextre"
-(`calc-engine.getMaxEquippedWeapons`, `CharacterSheet.toggleWeaponEquipped` déséquipe automatiquement
-la plus ancienne au-delà de cette limite). Avec deux armes équipées, seule la première trouvée dans
-la liste compte pour le RA (`getActionRank` ne lit que la première arme équipée) — combiner les deux
-armes dans ce calcul est hors périmètre tant qu'aucune règle précise de combat à deux armes n'a été
-communiquée.
+catalogue). Deux armes au maximum peuvent être marquées "équipées" à la fois (case à cocher sur la
+fiche, à côté du nom de chaque arme, même principe que l'armure — `calc-engine.
+MAX_EQUIPPED_WEAPONS`, `CharacterSheet.toggleWeaponEquipped` déséquipe automatiquement la plus
+ancienne au-delà de cette limite), avec ou sans l'avantage "Ambidextre" : sans lui, le combat à deux
+armes impose un malus de -3 au score joué de CHAQUE arme équipée (pas aux dégâts ni au RA, cf.
+`calc-engine.getDualWieldPenalty`, appliqué via `getWeaponTotals`) ; avec Ambidextre, aucun malus.
+Avec deux armes équipées, seule la première trouvée dans la liste compte pour le RA (`getActionRank`
+ne lit que la première arme équipée) — combiner les deux armes dans ce calcul reste hors périmètre
+tant qu'aucune règle précise n'a été communiquée pour le RA du combat à deux armes.
 
 Deux éléments du catalogue (Règles ADD40K V0.2) modifient le Réflexe pris en compte, mais
 seulement pendant qu'un pouvoir est actif :

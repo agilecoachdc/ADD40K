@@ -149,7 +149,7 @@ const EN: Record<string, string> = {
   "Dmg": "Dmg",
   "RA": "AR",
   "Armes": "Weapons",
-  "Ambidextre : jusqu'à 2 armes équipées à la fois": "Ambidextrous: up to 2 weapons equipped at once",
+  "Combat à deux armes sans Ambidextre : -3 au score de chaque arme équipée": "Two-weapon fighting without Ambidextrous: -3 to each equipped weapon's score",
   "Armures": "Armor",
   "Aucune armure sur la fiche": "No armor on the sheet",
   "Aucune armure équipée": "No armor equipped",

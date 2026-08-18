@@ -65,7 +65,7 @@ const FR: GuideContent = {
     {
       title: "Armes et armures",
       paragraphs: [
-        "Une seule arme peut être « équipée » à la fois (case à cocher à côté de son nom) — c'est la seule qui compte dans le calcul du Rang d'Action — sauf avec l'avantage « Ambidextre », qui permet d'en équiper deux simultanément ; équiper une arme au-delà de cette limite déséquipe automatiquement la plus ancienne. Des modificateurs justifiés (ex. une amélioration listée dans l'équipement) peuvent s'ajouter aux valeurs de base d'une arme (score, dégâts, Rang d'Action) via le bouton « Modificateurs ».",
+        "Deux armes au maximum peuvent être « équipées » à la fois (case à cocher à côté du nom de chacune) ; équiper une 3ᵉ déséquipe automatiquement la plus ancienne. Sans l'avantage « Ambidextre », combattre avec deux armes équipées impose un malus de -3 au score joué de chacune (pas aux dégâts ni au Rang d'Action) ; avec Ambidextre, aucun malus. Seule la première arme équipée trouvée sur la fiche compte dans le calcul du Rang d'Action. Des modificateurs justifiés (ex. une amélioration listée dans l'équipement) peuvent s'ajouter aux valeurs de base d'une arme (score, dégâts, Rang d'Action) via le bouton « Modificateurs ».",
         "Plusieurs armures peuvent être actives en même temps ; leur protection (VP par membre : tête/bras/torse/jambes) s'additionne et s'affiche sous forme de silhouette, à côté d'une silhouette de localisation qui indique quel jet touche quel membre.",
       ],
     },
@@ -193,7 +193,7 @@ const EN: GuideContent = {
     {
       title: "Weapons and armor",
       paragraphs: [
-        "Only one weapon can be \"equipped\" at a time (checkbox next to its name) — it's the only one that counts toward the Action Rank — except with the \"Ambidextrous\" advantage, which allows equipping two at once; equipping a weapon past that limit automatically unequips the oldest one. Justified modifiers (e.g. an upgrade listed in equipment) can add to a weapon's base values (score, damage, Action Rank) via the \"Modifiers\" button.",
+        "Up to two weapons can be \"equipped\" at once (checkbox next to each name); equipping a 3rd automatically unequips the oldest one. Without the \"Ambidextrous\" advantage, fighting with two weapons equipped imposes a -3 penalty on each one's played score (not damage or Action Rank); with Ambidextrous, no penalty. Only the first equipped weapon found on the sheet counts toward the Action Rank. Justified modifiers (e.g. an upgrade listed in equipment) can add to a weapon's base values (score, damage, Action Rank) via the \"Modifiers\" button.",
         "Several pieces of armor can be active at once; their protection (VP per body part: head/arms/torso/legs) adds up and is shown as a silhouette, next to a hit-location silhouette showing which roll hits which body part.",
       ],
     },

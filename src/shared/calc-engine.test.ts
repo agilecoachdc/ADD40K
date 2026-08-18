@@ -13,8 +13,8 @@ import {
   getAllAttributeTotals,
   getArmorTotals,
   getAttributeTotal,
+  getDualWieldPenalty,
   getHpMax,
-  getMaxEquippedWeapons,
   getPowerAffinityBonus,
   getPspMax,
   getPsyPowerActivationCost,
@@ -31,6 +31,7 @@ import {
   getWeaponTotals,
   hasActivePsyPowerBoost,
   hasAmbidextrousAdvantage,
+  MAX_EQUIPPED_WEAPONS,
   parseSkillAttribute,
 } from "./calc-engine";
 import { referenceData } from "./reference-data";
@@ -209,17 +210,39 @@ describe("getWeaponTotals", () => {
   });
 });
 
-describe("hasAmbidextrousAdvantage / getMaxEquippedWeapons", () => {
-  it("sans l'avantage Ambidextre : 1 arme équipée maximum", () => {
-    const character = { advantages: [{ label: "Réputation: +10", value: 10 }] };
-    expect(hasAmbidextrousAdvantage(character)).toBe(false);
-    expect(getMaxEquippedWeapons(character)).toBe(1);
+describe("hasAmbidextrousAdvantage / getDualWieldPenalty — combat à deux armes", () => {
+  it("MAX_EQUIPPED_WEAPONS = 2, avec ou sans Ambidextre (seul le score en pâtit sans l'avantage)", () => {
+    expect(MAX_EQUIPPED_WEAPONS).toBe(2);
   });
 
-  it("avec l'avantage Ambidextre : 2 armes équipées maximum", () => {
-    const character = { advantages: [{ label: "Ambidextre: +10", value: 10 }] };
+  it("une seule arme équipée : aucun malus, avec ou sans Ambidextre", () => {
+    const withoutAmbi = { weapons: [{ equipped: true }], advantages: [] };
+    const withAmbi = { weapons: [{ equipped: true }], advantages: [{ label: "Ambidextre: +10", value: 10 }] };
+    expect(getDualWieldPenalty(withoutAmbi)).toBe(0);
+    expect(getDualWieldPenalty(withAmbi)).toBe(0);
+  });
+
+  it("deux armes équipées sans Ambidextre : malus de -3", () => {
+    const character = {
+      weapons: [{ equipped: true }, { equipped: true }, { equipped: false }],
+      advantages: [{ label: "Réputation: +10", value: 10 }],
+    };
+    expect(hasAmbidextrousAdvantage(character)).toBe(false);
+    expect(getDualWieldPenalty(character)).toBe(-3);
+  });
+
+  it("deux armes équipées avec Ambidextre : aucun malus", () => {
+    const character = {
+      weapons: [{ equipped: true }, { equipped: true }],
+      advantages: [{ label: "Ambidextre: +10", value: 10 }],
+    };
     expect(hasAmbidextrousAdvantage(character)).toBe(true);
-    expect(getMaxEquippedWeapons(character)).toBe(2);
+    expect(getDualWieldPenalty(character)).toBe(0);
+  });
+
+  it("getWeaponTotals applique le malus au score joué, pas aux dégâts ni au RA", () => {
+    const totals = getWeaponTotals({ ra: 2, damage: 6, baseScore: 7 }, 0, -3);
+    expect(totals).toEqual({ ra: 7, damage: 6, baseScore: 4 });
   });
 });
 

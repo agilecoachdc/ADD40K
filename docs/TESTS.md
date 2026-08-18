@@ -78,11 +78,12 @@ navigateur intégré, cf. session de build).
       cette compétence (`SkillsPanel`) augmente d'autant, badge ambre affiché. La ligne d'Affinité
       elle-même n'affiche que son score de base en "Total" (pas de colonne "Attribut" — toujours
       "—"), même si son nom contient un code d'attribut.
-- [ ] Sur une fiche sans l'avantage "Ambidextre" : cocher "équipée" sur une 2ᵉ arme → la 1ʳᵉ se
-      déséquipe automatiquement (une seule à la fois). Ajouter l'avantage "Ambidextre: +10" →
-      un message "Ambidextre : jusqu'à 2 armes équipées à la fois" apparaît sur la section Armes,
-      et deux armes peuvent désormais rester équipées simultanément ; une 3ᵉ déséquipe la plus
-      ancienne des deux.
+- [ ] Sur une fiche sans l'avantage "Ambidextre" : cocher "équipée" sur une 2ᵉ arme (la 1ʳᵉ reste
+      équipée, deux armes autorisées par défaut) → un message rouge "Combat à deux armes sans
+      Ambidextre : -3 au score de chaque arme équipée" apparaît, et le "Score" affiché de chacune
+      des deux armes équipées diminue de 3 (pas les dégâts ni le RA). Cocher une 3ᵉ arme →
+      déséquipe automatiquement la plus ancienne des deux (toujours 2 maximum). Ajouter l'avantage
+      "Ambidextre: +10" → le message rouge disparaît, les deux armes retrouvent leur score plein.
 
 ## §4 — Permissions
 

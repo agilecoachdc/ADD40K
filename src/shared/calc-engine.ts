@@ -376,12 +376,14 @@ function getWeaponRaModifier(weapon: Pick<WeaponEntry, "ra" | "modifiers">): num
 export function getWeaponTotals(
   weapon: Pick<WeaponEntry, "ra" | "damage" | "baseScore" | "modifiers">,
   refTotal: number,
+  /** Malus appliqué au score joué (ex. combat à deux armes sans Ambidextre, cf. getDualWieldPenalty) — 0 par défaut, n'affecte ni les dégâts ni le RA. */
+  scorePenalty = 0,
 ): WeaponTotals {
   const modifiers = weapon.modifiers ?? [];
   return {
     ra: BASE_RA - refTotal + getWeaponRaModifier(weapon),
     damage: weapon.damage + modifiers.reduce((sum, m) => sum + (m.damage ?? 0), 0),
-    baseScore: weapon.baseScore + modifiers.reduce((sum, m) => sum + (m.score ?? 0), 0),
+    baseScore: weapon.baseScore + modifiers.reduce((sum, m) => sum + (m.score ?? 0), 0) + scorePenalty,
   };
 }
 
@@ -425,21 +427,38 @@ function getConcentrationAdvantageRefDelta(
 
 const AMBIDEXTROUS_LABEL = "Ambidextre";
 
-/** Avantage "Ambidextre" (catalogue) — permet d'équiper 2 armes à la fois plutôt qu'une seule. */
+/** Avantage "Ambidextre" (catalogue) — annule le malus de score du combat à deux armes (cf. getDualWieldPenalty). */
 export function hasAmbidextrousAdvantage(character: Pick<Character, "advantages">): boolean {
   return character.advantages.some((a) => a.label.startsWith(AMBIDEXTROUS_LABEL));
 }
 
 /**
- * Nombre maximum d'armes équipées simultanément — 1 normalement, 2 avec
- * l'avantage "Ambidextre" (cf. hasAmbidextrousAdvantage). getActionRank
- * ci-dessous ne lit que la première arme équipée trouvée dans la liste :
- * avec deux armes équipées, seule celle-ci compte pour le Rang d'Action —
- * combiner les deux armes dans le calcul du RA est hors périmètre tant
- * qu'aucune règle précise n'a été communiquée pour le combat à deux armes.
+ * Nombre maximum d'armes équipées simultanément — 2 (une par main), avec ou
+ * sans l'avantage "Ambidextre" : n'importe quel personnage peut équiper
+ * deux armes, seul le score en pâtit sans entraînement (cf.
+ * getDualWieldPenalty ci-dessous). getActionRank ci-dessous ne lit que la
+ * première arme équipée trouvée dans la liste : avec deux armes équipées,
+ * seule celle-ci compte pour le Rang d'Action — combiner les deux armes
+ * dans le calcul du RA est hors périmètre tant qu'aucune règle précise n'a
+ * été communiquée pour le combat à deux armes.
  */
-export function getMaxEquippedWeapons(character: Pick<Character, "advantages">): number {
-  return hasAmbidextrousAdvantage(character) ? 2 : 1;
+export const MAX_EQUIPPED_WEAPONS = 2;
+
+/**
+ * Malus de score par arme quand exactement deux armes sont équipées SANS
+ * l'avantage "Ambidextre" (combat à deux armes sans entraînement, cf.
+ * hasAmbidextrousAdvantage) — 0 sinon (une seule arme équipée, ou deux avec
+ * Ambidextre qui annule le malus). S'applique au score de CHAQUE arme
+ * équipée (cf. getWeaponTotals, paramètre scorePenalty), pas aux dégâts ni
+ * au Rang d'Action.
+ */
+export function getDualWieldPenalty(character: {
+  weapons: Pick<WeaponEntry, "equipped">[];
+  advantages: Character["advantages"];
+}): number {
+  const equippedCount = character.weapons.filter((w) => w.equipped).length;
+  if (equippedCount !== 2 || hasAmbidextrousAdvantage(character)) return 0;
+  return -3;
 }
 
 /**

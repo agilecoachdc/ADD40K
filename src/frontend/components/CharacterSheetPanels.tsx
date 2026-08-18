@@ -21,7 +21,7 @@ import {
   CONCENTRATION_PSY_ATTRIBUTES,
   getActivePsyPowerAttributeBoost,
   getActivePsyPowerSkillBoost,
-  getMaxEquippedWeapons,
+  getDualWieldPenalty,
   getPsyPowerActivationCost,
   getPsyPowerTotal,
   getSkillDisplayTotal,
@@ -743,17 +743,19 @@ export function WeaponsArmorPanel({
     update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, modifiers } : x)) });
   }
 
-  const maxEquippedWeapons = getMaxEquippedWeapons(character);
+  const dualWieldPenalty = getDualWieldPenalty(character);
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Section title={t("Armes")}>
-        {maxEquippedWeapons > 1 && (
-          <p className="mb-2 text-xs text-slate-500">{t("Ambidextre : jusqu'à 2 armes équipées à la fois")}</p>
+        {dualWieldPenalty !== 0 && (
+          <p className="mb-2 text-xs text-red-400">
+            {t("Combat à deux armes sans Ambidextre : -3 au score de chaque arme équipée")}
+          </p>
         )}
         <ul className="space-y-2">
           {weapons.map((w, i) => {
-            const totals = getWeaponTotals(w, computed.attributeTotals.REF);
+            const totals = getWeaponTotals(w, computed.attributeTotals.REF, w.equipped ? dualWieldPenalty : 0);
             const modifiers = w.modifiers ?? [];
             return (
               <li key={i} className="rounded-lg bg-slate-800/50 p-2 text-sm">
