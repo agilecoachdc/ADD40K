@@ -136,6 +136,13 @@ export const referenceData: ReferenceData = {
       "skillPoints": 20
     }
   ],
+  // Paliers 11-15 corrigés à la main (+15/niveau au lieu de +20/niveau,
+  // score 15 = 150 au lieu de 175) suite à une révision de la règle par le
+  // MJ, appliquée directement en base sur le ruleset "add40k" en production
+  // (UPDATE rulesets SET reference_data = json_set(...)) — donc en avance
+  // sur le classeur Excel source et sur migrations/0003_platform.sql (seed
+  // historique, non réappliqué). Un futur `npm run import:xlsx` écrasera ce
+  // correctif tant que le classeur d'origine n'est pas lui-même mis à jour.
   "skillCostTable": {
     "0": 0,
     "1": 5,
@@ -148,11 +155,11 @@ export const referenceData: ReferenceData = {
     "8": 55,
     "9": 65,
     "10": 75,
-    "11": 95,
-    "12": 115,
-    "13": 135,
-    "14": 155,
-    "15": 175
+    "11": 90,
+    "12": 105,
+    "13": 120,
+    "14": 135,
+    "15": 150
   },
   "skills": [
     {

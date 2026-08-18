@@ -28,15 +28,15 @@ const sternTack = (charactersSeed as Character[]).find((c) => c.name === "Stern 
 const jonas = (charactersSeed as Character[]).find((c) => c.name === "Jonas")!;
 
 describe("getSkillCost", () => {
-  it("suit la table listes!A14:B29", () => {
+  it("suit la table listes!A14:B29 (paliers 11-15 corrigés à +15/niveau, cf. reference-data.ts)", () => {
     expect(getSkillCost(0, referenceData.skillCostTable)).toBe(0);
     expect(getSkillCost(1, referenceData.skillCostTable)).toBe(5);
     expect(getSkillCost(6, referenceData.skillCostTable)).toBe(35);
-    expect(getSkillCost(15, referenceData.skillCostTable)).toBe(175);
+    expect(getSkillCost(15, referenceData.skillCostTable)).toBe(150);
   });
 
   it("retombe sur le palier inférieur pour un score sans entrée exacte", () => {
-    expect(getSkillCost(20, referenceData.skillCostTable)).toBe(175);
+    expect(getSkillCost(20, referenceData.skillCostTable)).toBe(150);
   });
 });
 
