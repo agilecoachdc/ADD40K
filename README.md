@@ -122,9 +122,11 @@ et `pspMax`, cf. `CharacterSheet.setActivePower`). "Concentration
 psy" garde son mécanisme dédié (bonus de Réflexe chiffré selon le palier, cf. section RA
 ci-dessus) ; pour tout autre pouvoir qui modifie une caractéristique ou une compétence (règle non
 structurée en formule dans ce moteur), un "effet" optionnel se choisit manuellement à
-l'activation : caractéristique et/ou compétence ciblée (`ActivePsyPower.boostAttribute`/
-`boostSkillName`), valeur du bonus (`boostAmount`), et durée indicative "un tour" (immédiat) ou "le
-combat" (`duration`). Ce bonus est ajouté et mis en évidence (badge ambre) à l'endroit concerné —
+l'activation — repliée par défaut derrière un bouton "+ Effet (optionnel)" pour garder la ligne
+d'activation courte quand ce pouvoir n'a rien à configurer : caractéristique et/ou compétence ciblée
+(`ActivePsyPower.boostAttribute`/`boostSkillName`), valeur du bonus (`boostAmount`), et durée
+indicative "un tour" (immédiat) ou "le combat" (`duration`). Ce bonus est ajouté et mis en évidence
+(badge ambre) à l'endroit concerné —
 `AttributesPanel` pour une caractéristique (et pris en compte dans le RA si REF), `SkillsPanel` pour
 une compétence — et signalé par une icône "⚡" sur la tuile du personnage à l'écran "Suivi des
 constantes" (`CharacterSummary.hasActiveBoost`).
@@ -173,12 +175,20 @@ Une compétence peut être marquée "Gratuite (avantage/matériel)" sur la fiche
 `SkillsPanel`) : elle reste dans la même liste de compétences (rien à part, rien à oublier en jeu)
 mais son coût est exclu du budget de points (`calc-engine.getSkillsCostTotal`) — utile pour une
 compétence déjà acquise via un avantage et/ou du matériel plutôt qu'achetée en XP, ex. "Résistance
-mentale" de Conrad Lingus, obtenue grâce à l'avantage "Volonté de fer" et son collier Alphacien. Un
-champ "Justification" (autocomplété depuis les libellés d'avantages/matériel de la fiche) documente
-la raison. Comme une compétence gratuite est le plus souvent hors du catalogue de règle (son nom ne
-suit donc pas la convention "Nom (ATTR)" utilisée pour en déduire l'attribut lié), son nom se saisit
-en texte libre et son attribut se choisit manuellement dans un sélecteur dédié
-(`SkillEntry.attribute`, prioritaire sur le parsing du nom — `calc-engine.getSkillTotal`).
+mentale" de Conrad Lingus, obtenue grâce à son collier Alphacien (+3) ET à l'avantage "Volonté de
+fer" (+3). Comme pour les modificateurs d'arme (`WeaponEntry.modifiers`, section RA ci-dessus), une
+compétence gratuite accepte **plusieurs lignes de justification** (`SkillEntry.justifications`,
+bouton "+ Justification" / "Justifications (N)") — chaque ligne (texte libre, autocomplété depuis
+les libellés d'avantages/matériel de la fiche) peut porter sa propre contribution en points, qui
+s'additionne au score de base pour former le score total joué
+(`calc-engine.getSkillJustifiedScore` — même principe que `getWeaponTotals`, base + somme des
+modificateurs). L'ancien champ à une seule justification (`SkillEntry.justification`) reste lisible
+sur les fiches existantes (migration transparente en lecture, cf.
+`calc-engine.getSkillJustifications`) sans réécriture forcée. Comme une compétence gratuite est le
+plus souvent hors du catalogue de règle (son nom ne suit donc pas la convention "Nom (ATTR)" utilisée
+pour en déduire l'attribut lié), son nom se saisit en texte libre et son attribut se choisit
+manuellement dans un sélecteur dédié (`SkillEntry.attribute`, prioritaire sur le parsing du nom —
+`calc-engine.getSkillTotal`).
 
 ## Traduction
 

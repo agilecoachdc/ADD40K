@@ -34,6 +34,7 @@ import type {
   AttributeScores,
   Character,
   ReferenceData,
+  SkillEntry,
   WeaponEntry,
   WeaponType,
 } from "./types";
@@ -71,6 +72,34 @@ export function getSkillTotal(
   const attribute = attributeOverride ?? parseSkillAttribute(skillName);
   const attributeValue = attribute ? attributeTotals[attribute] : 0;
   return { attribute, attributeValue, total: score + attributeValue };
+}
+
+/**
+ * Lit les lignes de justification d'une compétence `free` (SkillEntry.
+ * justifications), avec migration transparente de l'ancien champ
+ * `justification` (une seule ligne, texte libre) vers la nouvelle forme
+ * (plusieurs lignes, comme WeaponEntry.modifiers) — pas de réécriture
+ * forcée des fiches déjà enregistrées avec l'ancien champ.
+ */
+export function getSkillJustifications(
+  skill: Pick<SkillEntry, "justification" | "justifications">,
+): NonNullable<SkillEntry["justifications"]> {
+  if (skill.justifications) return skill.justifications;
+  if (skill.justification) return [{ justification: skill.justification }];
+  return [];
+}
+
+/**
+ * Score total joué d'une compétence = score de base + somme des
+ * contributions de ses justifications (cf. getSkillJustifications) — même
+ * principe que getWeaponTotals (base + modificateurs). Sans effet pour une
+ * compétence sans justification (total = score de base, comportement
+ * inchangé).
+ */
+export function getSkillJustifiedScore(
+  skill: Pick<SkillEntry, "score" | "justification" | "justifications">,
+): number {
+  return skill.score + getSkillJustifications(skill).reduce((sum, j) => sum + (j.score ?? 0), 0);
 }
 
 /** Bonus racial + bonus tech appliqués au score de base, par attribut. */

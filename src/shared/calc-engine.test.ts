@@ -18,6 +18,8 @@ import {
   getPsyPowerActivationCost,
   getPsyPowerTotal,
   getSkillCost,
+  getSkillJustifications,
+  getSkillJustifiedScore,
   getSkillsCostTotal,
   getSkillTotal,
   getWeaponSkillName,
@@ -96,6 +98,42 @@ describe("getSkillsCostTotal — compétences 'free' (justifiées par un avantag
       ],
     };
     expect(getSkillsCostTotal(withFree, referenceData)).toBe(getSkillsCostTotal(base, referenceData));
+  });
+});
+
+describe("getSkillJustifications / getSkillJustifiedScore — plusieurs justifications, comme les modificateurs d'arme", () => {
+  it("plusieurs lignes (cas réel Conrad Lingus : collier Alphacien + Volonté de fer) s'additionnent au score de base", () => {
+    const skill = {
+      score: 0,
+      justifications: [
+        { justification: "Collier Alphacien", score: 3 },
+        { justification: "Volonté de fer", score: 3 },
+      ],
+    };
+    expect(getSkillJustifications(skill)).toHaveLength(2);
+    expect(getSkillJustifiedScore(skill)).toBe(6);
+  });
+
+  it("rétrocompatibilité : l'ancien champ `justification` (une seule ligne) est lu comme une justification unique tant que `justifications` est absent", () => {
+    const skill = { score: 6, justification: "Volonté de fer" };
+    expect(getSkillJustifications(skill)).toEqual([{ justification: "Volonté de fer" }]);
+    expect(getSkillJustifiedScore(skill)).toBe(6); // pas de `score` sur la ligne migrée -> +0
+  });
+
+  it("`justifications` prend le pas sur l'ancien `justification` si les deux sont présents (état transitoire pendant la migration)", () => {
+    const skill = {
+      score: 0,
+      justification: "Ancienne ligne",
+      justifications: [{ justification: "Nouvelle ligne", score: 5 }],
+    };
+    expect(getSkillJustifications(skill)).toEqual([{ justification: "Nouvelle ligne", score: 5 }]);
+    expect(getSkillJustifiedScore(skill)).toBe(5);
+  });
+
+  it("compétence sans justification : score total = score de base, comportement inchangé", () => {
+    const skill = { score: 6, justification: undefined, justifications: undefined };
+    expect(getSkillJustifications(skill)).toEqual([]);
+    expect(getSkillJustifiedScore(skill)).toBe(6);
   });
 });
 

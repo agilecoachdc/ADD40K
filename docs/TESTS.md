@@ -39,10 +39,14 @@ navigateur intégré, cf. session de build).
 - [ ] Boutons +/- PV et PSP → mettent à jour le compteur actuel/max immédiatement (état local),
       persistés uniquement après "Enregistrer".
 - [ ] Ajouter une compétence, cocher "Gratuite (avantage/matériel)" → le champ nom devient du
-      texte libre (plus le catalogue), un sélecteur d'attribut et un champ "Justification"
+      texte libre (plus le catalogue), un sélecteur d'attribut et un bouton "+ Justification"
       apparaissent ; le solde de points ne bouge pas quel que soit le score saisi (coût exclu du
       budget). Décocher → la compétence redevient sélectionnable depuis le catalogue et compte à
       nouveau dans le coût.
+- [ ] Sur une compétence gratuite, cliquer "+ Justification" deux fois (ex. cas réel Conrad Lingus :
+      "Collier Alphacien" +3 puis "Volonté de fer" +3) → chaque ligne a son propre champ score, le
+      total affiché = score de base + somme des lignes (6 dans cet exemple), le badge "Gratuite"
+      en lecture seule liste les deux justifications au survol.
 - [ ] Activer un pouvoir psy (bouton dédié, hors mode édition) à un palier payant (ex. 20, 2 PSP)
       → PSP courant diminue de 2 immédiatement, badge "Actif · niveau 20 (2 PSP)" affiché,
       bouton "Désactiver" disponible. Désactiver → PSP remboursé (clampé au max), badge disparaît.

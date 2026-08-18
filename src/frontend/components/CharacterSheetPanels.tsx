@@ -12,6 +12,7 @@ import {
   type Attribute,
   type Character,
   type ReferenceData,
+  type SkillJustification,
   type WeaponModifier,
   type WeaponType,
 } from "@shared/types";
@@ -21,6 +22,8 @@ import {
   getActivePsyPowerSkillBoost,
   getPsyPowerActivationCost,
   getPsyPowerTotal,
+  getSkillJustifications,
+  getSkillJustifiedScore,
   getSkillTotal,
   getWeaponSuggestedScore,
   getWeaponTotals,
@@ -391,9 +394,6 @@ export function AttributesPanel({
           );
         })}
       </div>
-      <p className="mt-2 text-xs text-slate-500">
-        {t("Total des 8 attributs")} : {computed.attributeSum} ({t("règle : +7 à la création")})
-      </p>
     </Section>
   );
 }
@@ -413,8 +413,16 @@ export function SkillsPanel({
 }) {
   const { t } = useTranslation();
   const skills = character.skills;
+  const [expandedJustifications, setExpandedJustifications] = useState<number | null>(null);
   function setSkill(i: number, patch: Partial<(typeof skills)[number]>) {
     update({ skills: skills.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) });
+  }
+  // Écrit toujours dans le nouveau champ `justifications` (plusieurs lignes,
+  // comme WeaponEntry.modifiers) et efface l'ancien `justification` (une
+  // seule ligne) dès qu'on édite — la lecture reste rétro-compatible via
+  // getSkillJustifications, mais l'écriture ne duplique jamais les deux.
+  function setSkillJustifications(i: number, justifications: SkillJustification[]) {
+    setSkill(i, { justifications, justification: undefined });
   }
   return (
     <Section title={t("Compétences")}>
@@ -436,7 +444,9 @@ export function SkillsPanel({
       )}
       <ul className="space-y-1">
         {skills.map((s, i) => {
-          const { attribute, attributeValue, total } = getSkillTotal(s.name, s.score, computed.attributeTotals, s.attribute);
+          const justifications = getSkillJustifications(s);
+          const justifiedScore = getSkillJustifiedScore(s);
+          const { attribute, attributeValue, total } = getSkillTotal(s.name, justifiedScore, computed.attributeTotals, s.attribute);
           const boost = getActivePsyPowerSkillBoost(character, s.name);
           return (
             <li key={i} className="space-y-1">
@@ -464,7 +474,7 @@ export function SkillsPanel({
                     {s.free && (
                       <span
                         className="ml-1.5 rounded-full bg-emerald-600/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300"
-                        title={s.justification || undefined}
+                        title={justifications.map((j) => j.justification).join(", ") || undefined}
                       >
                         {t("Gratuite")}
                       </span>
@@ -474,13 +484,13 @@ export function SkillsPanel({
                 {editing ? (
                   <NumberInput value={s.score} onChange={(n) => setSkill(i, { score: n })} />
                 ) : (
-                  <span className="text-right text-slate-300">{s.score}</span>
+                  <span className="w-10 text-right tabular-nums text-slate-300">{justifiedScore}</span>
                 )}
-                <span className="w-14 text-right text-xs text-slate-500">
+                <span className="w-14 text-right text-xs tabular-nums text-slate-500">
                   {attribute ? `+${attributeValue} ${attribute}` : "—"}
                 </span>
-                <span className="flex items-center justify-end gap-1 text-right">
-                  <span className="font-semibold text-indigo-300">{total + boost}</span>
+                <span className="flex w-14 items-center justify-end gap-1 text-right">
+                  <span className="font-semibold tabular-nums text-indigo-300">{total + boost}</span>
                   {boost !== 0 && (
                     <span
                       className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
@@ -525,16 +535,61 @@ export function SkillsPanel({
                           </option>
                         ))}
                       </select>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedJustifications(expandedJustifications === i ? null : i)}
+                        className="text-indigo-400 hover:underline"
+                      >
+                        {justifications.length > 0 ? `${t("Justifications")} (${justifications.length})` : t("+ Justification")}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+              {editing && s.free && expandedJustifications === i && (
+                <div className="ml-1 space-y-2 border-t border-slate-700 pt-2">
+                  {justifications.map((j, ji) => (
+                    <div key={ji} className="flex flex-wrap items-center gap-2 text-xs">
                       <input
                         list="skill-free-justification-source"
                         type="text"
-                        value={s.justification ?? ""}
-                        onChange={(e) => setSkill(i, { justification: e.target.value })}
+                        value={j.justification}
+                        onChange={(e) =>
+                          setSkillJustifications(
+                            i,
+                            justifications.map((x, idx) => (idx === ji ? { ...x, justification: e.target.value } : x)),
+                          )
+                        }
                         placeholder={t("Justification (avantage / matériel)")}
-                        className="min-w-[200px] flex-1 rounded border border-slate-700 bg-slate-800 px-2 py-1"
+                        className="min-w-[160px] flex-1 rounded border border-slate-700 bg-slate-800 px-2 py-1"
                       />
-                    </>
-                  )}
+                      <span className="flex items-center gap-1">
+                        {t("Score")}
+                        <NumberInput
+                          value={j.score ?? 0}
+                          onChange={(n) => setSkillJustifications(i, justifications.map((x, idx) => (idx === ji ? { ...x, score: n } : x)))}
+                          className="w-12"
+                        />
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSkillJustifications(i, justifications.filter((_, idx) => idx !== ji))}
+                        className="text-slate-500 hover:text-red-400"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setSkillJustifications(i, [...justifications, { justification: "", score: 0 }])}
+                    className="text-xs text-indigo-400 hover:underline"
+                  >
+                    {t("+ Ajouter une justification")}
+                  </button>
+                  <p className="text-xs text-slate-500">
+                    {t("Score total joué")} : {s.score} + {justifications.reduce((sum, j) => sum + (j.score ?? 0), 0)} = {justifiedScore}
+                  </p>
                 </div>
               )}
             </li>
@@ -988,6 +1043,10 @@ function PsyPowerActivation({
   const [boostSkillName, setBoostSkillName] = useState(active?.boostSkillName ?? "");
   const [boostAmount, setBoostAmount] = useState(active?.boostAmount ?? 0);
   const [duration, setDuration] = useState<"turn" | "combat">(active?.duration ?? "turn");
+  // Repliée par défaut — n'apparaît qu'au clic sur "+ Effet (optionnel)",
+  // pour garder la ligne d'activation courte quand ce pouvoir n'a rien à
+  // configurer (cf. même principe que les justifications de compétence).
+  const [showEffect, setShowEffect] = useState(false);
 
   const isConcentrationPsy = powerName === CONCENTRATION_PSY_NAME;
   const needsAttribute = isConcentrationPsy && (level === 15 || level === 20);
@@ -1062,8 +1121,15 @@ function PsyPowerActivation({
         >
           {t("Activer")}
         </button>
+        {!isConcentrationPsy && (
+          <button type="button" onClick={() => setShowEffect((v) => !v)} className="text-indigo-400 hover:underline">
+            {boostAttribute || boostSkillName.trim()
+              ? `${t("Effet")} : +${boostAmount} ${boostAttribute || boostSkillName}`
+              : t("+ Effet (optionnel)")}
+          </button>
+        )}
       </div>
-      {!isConcentrationPsy && (
+      {!isConcentrationPsy && showEffect && (
         <div className="flex flex-wrap items-center gap-1.5 text-slate-400">
           <span>{t("Effet (optionnel)")} :</span>
           <select

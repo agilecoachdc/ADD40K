@@ -58,8 +58,33 @@ export interface SkillEntry {
    * liste séparée) pour ne pas l'oublier en jeu — cf. `justification`.
    */
   free?: boolean;
-  /** Ligne d'avantage/de matériel qui justifie la gratuité — attendu (mais pas imposé) si `free`. */
+  /**
+   * @deprecated Remplacé par `justifications` ci-dessous (plusieurs lignes
+   * possibles, comme WeaponEntry.modifiers) — conservé pour la lecture des
+   * fiches déjà enregistrées avec une seule justification (cf.
+   * calc-engine.getSkillJustifications, qui migre transparemment ce champ
+   * vers `justifications` sans réécriture forcée des données existantes).
+   */
   justification?: string;
+  /**
+   * Une ou plusieurs lignes d'avantage/de matériel qui justifient une
+   * compétence `free` — même principe que WeaponEntry.modifiers : chaque
+   * ligne peut porter sa propre contribution en points (`score`), qui
+   * s'additionne à `score` ci-dessus pour former le score total joué (cf.
+   * calc-engine.getSkillJustifiedScore, même logique que
+   * getWeaponTotals — base + somme des modificateurs). Remplace
+   * `justification` (une seule ligne) — ex. la "Résistance mentale" de
+   * Conrad Lingus, justifiée à la fois par son collier Alphacien (+3) et
+   * par l'avantage "Volonté de fer".
+   */
+  justifications?: SkillJustification[];
+}
+
+export interface SkillJustification {
+  /** Ligne d'avantage/de matériel qui justifie cette contribution — texte libre repris d'AdvantageEntry.label/EquipmentEntry.label, ou texte libre si l'objet n'y est pas encore. */
+  justification: string;
+  /** Contribution en points au score total de la compétence — additionnée à SkillEntry.score (la "base"). */
+  score?: number;
 }
 
 export interface PsyPowerEntry {
