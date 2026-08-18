@@ -976,26 +976,23 @@ export function BudgetPanel({
   return (
     <Section title="Budget de points">
       {/*
-        Trois groupes : ce qui alimente le total dispo (points raciaux +
-        points de départ + XP gagnée = Total), puis le pool XP d'appoint
-        géré par le MJ à part (XP disponible, hors budget total dispo), puis
-        ce qui est consommé du total dispo (coûts + solde). "XP gagnée"
-        (character.xp) est un historique cumulatif ("depuis la création")
-        qui contribue au total dispo et n'est jamais réduit — un retrait du
-        MJ diminue "XP disponible" (xpAvailable) à la place, qui peut donc
-        devenir négatif et ne compte PAS dans le total dispo (cf.
-        POST /api/characters/:id/xp).
+        Deux groupes : ce qui alimente le total dispo (points raciaux +
+        points de départ + XP gagnée = Total), puis ce qui en est consommé
+        (coûts + solde). "XP gagnée" (character.xp) est un total net
+        ("depuis la création") qui contribue au total dispo ; "XP
+        disponible" (character.xpAvailable) suit à part ce qui reste à
+        dépenser — diminue quand le coût de la fiche augmente (compétence/
+        pouvoir psy monté, avantage ajouté) ou qu'un retrait est décidé par
+        le MJ, augmente symétriquement sinon (cf. PUT et POST
+        /api/characters/:id/xp) — et ne compte PAS dans le total dispo.
       */}
       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Total dispo</p>
       <dl className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
         <Metric label="Points raciaux" value={budget.raceSkillPoints} />
         <Metric label="Points de départ" value={character.pointsDepart} />
         <Metric label="XP gagnée (depuis la création)" value={character.xp} />
-        <Metric label="Total" value={budget.totalDispo} emphasis />
-      </dl>
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">XP à distribuer (MJ)</p>
-      <dl className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
         <Metric label="XP disponible" value={character.xpAvailable} />
+        <Metric label="Total" value={budget.totalDispo} emphasis />
       </dl>
       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Dépenses</p>
       <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">

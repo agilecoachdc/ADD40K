@@ -167,28 +167,34 @@ export interface Character {
   pointsDepart: number;
   /**
    * XP gagnée depuis la création du personnage ("XP gagnée (depuis la
-   * création)" à l'écran) — total cumulatif : la valeur historique importée
-   * depuis la fiche Excel d'origine, plus toutes les distributions
-   * positives du MJ depuis (bouton "Donner de l'XP", fiche vue MJ et écran
-   * "Suivi des constantes"). Contribue au budget total dispo comme les
-   * points de départ (cf. calc-engine.getTotalDispo). Ne descend jamais
-   * sous 0 et n'est jamais réduit par un retrait du MJ — c'est un
-   * historique permanent de ce qui a été gagné, pas un solde courant :
-   * un retrait négatif décidé par le MJ (POST /api/characters/:id/xp)
-   * réduit `xpAvailable` à la place, jamais ce champ.
+   * création)" à l'écran) — total net : la valeur historique importée
+   * depuis la fiche Excel d'origine, plus/moins toutes les distributions du
+   * MJ depuis (bouton "Donner de l'XP", fiche vue MJ et écran "Suivi des
+   * constantes" — POST /api/characters/:id/xp, montant positif ou négatif).
+   * Contribue au budget total dispo comme les points de départ (cf.
+   * calc-engine.getTotalDispo). Un retrait du MJ réduit ce champ ET
+   * `xpAvailable` du même montant (symétrique de la distribution) ; seul un
+   * import Excel envoyant une valeur négative est bloqué (clampé à 0 côté
+   * PUT /api/characters/:id — protection contre une cellule mal formée, pas
+   * une règle de jeu).
    */
   xp: number;
   /**
    * XP actuellement disponible ("XP disponible" à l'écran) — pool distinct
-   * de `xp`, purement géré par le MJ : augmente du même montant que `xp` à
-   * chaque distribution positive, diminue d'un retrait négatif décidé par
-   * le MJ (peut devenir négatif si le retrait dépasse ce qui est
-   * disponible — aucun plancher à 0, contrairement à `xp`). Ne contribue
-   * PAS au budget total dispo (calc-engine.getTotalDispo n'en tient pas
-   * compte) : c'est un compteur d'appoint pour suivre ce qui reste "à
-   * consommer" de l'XP gagnée, pas une seconde source de points. Absent
-   * des fiches créées avant l'ajout de ce champ — traité comme `0` côté
-   * route (GET /api/characters, GET/PUT /api/characters/:id), pas de
+   * de `xp`, qui suit ce qui reste à dépenser : augmente/diminue du même
+   * montant que `xp` à chaque distribution/retrait du MJ (POST
+   * /api/characters/:id/xp), et diminue aussi séparément quand le joueur ou
+   * le MJ augmente le coût de la fiche (monter une compétence/un pouvoir
+   * psy, ajouter un avantage — PUT /api/characters/:id calcule la
+   * différence de coût avant/après et l'applique ici), ou augmente en cas
+   * d'allègement (baisser une compétence, retirer un avantage). Peut
+   * devenir négatif dans les deux cas (retrait du MJ, ou dépense supérieure
+   * à ce qui était disponible) — aucun plancher à 0. Ne contribue PAS au
+   * budget total dispo (calc-engine.getTotalDispo n'en tient pas compte) :
+   * c'est un compteur d'appoint pour suivre ce qui reste "à consommer" de
+   * l'XP gagnée, pas une seconde source de points. Absent des fiches créées
+   * avant l'ajout de ce champ — traité comme `0` côté route (GET
+   * /api/characters, GET/PUT /api/characters/:id), pas de
    * migration nécessaire (colonne `data` JSON libre).
    */
   xpAvailable: number;

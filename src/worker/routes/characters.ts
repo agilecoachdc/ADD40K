@@ -19,7 +19,7 @@ import { getGroupDriveUrl, getGroupImageUrl, getReferenceDataForGroup } from "..
 import type { PublicUser } from "../../shared/types";
 import type { AttributeScores, Character, CharacterSummary, ReferenceData } from "../../shared/types";
 import { ATTRIBUTES } from "../../shared/types";
-import { computeCharacter } from "../../shared/calc-engine";
+import { computeCharacter, getAdvantagesNet, getPsyPowersCostTotal, getSkillsCostTotal } from "../../shared/calc-engine";
 
 type HonoEnv = { Bindings: Env; Variables: { user: PublicUser } };
 
@@ -232,11 +232,26 @@ characterRoutes.put("/:id", async (c) => {
     updatedAt: new Date().toISOString(),
   };
   // `xp` ("XP gagnée depuis la création") ne descend jamais sous 0 par
-  // cette route (import Excel ou édition directe) : c'est un historique
-  // cumulatif, jamais réduit, y compris par un retrait du MJ — celui-ci
-  // réduit `xpAvailable` à la place (sans plancher), cf. POST
-  // /characters/:id/xp et Character.xp/xpAvailable dans shared/types.ts.
+  // cette route (import Excel ou édition directe) — protection contre une
+  // valeur négative importée depuis une cellule Excel. Un retrait du MJ
+  // (POST /characters/:id/xp) peut en revanche la faire baisser, cf.
+  // Character.xp/xpAvailable dans shared/types.ts.
   if (updated.xp < 0) updated.xp = 0;
+
+  const referenceData: ReferenceData = existing.player_group_id
+    ? await getReferenceDataForGroup(c.env.DB, existing.player_group_id)
+    : { races: [], skillCostTable: {}, skills: [], weapons: [], armor: [], psyPowers: [], advantages: [] };
+
+  // Dépenser des points (monter une compétence/un pouvoir psy, ajouter un
+  // avantage) réduit "XP disponible" du montant exact de l'augmentation de
+  // coût — et un allègement (baisser une compétence, retirer un avantage)
+  // la rembourse symétriquement. On ignore ici toute valeur de xpAvailable
+  // envoyée par le client (aucune UI n'expose son édition directe hors du
+  // bouton "Donner de l'XP" du MJ, POST /characters/:id/xp) : elle est
+  // entièrement recalculée à partir de la différence de coût avant/après.
+  const costBefore = getSkillsCostTotal(current, referenceData) + getPsyPowersCostTotal(current, referenceData) + getAdvantagesNet(current);
+  const costAfter = getSkillsCostTotal(updated, referenceData) + getPsyPowersCostTotal(updated, referenceData) + getAdvantagesNet(updated);
+  updated.xpAvailable = (current.xpAvailable ?? 0) - (costAfter - costBefore);
 
   await c.env.DB.prepare(
     "UPDATE characters SET name = ?1, race = ?2, data = ?3, updated_at = ?4 WHERE id = ?5",
@@ -244,24 +259,20 @@ characterRoutes.put("/:id", async (c) => {
     .bind(updated.name, updated.race, JSON.stringify(updated), updated.updatedAt, id)
     .run();
 
-  const referenceData: ReferenceData = existing.player_group_id
-    ? await getReferenceDataForGroup(c.env.DB, existing.player_group_id)
-    : { races: [], skillCostTable: {}, skills: [], weapons: [], armor: [], psyPowers: [], advantages: [] };
   const computed = computeCharacter(updated, referenceData);
   return c.json({ character: updated, computed, canEdit: true, referenceData });
 });
 
 // Distribution d'XP par le MJ — réservé au MJ membre du groupe du
 // personnage (contrairement à PUT ci-dessus, le joueur propriétaire ne peut
-// pas s'en servir : l'XP est décidée par le MJ, jamais auto-attribuée).
-// Un montant positif augmente à la fois `xp` ("XP gagnée depuis la
-// création", contribue au budget total dispo, cf. calc-engine.getTotalDispo)
-// et `xpAvailable` ("XP disponible", pool d'appoint géré par le MJ, hors
-// budget total dispo) du même montant. Un montant négatif — un retrait
-// décidé par le MJ, ce qui vaut ici son "approbation" — ne réduit que
-// `xpAvailable`, qui peut devenir négatif (pas de plancher, contrairement à
-// `xp` qui ne descend jamais sous 0 et n'est jamais réduit par un retrait :
-// c'est un historique permanent, pas un solde courant). Cf. Character.xp/
+// pas s'en servir : l'XP est décidée par le MJ, jamais auto-attribuée). Le
+// montant (positif = distribution, négatif = retrait, décidé par le MJ, ce
+// qui vaut ici son "approbation") s'applique symétriquement à `xp` ("XP
+// gagnée depuis la création", contribue au budget total dispo, cf.
+// calc-engine.getTotalDispo) et à `xpAvailable` ("XP disponible", pool géré
+// par le MJ, distinct du budget total dispo — diminue aussi séparément
+// quand le joueur dépense des points, cf. PUT ci-dessus). Aucun plancher :
+// un retrait peut faire descendre l'un ou l'autre sous 0. Cf. Character.xp/
 // xpAvailable dans shared/types.ts.
 characterRoutes.post("/:id/xp", async (c) => {
   const id = c.req.param("id");
@@ -286,7 +297,7 @@ characterRoutes.post("/:id/xp", async (c) => {
   const current: Character = JSON.parse(existing.data);
   const updated: Character = {
     ...current,
-    xp: amount > 0 ? current.xp + amount : current.xp,
+    xp: current.xp + amount,
     xpAvailable: (current.xpAvailable ?? 0) + amount,
     updatedAt: new Date().toISOString(),
   };
