@@ -11,7 +11,7 @@
 import { Hono } from "hono";
 import type { Env } from "../lib/session";
 import { uniqueSlugId } from "../lib/ids";
-import type { Game, PlayerGroup, PublicUser, Ruleset } from "../../shared/types";
+import type { Game, JoinRequest, PlayerGroup, PublicUser, Ruleset } from "../../shared/types";
 
 type HonoEnv = { Bindings: Env; Variables: { user: PublicUser } };
 
@@ -111,9 +111,14 @@ catalogRoutes.get("/groups", async (c) => {
   return c.json({ groups: (results ?? []).map(toGroup) });
 });
 
-// Rejoindre un groupe existant — joueur ou MJ (un admin n'appartient à
-// aucun groupe par construction, cf. lib/session.ts requireRole/canEditCharacter).
-// Idempotent : rejoindre un groupe déjà rejoint ne fait rien de plus.
+// Demander à rejoindre un groupe existant — joueur ou MJ (un admin
+// n'appartient à aucun groupe par construction, cf. lib/session.ts
+// requireRole/canEditCharacter). N'accorde plus l'accès immédiatement :
+// ouvre une ligne 'pending' qu'un MJ du groupe doit approuver (cf.
+// migrations/0006_join_approval.sql, GET/POST/DELETE .../join-requests
+// ci-dessous) — `user.memberships` (approuvées uniquement) ne change donc
+// pas ici. Idempotent : redemander alors qu'une demande est déjà pending ou
+// déjà membre ne fait rien de plus.
 catalogRoutes.post("/groups/join", async (c) => {
   const user = c.get("user");
   if (user.role === "admin") return c.json({ error: "Un compte admin n'appartient à aucun groupe" }, 403);
@@ -124,14 +129,20 @@ catalogRoutes.post("/groups/join", async (c) => {
   const group = await c.env.DB.prepare("SELECT 1 FROM player_groups WHERE id = ?1").bind(body.groupId).first();
   if (!group) return c.json({ error: "Groupe introuvable" }, 404);
 
-  await c.env.DB.prepare("INSERT OR IGNORE INTO group_memberships (user_id, group_id) VALUES (?1, ?2)")
+  const existing = await c.env.DB.prepare("SELECT status FROM group_memberships WHERE user_id = ?1 AND group_id = ?2")
     .bind(user.id, body.groupId)
-    .run();
-  const updated: PublicUser = { ...user, memberships: [...new Set([...user.memberships, body.groupId])] };
-  return c.json({ user: updated });
+    .first<{ status: "pending" | "approved" }>();
+
+  if (!existing) {
+    await c.env.DB.prepare("INSERT INTO group_memberships (user_id, group_id, status) VALUES (?1, ?2, 'pending')")
+      .bind(user.id, body.groupId)
+      .run();
+  }
+  return c.json({ user, status: existing?.status ?? "pending" });
 });
 
-// Quitter un groupe dont on est membre — pas d'effet si on n'en était pas membre.
+// Quitter un groupe (ou annuler sa demande d'adhésion en attente) — pas
+// d'effet si on n'en était pas membre et n'avait pas de demande en cours.
 catalogRoutes.post("/groups/leave", async (c) => {
   const user = c.get("user");
   const body = await c.req.json<{ groupId?: string }>().catch(() => null);
@@ -142,6 +153,64 @@ catalogRoutes.post("/groups/leave", async (c) => {
     .run();
   const updated: PublicUser = { ...user, memberships: user.memberships.filter((id) => id !== body.groupId) };
   return c.json({ user: updated });
+});
+
+// ---------------------------------------------------------------------------
+// Demandes d'adhésion en attente — réservé au MJ membre (approuvé) du groupe
+// ciblé (cf. migrations/0006_join_approval.sql). L'admin garde son propre
+// raccourci d'ajout direct (POST /api/admin/groups/:id/members), qui reste
+// une approbation immédiate sans passer par ce circuit.
+// ---------------------------------------------------------------------------
+
+function requireGmOfGroup(user: PublicUser, groupId: string): boolean {
+  return user.role === "gm" && user.memberships.includes(groupId);
+}
+
+catalogRoutes.get("/groups/:id/join-requests", async (c) => {
+  const user = c.get("user");
+  const groupId = c.req.param("id");
+  if (!requireGmOfGroup(user, groupId)) return c.json({ error: "Réservé au MJ de ce groupe" }, 403);
+
+  const { results } = await c.env.DB.prepare(
+    `SELECT u.id as user_id, u.username, u.display_name, gm.created_at as requested_at
+     FROM group_memberships gm JOIN users u ON u.id = gm.user_id
+     WHERE gm.group_id = ?1 AND gm.status = 'pending' ORDER BY gm.created_at`,
+  )
+    .bind(groupId)
+    .all<{ user_id: string; username: string; display_name: string; requested_at: string }>();
+
+  const requests: JoinRequest[] = (results ?? []).map((r) => ({
+    userId: r.user_id,
+    username: r.username,
+    displayName: r.display_name,
+    requestedAt: r.requested_at,
+  }));
+  return c.json({ requests });
+});
+
+catalogRoutes.post("/groups/:id/join-requests/:userId/approve", async (c) => {
+  const user = c.get("user");
+  const groupId = c.req.param("id");
+  if (!requireGmOfGroup(user, groupId)) return c.json({ error: "Réservé au MJ de ce groupe" }, 403);
+
+  const { meta } = await c.env.DB.prepare(
+    "UPDATE group_memberships SET status = 'approved' WHERE group_id = ?1 AND user_id = ?2 AND status = 'pending'",
+  )
+    .bind(groupId, c.req.param("userId"))
+    .run();
+  if (meta.changes === 0) return c.json({ error: "Demande introuvable" }, 404);
+  return c.json({ ok: true });
+});
+
+catalogRoutes.delete("/groups/:id/join-requests/:userId", async (c) => {
+  const user = c.get("user");
+  const groupId = c.req.param("id");
+  if (!requireGmOfGroup(user, groupId)) return c.json({ error: "Réservé au MJ de ce groupe" }, 403);
+
+  await c.env.DB.prepare("DELETE FROM group_memberships WHERE group_id = ?1 AND user_id = ?2 AND status = 'pending'")
+    .bind(groupId, c.req.param("userId"))
+    .run();
+  return c.json({ ok: true });
 });
 
 // Créer un nouveau groupe — réservé au MJ (un joueur rejoint une table déjà

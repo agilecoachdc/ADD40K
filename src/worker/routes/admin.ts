@@ -257,10 +257,14 @@ adminRoutes.get("/groups/:id", async (c) => {
   const row = await c.env.DB.prepare(`SELECT ${GROUP_COLUMNS} FROM player_groups WHERE id = ?1`).bind(id).first<GroupRow>();
   if (!row) return c.json({ error: "Groupe introuvable" }, 404);
 
+  // Membres approuvés uniquement — les demandes 'pending' (cf.
+  // migrations/0006_join_approval.sql) se gèrent côté MJ du groupe
+  // (GET/POST/DELETE /api/groups/:id/join-requests, routes/catalog.ts),
+  // pas depuis cette page admin.
   const { results: memberRows } = await c.env.DB.prepare(
     `SELECT u.id, u.username, u.display_name, u.role, u.character_id
      FROM group_memberships gm JOIN users u ON u.id = gm.user_id
-     WHERE gm.group_id = ?1 ORDER BY u.display_name`,
+     WHERE gm.group_id = ?1 AND gm.status = 'approved' ORDER BY u.display_name`,
   )
     .bind(id)
     .all<{ id: string; username: string; display_name: string; role: UserRole; character_id: string | null }>();
@@ -346,7 +350,14 @@ adminRoutes.post("/groups/:id/members", async (c) => {
   if (!user) return c.json({ error: "Compte introuvable" }, 404);
   if (user.role === "admin") return c.json({ error: "Un compte admin n'appartient à aucun groupe" }, 400);
 
-  await c.env.DB.prepare("INSERT OR IGNORE INTO group_memberships (user_id, group_id) VALUES (?1, ?2)")
+  // UPSERT plutôt qu'INSERT OR IGNORE : un admin ajoutant directement un
+  // compte doit aussi faire passer une éventuelle demande 'pending' en
+  // attente (migrations/0006_join_approval.sql) à 'approved' — sinon
+  // INSERT OR IGNORE n'aurait aucun effet sur la ligne déjà existante.
+  await c.env.DB.prepare(
+    `INSERT INTO group_memberships (user_id, group_id, status) VALUES (?1, ?2, 'approved')
+     ON CONFLICT (user_id, group_id) DO UPDATE SET status = 'approved'`,
+  )
     .bind(body.userId, groupId)
     .run();
   return c.json({ ok: true }, 201);

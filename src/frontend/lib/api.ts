@@ -6,6 +6,7 @@ import type {
   Character,
   CharacterSummary,
   Game,
+  JoinRequest,
   PlayerGroup,
   PlayerGroupDetail,
   ProfileInfo,
@@ -118,8 +119,15 @@ export const api = {
   browseRulesets: (gameId?: string) =>
     request<{ rulesets: Ruleset[] }>(`/rulesets${gameId ? `?gameId=${encodeURIComponent(gameId)}` : ""}`),
   browseGroups: () => request<{ groups: PlayerGroup[] }>("/groups"),
+  // Ouvre une demande d'adhésion en attente d'approbation par un MJ du
+  // groupe — n'accorde plus l'accès immédiatement (cf.
+  // migrations/0006_join_approval.sql). `status` renvoyé indique si le
+  // compte est déjà membre approuvé, ou si la demande est en attente.
   joinGroup: (groupId: string) =>
-    request<{ user: PublicUser }>("/groups/join", { method: "POST", body: JSON.stringify({ groupId }) }),
+    request<{ user: PublicUser; status: "pending" | "approved" }>("/groups/join", {
+      method: "POST",
+      body: JSON.stringify({ groupId }),
+    }),
   leaveGroup: (groupId: string) =>
     request<{ user: PublicUser }>("/groups/leave", { method: "POST", body: JSON.stringify({ groupId }) }),
   createGroupSelf: (input: {
@@ -133,4 +141,12 @@ export const api = {
     id: string,
     patch: { name?: string; description?: string; rulesetId?: string; imageUrl?: string | null; driveUrl?: string | null },
   ) => request<{ group: PlayerGroup }>(`/groups/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
+
+  // Approbation des demandes d'adhésion — réservé au MJ membre (approuvé)
+  // du groupe ciblé (cf. migrations/0006_join_approval.sql).
+  listJoinRequests: (groupId: string) => request<{ requests: JoinRequest[] }>(`/groups/${groupId}/join-requests`),
+  approveJoinRequest: (groupId: string, userId: string) =>
+    request<{ ok: true }>(`/groups/${groupId}/join-requests/${userId}/approve`, { method: "POST" }),
+  rejectJoinRequest: (groupId: string, userId: string) =>
+    request<{ ok: true }>(`/groups/${groupId}/join-requests/${userId}`, { method: "DELETE" }),
 };

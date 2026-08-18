@@ -93,7 +93,8 @@ Toutes les routes ci-dessous sont montées sous `/api/admin/*` avec
   défaut), `PUT /api/admin/rulesets/:id` (`{ name?, description?, imageUrl?, referenceData? }`),
   `DELETE /api/admin/rulesets/:id` — CRUD des règles. `DELETE` refusé (`409`) si un groupe
   l'utilise.
-- `GET /api/admin/groups`, `GET /api/admin/groups/:id` (avec `members: GroupMember[]`),
+- `GET /api/admin/groups`, `GET /api/admin/groups/:id` (avec `members: GroupMember[]`, membres
+  approuvés uniquement — une demande `pending` ne s'y affiche pas, cf. plus bas),
   `POST /api/admin/groups` (`{ name, description, rulesetId, imageUrl?, driveUrl? }`),
   `PUT /api/admin/groups/:id` (mêmes champs, tous optionnels), `DELETE /api/admin/groups/:id` —
   CRUD des groupes de joueurs. `driveUrl` est le lien du dossier Drive du groupe, personnalisable
@@ -125,25 +126,45 @@ groupe, ou éditer son propre groupe) sans passer par les routes CRUD complètes
 - `GET /api/games` — liste des jeux (résumé, comme `/api/admin/games`).
 - `GET /api/rulesets[?gameId=]` — liste des règles (résumé, sans `referenceData`).
 - `GET /api/groups` — liste des groupes de joueurs (résumé, sans `members`, avec `driveUrl`).
-- `POST /api/groups/join` — Auth : joueur ou MJ (403 si admin). Entrée : `{ groupId }`. Ajoute
-  l'appelant comme membre de ce groupe (idempotent). Sortie : `{ user: PublicUser }`
-  (`memberships` mis à jour).
+- `POST /api/groups/join` — Auth : joueur ou MJ (403 si admin). Entrée : `{ groupId }`. Ouvre une
+  demande d'adhésion (idempotent) — **n'accorde plus l'accès immédiatement** : la ligne
+  `group_memberships` créée démarre à `status = 'pending'` et doit être approuvée par un MJ déjà
+  membre du groupe avant de compter dans `user.memberships` (cf.
+  migrations/0006_join_approval.sql). Sortie : `{ user: PublicUser, status: "pending" | "approved" }`
+  (`status` vaut `"approved"` seulement si l'appelant était déjà membre approuvé).
 - `POST /api/groups/leave` — Auth : joueur ou MJ. Entrée : `{ groupId }`. Retire l'appelant de ce
-  groupe. Sortie : `{ user: PublicUser }`.
+  groupe — supprime aussi bien une appartenance approuvée qu'une demande encore en attente
+  (annulation). Sortie : `{ user: PublicUser }`.
 - `POST /api/groups` — Auth : MJ uniquement (403 sinon). Entrée :
   `{ name, description?, rulesetId, imageUrl?, driveUrl? }`. Crée un nouveau groupe et y rattache
-  automatiquement le MJ créateur (un MJ doit appartenir à un groupe pour y créer des PNJ/gérer des
-  personnages, cf. `characters.ts`). Sortie : `{ group: PlayerGroup, user: PublicUser }`, code `201`.
-- `PUT /api/groups/:id` — Auth : MJ membre de ce groupe uniquement (403 sinon, y compris pour un
-  MJ d'un autre groupe). Entrée : `{ name?, description?, imageUrl?, driveUrl? }` — édition
-  self-service limitée (pas de changement de règle, réservé à `/api/admin/groups/:id`). Sortie :
-  `{ group: PlayerGroup }`.
+  automatiquement le MJ créateur, **directement approuvé** (ne passe pas par le circuit de demande
+  ci-dessus) — un MJ doit appartenir à un groupe pour y créer des PNJ/gérer des personnages, cf.
+  `characters.ts`. Sortie : `{ group: PlayerGroup, user: PublicUser }`, code `201`.
+- `PUT /api/groups/:id` — Auth : MJ membre approuvé de ce groupe uniquement (403 sinon, y compris
+  pour un MJ d'un autre groupe). Entrée : `{ name?, description?, imageUrl?, driveUrl? }` —
+  édition self-service limitée (pas de changement de règle, réservé à `/api/admin/groups/:id`).
+  Sortie : `{ group: PlayerGroup }`.
+- `GET /api/groups/:id/join-requests` — Auth : MJ membre approuvé de ce groupe (403 sinon). Sortie :
+  `{ requests: JoinRequest[] }` — les demandes `pending` en attente d'approbation pour ce groupe,
+  triées par date de demande.
+- `POST /api/groups/:id/join-requests/:userId/approve` — Auth : MJ membre approuvé de ce groupe.
+  Fait passer la demande de `pending` à `approved` (l'utilisateur obtient alors l'accès au groupe).
+  Sortie : `{ ok: true }`. Erreurs : `404` si aucune demande `pending` pour ce couple groupe/compte.
+- `DELETE /api/groups/:id/join-requests/:userId` — Auth : MJ membre approuvé de ce groupe. Rejette
+  la demande (supprime la ligne `pending`, sans effet si elle n'existe pas/plus). Sortie :
+  `{ ok: true }`.
+
+Le raccourci admin `POST /api/admin/groups/:id/members` (ci-dessus) reste un ajout direct
+toujours approuvé, bypassant ce circuit de demande — pratique pour un admin qui veut rattacher un
+compte sans attendre un MJ ; il fait aussi passer une éventuelle demande `pending` existante à
+`approved` (UPSERT).
 
 ## Types
 
 Voir `src/shared/types.ts` (`Character`, `PublicUser`, `ReferenceData`, `Game`, `Ruleset`,
 `RulesetDetail`, `PlayerGroup`, `PlayerGroupDetail`, `GroupMember`, `MembershipInfo`,
-`ProfileInfo`) et `src/shared/calc-engine.ts` (`CharacterComputed`, `BudgetSummary`).
+`MembershipStatus`, `JoinRequest`, `ProfileInfo`) et `src/shared/calc-engine.ts`
+(`CharacterComputed`, `BudgetSummary`).
 
 ## Vérification de dérive
 

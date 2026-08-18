@@ -4,10 +4,14 @@
 // migrations/0005_memberships.sql), avec la règle/le jeu de chacun. Un
 // admin (aucun groupe) voit un message dédié plutôt qu'une liste vide.
 //
-// Joueurs et MJ peuvent aussi y rejoindre un groupe existant ou en quitter
-// un, et un MJ peut y créer un nouveau groupe (nom, image, dossier Drive,
-// règle) — cf. routes/catalog.ts (self-service, distinct des routes CRUD
-// complètes /api/admin/*).
+// Joueurs et MJ peuvent aussi y demander à rejoindre un groupe existant
+// (n'accorde plus l'accès immédiatement : la demande reste 'pending'
+// jusqu'à ce qu'un MJ du groupe l'approuve, cf.
+// migrations/0006_join_approval.sql — affichée ici avec un badge "En
+// attente d'approbation") ou quitter un groupe (annule aussi une demande en
+// attente), et un MJ peut y créer un nouveau groupe (nom, image, dossier
+// Drive, règle) — cf. routes/catalog.ts (self-service, distinct des routes
+// CRUD complètes /api/admin/*).
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -177,13 +181,18 @@ export default function Profile() {
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Mes groupes</h2>
               {info.memberships.length > 0 ? (
                 <ul className="space-y-3">
-                  {info.memberships.map(({ group, ruleset, game }) => (
+                  {info.memberships.map(({ group, ruleset, game, status }) => (
                     <li key={group.id} className="flex gap-3 rounded-lg bg-slate-800/50 p-3">
                       <GroupThumb url={group.imageUrl} name={group.name} />
                       <dl className="grid flex-1 grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <dt className="text-slate-500">Groupe</dt>
+                        <div className="col-span-2 flex items-center gap-2">
+                          <dt className="sr-only">Groupe</dt>
                           <dd className="text-slate-200">{group.name}</dd>
+                          {status === "pending" && (
+                            <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-300">
+                              En attente d'approbation du MJ
+                            </span>
+                          )}
                         </div>
                         <div>
                           <dt className="text-slate-500">Jeu</dt>
@@ -206,7 +215,7 @@ export default function Profile() {
                         disabled={busyGroupId === group.id}
                         className="shrink-0 self-start text-xs text-slate-500 hover:text-red-400 disabled:opacity-50"
                       >
-                        {busyGroupId === group.id ? "…" : "Quitter"}
+                        {busyGroupId === group.id ? "…" : status === "pending" ? "Annuler la demande" : "Quitter"}
                       </button>
                     </li>
                   ))}
@@ -223,7 +232,7 @@ export default function Profile() {
             {canJoinOrCreate && (
               <section className="rounded-xl bg-slate-900 p-4 shadow">
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-                  Rejoindre un groupe
+                  Demander à rejoindre un groupe
                 </h2>
                 {joinableGroups.length === 0 && <p className="text-sm text-slate-500">Aucun autre groupe disponible.</p>}
                 <ul className="space-y-2">
@@ -240,7 +249,7 @@ export default function Profile() {
                         disabled={busyGroupId === g.id}
                         className="shrink-0 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
                       >
-                        {busyGroupId === g.id ? "…" : "Rejoindre"}
+                        {busyGroupId === g.id ? "…" : "Demander"}
                       </button>
                     </li>
                   ))}

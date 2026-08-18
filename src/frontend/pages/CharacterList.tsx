@@ -3,11 +3,14 @@
 // cf. Home.tsx. Le groupe vient de l'URL (/groupe/:groupId) — un compte
 // peut être membre de plusieurs groupes en même temps (cf.
 // migrations/0005_memberships.sql), il n'y a plus de "groupe courant"
-// implicite. Un admin (aucun groupe) n'atteint jamais cette route.
+// implicite. Un admin (aucun groupe) n'atteint jamais cette route. Le MJ y
+// voit aussi les demandes d'adhésion en attente d'approbation pour ce
+// groupe (cf. migrations/0006_join_approval.sql) — un joueur qui demande à
+// rejoindre n'a accès à rien tant que le MJ n'a pas approuvé.
 
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import type { CharacterSummary, ReferenceData } from "@shared/types";
+import type { CharacterSummary, JoinRequest, ReferenceData } from "@shared/types";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
 
@@ -27,6 +30,12 @@ export default function CharacterList() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  // Demandes d'adhésion en attente pour ce groupe — MJ uniquement (cf.
+  // migrations/0006_join_approval.sql). Un joueur qui demande à rejoindre
+  // n'a aucun accès tant que le MJ n'a pas approuvé ; c'est donc bien le MJ,
+  // pas l'admin, qui gère ce flux au quotidien.
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[] | null>(null);
+  const [requestBusyId, setRequestBusyId] = useState<string | null>(null);
   const isMember = !!groupId && !!user?.memberships.includes(groupId);
   const isGm = user?.role === "gm" && isMember;
   const backgroundUrl = groupImageUrl ?? "/r2t2-banner.jpg";
@@ -53,10 +62,47 @@ export default function CharacterList() {
       .catch((err) => setError(err instanceof Error ? err.message : "Erreur"));
   }
 
+  function loadJoinRequests() {
+    if (!groupId || !isGm) return Promise.resolve();
+    return api
+      .listJoinRequests(groupId)
+      .then(({ requests }) => setJoinRequests(requests))
+      .catch((err) => setError(err instanceof Error ? err.message : "Erreur"));
+  }
+
   useEffect(() => {
     loadCharacters();
+    loadJoinRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId, isMember]);
+  }, [groupId, isMember, isGm]);
+
+  async function handleApproveRequest(userId: string) {
+    if (!groupId) return;
+    setRequestBusyId(userId);
+    setError(null);
+    try {
+      await api.approveJoinRequest(groupId, userId);
+      await loadJoinRequests();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de l'approbation");
+    } finally {
+      setRequestBusyId(null);
+    }
+  }
+
+  async function handleRejectRequest(userId: string) {
+    if (!groupId) return;
+    setRequestBusyId(userId);
+    setError(null);
+    try {
+      await api.rejectJoinRequest(groupId, userId);
+      await loadJoinRequests();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec du rejet");
+    } finally {
+      setRequestBusyId(null);
+    }
+  }
 
   // Bascule le statut "en jeu" et sauvegarde immédiatement (MJ uniquement),
   // même principe que le toggle d'armure sur la fiche : pas de mode édition
@@ -213,6 +259,45 @@ export default function CharacterList() {
           <>
             {error && <p className="text-red-400">{error}</p>}
             {!rows && !error && <p className="text-slate-400">Chargement…</p>}
+
+            {/*
+              Demandes d'adhésion en attente — MJ uniquement (cf.
+              migrations/0006_join_approval.sql). Affichée en premier, avant
+              même la liste des joueurs, pour rester visible tant qu'il y a
+              une demande à traiter.
+            */}
+            {isGm && joinRequests && joinRequests.length > 0 && (
+              <section className="mb-6 rounded-xl bg-amber-950/40 p-4 shadow">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-amber-300">
+                  Demandes d'adhésion en attente
+                </h2>
+                <ul className="space-y-2">
+                  {joinRequests.map((r) => (
+                    <li key={r.userId} className="flex items-center justify-between gap-3 rounded-lg bg-slate-900/60 px-3 py-2 text-sm">
+                      <span className="text-slate-200">{r.displayName} <span className="text-slate-500">({r.username})</span></span>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleApproveRequest(r.userId)}
+                          disabled={requestBusyId === r.userId}
+                          className="rounded-lg bg-indigo-600 px-3 py-1 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                        >
+                          {requestBusyId === r.userId ? "…" : "Approuver"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRejectRequest(r.userId)}
+                          disabled={requestBusyId === r.userId}
+                          className="rounded-lg bg-slate-800 px-3 py-1 text-xs text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+                        >
+                          Rejeter
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {isGm && <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Joueurs</h2>}
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">

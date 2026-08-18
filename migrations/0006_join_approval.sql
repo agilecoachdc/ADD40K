@@ -1,0 +1,18 @@
+-- Une demande d'adhésion à un groupe (POST /api/groups/join) attend
+-- désormais l'approbation d'un MJ de ce groupe avant de donner accès à son
+-- contenu (personnages, catalogue) : l'utilisateur ne rejoint plus
+-- immédiatement, il ouvre une ligne group_memberships avec status='pending'
+-- tant qu'aucun MJ n'a approuvé. getMembershipsForUser (src/worker/lib/
+-- session.ts) ne renvoie que les lignes 'approved' — un membre en attente
+-- n'a donc accès à rien du groupe tant qu'il n'est pas approuvé, exactement
+-- comme s'il n'était pas membre.
+--
+-- Les appartenances déjà en base avant cette migration (admin ajoutant un
+-- membre, MJ créateur, joueurs déjà rejoints via l'ancien flux immédiat)
+-- sont réputées déjà approuvées : DEFAULT 'approved' couvre ce backfill
+-- sans UPDATE explicite. Seules les nouvelles demandes via /groups/join
+-- démarrent à 'pending' (mise à 'pending' explicite côté route,
+-- routes/catalog.ts) ; l'admin (POST /admin/groups/:id/members) et la
+-- création de groupe (POST /groups) restent des insertions directement
+-- approuvées, sans passer par ce circuit.
+ALTER TABLE group_memberships ADD COLUMN status TEXT NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved'));

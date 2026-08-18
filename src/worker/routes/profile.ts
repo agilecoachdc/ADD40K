@@ -1,13 +1,20 @@
 // Route /api/profile — contexte plateforme de l'utilisateur connecté : un
-// par groupe dont il est membre (un compte peut désormais appartenir à
-// plusieurs groupes en même temps, cf. migrations/0005_memberships.sql),
-// avec la règle et le jeu qui en découlent pour chacun. Accessible à tout
-// rôle authentifié (contrairement à /api/admin/*) — un admin reçoit une
-// liste vide (il n'appartient à aucun groupe).
+// par groupe dont il est membre OU a une demande d'adhésion en attente (un
+// compte peut désormais appartenir à plusieurs groupes en même temps, cf.
+// migrations/0005_memberships.sql ; une demande passe par un statut
+// 'pending' tant qu'un MJ du groupe ne l'a pas approuvée, cf.
+// migrations/0006_join_approval.sql), avec la règle et le jeu qui en
+// découlent pour chacun. Accessible à tout rôle authentifié (contrairement
+// à /api/admin/*) — un admin reçoit une liste vide (il n'appartient à aucun
+// groupe). Contrairement à `user.memberships` (approuvées uniquement, pour
+// les contrôles d'accès), cette route interroge group_memberships
+// directement afin d'inclure les demandes en attente, pour que l'écran
+// Profil affiche "en attente d'approbation" plutôt que de les faire
+// disparaître silencieusement.
 
 import { Hono } from "hono";
 import type { Env } from "../lib/session";
-import type { Game, MembershipInfo, PlayerGroup, PublicUser, ProfileInfo, Ruleset } from "../../shared/types";
+import type { Game, MembershipInfo, MembershipStatus, PlayerGroup, PublicUser, ProfileInfo, Ruleset } from "../../shared/types";
 
 type HonoEnv = { Bindings: Env; Variables: { user: PublicUser } };
 
@@ -43,16 +50,23 @@ export const profileRoutes = new Hono<HonoEnv>();
 profileRoutes.get("/", async (c) => {
   const user = c.get("user");
 
-  if (user.memberships.length === 0) {
+  const { results: membershipRows } = await c.env.DB.prepare(
+    "SELECT group_id, status FROM group_memberships WHERE user_id = ?1 ORDER BY created_at",
+  )
+    .bind(user.id)
+    .all<{ group_id: string; status: MembershipStatus }>();
+
+  if (!membershipRows || membershipRows.length === 0) {
     const info: ProfileInfo = { user, memberships: [] };
     return c.json(info);
   }
+  const statusByGroupId = new Map(membershipRows.map((r) => [r.group_id, r.status]));
 
-  const placeholders = user.memberships.map((_, i) => `?${i + 1}`).join(",");
+  const placeholders = membershipRows.map((_, i) => `?${i + 1}`).join(",");
   const { results: groupRows } = await c.env.DB.prepare(
     `SELECT id, name, description, ruleset_id, image_url, drive_url, created_at FROM player_groups WHERE id IN (${placeholders}) ORDER BY name`,
   )
-    .bind(...user.memberships)
+    .bind(...membershipRows.map((r) => r.group_id))
     .all<GroupRow>();
 
   const memberships: MembershipInfo[] = [];
@@ -97,7 +111,7 @@ profileRoutes.get("/", async (c) => {
         }
       : null;
 
-    memberships.push({ group, ruleset, game });
+    memberships.push({ group, ruleset, game, status: statusByGroupId.get(groupRow.id) ?? "approved" });
   }
 
   const info: ProfileInfo = { user, memberships };

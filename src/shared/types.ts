@@ -315,11 +315,30 @@ export interface PlayerGroupDetail extends PlayerGroup {
   members: GroupMember[];
 }
 
-/** Un groupe dont l'utilisateur est membre, avec la règle/le jeu qui en découlent. */
+/**
+ * Statut d'une appartenance à un groupe (migrations/0006_join_approval.sql) —
+ * `pending` tant qu'un MJ du groupe n'a pas approuvé une demande faite via
+ * `POST /api/groups/join` ; `approved` donne l'accès effectif (cf.
+ * `getMembershipsForUser`, src/worker/lib/session.ts). Les appartenances
+ * créées par un autre chemin (admin, MJ créateur de son propre groupe) sont
+ * `approved` dès la création, sans passer par `pending`.
+ */
+export type MembershipStatus = "pending" | "approved";
+
+/** Un groupe dont l'utilisateur est membre ou a demandé à rejoindre, avec la règle/le jeu qui en découlent. */
 export interface MembershipInfo {
   group: PlayerGroup;
   ruleset: Ruleset | null;
   game: Game | null;
+  status: MembershipStatus;
+}
+
+/** Demande d'adhésion à un groupe en attente d'approbation (GET /api/groups/:id/join-requests, MJ du groupe uniquement). */
+export interface JoinRequest {
+  userId: string;
+  username: string;
+  displayName: string;
+  requestedAt: string;
 }
 
 /** Contexte plateforme de l'utilisateur connecté — voir GET /api/profile. */

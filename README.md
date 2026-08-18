@@ -78,6 +78,14 @@ tous les autres membres de chacun (utile en séance pour consulter la fiche d'un
 L'accueil liste les groupes du compte ; chacun a son propre lien de dossier Drive personnalisable
 (`player_groups.drive_url`, réglable par un admin ou en self-service par un MJ membre du groupe).
 
+Rejoindre un groupe passe désormais par une **demande d'adhésion** : un joueur ou MJ qui demande à
+rejoindre un groupe (page Profil) n'y a accès qu'une fois la demande approuvée par un MJ déjà
+membre de ce groupe (panneau "Demandes d'adhésion en attente" sur l'écran Personnages du groupe,
+`group_memberships.status`, `migrations/0006_join_approval.sql`) — avant approbation, la demande
+est visible côté joueur ("en attente d'approbation") mais ne donne aucun accès aux personnages ni
+au catalogue du groupe. Un admin garde un raccourci d'ajout direct, toujours approuvé, qui
+contourne ce circuit.
+
 Les données existantes (import Excel initial) forment le jeu/règle/groupe "ADD40K"
 (`migrations/0003_platform.sql`, généré par `scripts/generate_platform_seed_sql.mjs`) — un admin
 peut créer d'autres jeux/règles/groupes pour d'autres tables via l'interface, sans toucher au

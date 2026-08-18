@@ -18,10 +18,16 @@ interface UserRow {
   character_id: string | null;
 }
 
-/** Groupes dont un compte est membre (cf. migrations/0005_memberships.sql) — vide pour un admin. */
+/**
+ * Groupes dont un compte est membre *effectif* (cf. migrations/0005_memberships.sql)
+ * — vide pour un admin. Ne renvoie que les appartenances `status = 'approved'` :
+ * une demande d'adhésion encore `pending` (migrations/0006_join_approval.sql,
+ * en attente d'un MJ du groupe) ne donne aucun accès tant qu'elle n'est pas
+ * approuvée, exactement comme si le compte n'était pas membre.
+ */
 export async function getMembershipsForUser(db: D1Database, userId: string): Promise<string[]> {
   const { results } = await db
-    .prepare("SELECT group_id FROM group_memberships WHERE user_id = ?1")
+    .prepare("SELECT group_id FROM group_memberships WHERE user_id = ?1 AND status = 'approved'")
     .bind(userId)
     .all<{ group_id: string }>();
   return (results ?? []).map((r) => r.group_id);
