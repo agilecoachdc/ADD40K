@@ -325,32 +325,42 @@ function getConcentrationAdvantageRefDelta(
 }
 
 /**
- * Bonus de Réflexe du pouvoir "Concentration psy" actif, selon le palier
- * choisi et le score du personnage dans ce pouvoir (Règles ADD40K V0.2,
- * §Maîtrise de soi) :
- *   Niveau 15 : +1 REF par tranche de 5 dans le score — seulement si REF
- *     est l'attribut choisi à l'activation (le pouvoir ne boost qu'un seul
- *     attribut physique à ce palier).
- *   Niveau 20 : +1 REF par tranche de 2 dans le score — idem, un seul
- *     attribut choisi.
+ * Attributs "physiques" que "Concentration psy" peut moduler (Règles ADD40K
+ * V0.2, §Maîtrise de soi) — PRE (Présence) du classeur d'origine n'a pas
+ * d'équivalent dans les 8 attributs de l'app (cf. ATTRIBUTES), donc seuls
+ * REF/DEX/VIT sont concernés.
+ */
+export const CONCENTRATION_PSY_ATTRIBUTES: readonly Attribute[] = ["REF", "DEX", "VIT"];
+
+/**
+ * Bonus du pouvoir "Concentration psy" actif sur un attribut physique donné
+ * (REF, DEX ou VIT), selon le palier choisi et le score du personnage dans
+ * ce pouvoir (Règles ADD40K V0.2, §Maîtrise de soi) :
+ *   Niveau 15 : +1 par tranche de 5 dans le score — seulement sur l'attribut
+ *     choisi à l'activation (le pouvoir ne boost qu'un seul attribut
+ *     physique à ce palier, cf. ActivePsyPower.attribute).
+ *   Niveau 20 : +1 par tranche de 2 dans le score — idem, un seul attribut
+ *     choisi.
  *   Niveau 25 : +1 par tranche de 3, sur TOUTES les caractéristiques
- *     physiques (donc REF inclus sans avoir à le choisir).
+ *     physiques (REF/DEX/VIT) sans avoir à en choisir une seule.
  *   Niveau 30 : +1 par point de score, toutes caractéristiques physiques.
  *   Niveau 35 ("Appel de l'avatar") : +5 fixe, toutes caractéristiques
  *     physiques.
- * PRE (Présence) du classeur d'origine n'a pas d'équivalent dans les 8
- * attributs de l'app (cf. ATTRIBUTES) — hors périmètre, seul REF/DEX/VIT
- * sont proposés au choix pour les paliers 15/20 (cf. ActivePsyPower).
+ * Un attribut hors REF/DEX/VIT (ex. INT, COM) n'est jamais concerné.
  */
-function getActivePsyPowerRefBonus(character: Pick<Character, "psyPowers" | "activePsyPowers">): number {
+function getConcentrationPsyAttributeBonus(
+  character: Pick<Character, "psyPowers" | "activePsyPowers">,
+  attribute: Attribute,
+): number {
+  if (!CONCENTRATION_PSY_ATTRIBUTES.includes(attribute)) return 0;
   const active = (character.activePsyPowers ?? []).find((p) => p.name === CONCENTRATION_PSY_NAME);
   if (!active) return 0;
   const score = character.psyPowers.find((p) => p.name === CONCENTRATION_PSY_NAME)?.score ?? 0;
   switch (active.level) {
     case 15:
-      return active.attribute === "REF" ? Math.floor(score / 5) : 0;
+      return active.attribute === attribute ? Math.floor(score / 5) : 0;
     case 20:
-      return active.attribute === "REF" ? Math.floor(score / 2) : 0;
+      return active.attribute === attribute ? Math.floor(score / 2) : 0;
     case 25:
       return Math.floor(score / 3);
     case 30:
@@ -379,15 +389,24 @@ export function getPsyPowerActivationCost(level: number): number {
   return PSY_POWER_ACTIVATION_COST[level] ?? 0;
 }
 
-/** Somme des `boostAmount` des pouvoirs actifs ciblant cet attribut via `boostAttribute` — additif, pour affichage (AttributesPanel) et pris en compte pour REF dans getActionRank ci-dessous. */
+/**
+ * Bonus total sur un attribut donné venant des pouvoirs actifs : somme des
+ * `boostAmount` génériques ciblant cet attribut via `boostAttribute` (tous
+ * pouvoirs sauf "Concentration psy", cf. ActivePsyPower) + le bonus dédié de
+ * "Concentration psy" sur ce même attribut si actif (cf.
+ * getConcentrationPsyAttributeBonus). Additif, utilisé pour l'affichage
+ * (AttributesPanel, mis en évidence) et pris en compte pour REF dans
+ * getActionRank ci-dessous.
+ */
 export function getActivePsyPowerAttributeBoost(
-  character: Pick<Character, "activePsyPowers">,
+  character: Pick<Character, "psyPowers" | "activePsyPowers">,
   attribute: Attribute,
 ): number {
-  return (character.activePsyPowers ?? []).reduce(
+  const generic = (character.activePsyPowers ?? []).reduce(
     (sum, p) => sum + (p.boostAttribute === attribute ? (p.boostAmount ?? 0) : 0),
     0,
   );
+  return generic + getConcentrationPsyAttributeBonus(character, attribute);
 }
 
 /** Somme des `boostAmount` des pouvoirs actifs ciblant cette compétence via `boostSkillName` (nom exact) — additif, pour affichage (SkillsPanel). */
@@ -398,9 +417,22 @@ export function getActivePsyPowerSkillBoost(character: Pick<Character, "activePs
   );
 }
 
-/** Au moins un pouvoir actif booste une caractéristique ou une compétence — cf. CharacterSummary.hasActiveBoost (icône sur la tuile du Suivi des constantes). */
+/**
+ * Au moins un pouvoir actif booste une caractéristique ou une compétence —
+ * cf. CharacterSummary.hasActiveBoost (icône sur la tuile du Suivi des
+ * constantes). Couvre le bonus générique (boostAttribute/boostSkillName) et
+ * le bonus dédié de "Concentration psy" (toutes caractéristiques physiques à
+ * partir du palier 25, ou l'attribut choisi aux paliers 15/20).
+ */
 export function hasActivePsyPowerBoost(character: Pick<Character, "activePsyPowers">): boolean {
-  return (character.activePsyPowers ?? []).some((p) => p.boostAttribute != null || p.boostSkillName != null);
+  return (character.activePsyPowers ?? []).some((p) => {
+    if (p.boostAttribute != null || p.boostSkillName != null) return true;
+    if (p.name === CONCENTRATION_PSY_NAME) {
+      if (p.level >= 25) return true;
+      if ((p.level === 15 || p.level === 20) && p.attribute) return true;
+    }
+    return false;
+  });
 }
 
 /**
@@ -414,10 +446,13 @@ export function getActionRank(
 ): number {
   const refTotal = getAttributeTotal(character, reference, "REF");
   const hasActivePower = (character.activePsyPowers ?? []).length > 0;
+  // getActivePsyPowerAttributeBoost inclut déjà le bonus dédié de
+  // "Concentration psy" sur REF (cf. getConcentrationPsyAttributeBonus) en
+  // plus du bonus générique des autres pouvoirs — un seul terme, pas de
+  // double comptage.
   const effectiveRef =
     refTotal +
     getConcentrationAdvantageRefDelta(character, hasActivePower) +
-    getActivePsyPowerRefBonus(character) +
     getActivePsyPowerAttributeBoost(character, "REF");
   const equippedWeapon = character.weapons.find((w) => w.equipped);
   const weaponRaModifier = equippedWeapon ? getWeaponRaModifier(equippedWeapon) : 0;

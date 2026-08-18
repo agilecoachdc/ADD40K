@@ -18,6 +18,7 @@ import {
 } from "@shared/types";
 import type { CharacterComputed } from "@shared/calc-engine";
 import {
+  CONCENTRATION_PSY_ATTRIBUTES,
   getActivePsyPowerAttributeBoost,
   getActivePsyPowerSkillBoost,
   getPsyPowerActivationCost,
@@ -991,16 +992,6 @@ export function WeaponsArmorPanel({
   );
 }
 
-/**
- * "Concentration psy" est le seul pouvoir du catalogue à avoir un effet
- * chiffré codé (bonus de Réflexe pour le Rang d'Action, cf.
- * calc-engine.getActivePsyPowerRefBonus) — aux paliers 15/20, ce pouvoir
- * ne boost qu'un seul attribut physique au choix du joueur. PRE (Présence)
- * du classeur d'origine n'a pas d'équivalent dans les 8 attributs de l'app
- * (cf. ATTRIBUTES) : seuls REF/DEX/VIT sont proposés.
- */
-const CONCENTRATION_PSY_ATTRIBUTES: Attribute[] = ["REF", "DEX", "VIT"];
-
 /** Datalist partagée (id global) pour l'autocomplétion du nom de compétence boostée — cf. PsyPowersPanel. */
 const PSY_BOOST_SKILL_DATALIST_ID = "psy-boost-skill-source";
 
@@ -1009,16 +1000,21 @@ const PSY_BOOST_SKILL_DATALIST_ID = "psy-boost-skill-source";
  * joueur propriétaire ou au MJ — canEdit) : choix d'un palier ≤ au score du
  * personnage dans ce pouvoir (coût en PSP affiché par palier, cf.
  * calc-engine.getPsyPowerActivationCost — décompté/remboursé côté
- * CharacterSheet.setActivePower), et pour "Concentration psy" aux paliers
- * 15/20, de l'attribut physique à améliorer (mécanique dédiée, cf.
- * calc-engine.getActivePsyPowerRefBonus). Pour tout autre pouvoir, un "effet"
- * optionnel peut être choisi à l'activation — caractéristique ET/OU
- * compétence boostée, valeur du bonus, et durée indicative (un tour /
- * combat) — puisque leur formule n'est pas codée dans ce moteur (cf.
- * ActivePsyPower.boostAttribute/boostSkillName/boostAmount). Sauvegarde
- * immédiate via `onChange`, comme le reste des toggles hors mode édition
- * (armure, arme équipée) — pas besoin d'ouvrir la fiche en édition pour ça,
- * c'est une action de jeu, pas une modification de la fiche elle-même.
+ * CharacterSheet.setActivePower). "Concentration psy" a un effet chiffré
+ * codé (cf. calc-engine.getConcentrationPsyAttributeBonus) qui module une ou
+ * plusieurs caractéristiques physiques (REF/DEX/VIT) selon le palier :
+ * choix obligatoire d'UNE caractéristique aux paliers 15/20 (sélecteur
+ * dédié, toujours visible à ces paliers) ; à partir du palier 25, les TROIS
+ * sont boostées automatiquement, sans choix (simple repère informatif). Pour
+ * tout autre pouvoir, un "effet" optionnel peut être choisi à l'activation —
+ * caractéristique ET/OU compétence boostée, valeur du bonus, et durée
+ * indicative (un tour / combat) — puisque leur formule n'est pas codée dans
+ * ce moteur (cf. ActivePsyPower.boostAttribute/boostSkillName/boostAmount),
+ * replié derrière "+ Effet (optionnel)" pour rester discret quand inutilisé.
+ * Sauvegarde immédiate via `onChange`, comme le reste des toggles hors mode
+ * édition (armure, arme équipée) — pas besoin d'ouvrir la fiche en édition
+ * pour ça, c'est une action de jeu, pas une modification de la fiche
+ * elle-même.
  */
 function PsyPowerActivation({
   powerName,
@@ -1050,6 +1046,7 @@ function PsyPowerActivation({
 
   const isConcentrationPsy = powerName === CONCENTRATION_PSY_NAME;
   const needsAttribute = isConcentrationPsy && (level === 15 || level === 20);
+  const isAllPhysicalAttributes = isConcentrationPsy && level >= 25;
 
   if (active) {
     const cost = getPsyPowerActivationCost(active.level);
@@ -1058,6 +1055,7 @@ function PsyPowerActivation({
         <span className="rounded-full bg-emerald-600/20 px-2 py-0.5 text-emerald-300">
           {t("Actif · niveau")} {active.level} ({cost} PSP)
           {active.attribute ? ` · ${active.attribute}` : ""}
+          {isConcentrationPsy && active.level >= 25 ? ` · ${CONCENTRATION_PSY_ATTRIBUTES.join("/")}` : ""}
           {active.boostAttribute ? ` · +${active.boostAmount ?? 0} ${active.boostAttribute}` : ""}
           {active.boostSkillName ? ` · +${active.boostAmount ?? 0} ${active.boostSkillName}` : ""}
           {active.duration ? ` · ${active.duration === "combat" ? t("le combat") : t("un tour")}` : ""}
@@ -1089,17 +1087,25 @@ function PsyPowerActivation({
         {/* Total avant jet = score + palier — la réussite se joue ensuite au dé (1-10) contre le seuil du pouvoir. */}
         <span className="text-slate-500">{t("Total avant jet")} : {score + level}</span>
         {needsAttribute && (
-          <select
-            value={attribute}
-            onChange={(e) => setAttribute(e.target.value as Attribute)}
-            className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
-          >
-            {CONCENTRATION_PSY_ATTRIBUTES.map((attr) => (
-              <option key={attr} value={attr}>
-                {attr}
-              </option>
-            ))}
-          </select>
+          <span className="flex items-center gap-1">
+            <span className="text-slate-400">{t("Caractéristique boostée")} :</span>
+            <select
+              value={attribute}
+              onChange={(e) => setAttribute(e.target.value as Attribute)}
+              className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
+            >
+              {CONCENTRATION_PSY_ATTRIBUTES.map((attr) => (
+                <option key={attr} value={attr}>
+                  {attr}
+                </option>
+              ))}
+            </select>
+          </span>
+        )}
+        {isAllPhysicalAttributes && (
+          <span className="text-slate-400">
+            {t("Toutes les caractéristiques physiques")} ({CONCENTRATION_PSY_ATTRIBUTES.join("/")})
+          </span>
         )}
         <button
           type="button"

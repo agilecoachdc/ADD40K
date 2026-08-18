@@ -118,10 +118,15 @@ paliers restent sélectionnables quel que soit le score du personnage dans ce po
 score plus bas reste jouable via le jet — le total "avant jet" (score + palier choisi) est affiché
 pour aider au choix. Le coût en PSP du palier (0/1/2/3/4/5, cf. `getPsyPowerActivationCost`) est
 décompté de `Character.pspCurrent` à l'activation et remboursé à la désactivation (clampé entre 0
-et `pspMax`, cf. `CharacterSheet.setActivePower`). "Concentration
-psy" garde son mécanisme dédié (bonus de Réflexe chiffré selon le palier, cf. section RA
-ci-dessus) ; pour tout autre pouvoir qui modifie une caractéristique ou une compétence (règle non
-structurée en formule dans ce moteur), un "effet" optionnel se choisit manuellement à
+et `pspMax`, cf. `CharacterSheet.setActivePower`). "Concentration psy" garde son mécanisme dédié
+(`calc-engine.getConcentrationPsyAttributeBonus`) : aux paliers 15/20, un sélecteur dédié (toujours
+visible à ces paliers, pas replié) impose de choisir UNE caractéristique physique (REF/DEX/VIT) à
+booster ; à partir du palier 25, les trois sont boostées automatiquement (simple repère informatif,
+pas de sélecteur). Le bonus obtenu est mis en évidence comme celui de tout autre pouvoir (badge
+ambre sur `AttributesPanel`, pris en compte dans le RA pour REF) — corrige un gap où choisir
+DEX/VIT plutôt que REF n'avait auparavant aucun effet visible nulle part dans l'app. Pour tout
+autre pouvoir qui modifie une caractéristique ou une compétence (règle non structurée en formule
+dans ce moteur), un "effet" optionnel se choisit manuellement à
 l'activation — repliée par défaut derrière un bouton "+ Effet (optionnel)" pour garder la ligne
 d'activation courte quand ce pouvoir n'a rien à configurer : caractéristique et/ou compétence ciblée
 (`ActivePsyPower.boostAttribute`/`boostSkillName`), valeur du bonus (`boostAmount`), et durée

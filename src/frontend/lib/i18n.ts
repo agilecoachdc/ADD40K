@@ -183,6 +183,8 @@ const EN: Record<string, string> = {
   "+ Effet (optionnel)": "+ Effect (optional)",
   "Effet": "Effect",
   "— caractéristique —": "— attribute —",
+  "Caractéristique boostée": "Boosted attribute",
+  "Toutes les caractéristiques physiques": "All physical attributes",
   "ou compétence": "or skill",
   "Un tour": "One turn",
   "Le combat": "Whole combat",

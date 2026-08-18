@@ -329,6 +329,58 @@ describe("getActionRank", () => {
   });
 });
 
+describe("getActivePsyPowerAttributeBoost — Concentration psy sur DEX/VIT (pas seulement REF)", () => {
+  // Signalé : à un palier ≤ 20, choisir DEX ou VIT (plutôt que REF) n'avait
+  // auparavant aucun effet visible nulle part dans l'app (seul REF via le RA
+  // était câblé) — getActivePsyPowerAttributeBoost inclut désormais le bonus
+  // de Concentration psy pour n'importe quel attribut physique, affiché en
+  // évidence sur AttributesPanel comme n'importe quel autre pouvoir.
+  it("niveau 15, attribut choisi DEX (score 12) : +1 par tranche de 5 = +2 sur DEX, rien sur REF/VIT", () => {
+    const character = {
+      psyPowers: [{ name: "Concentration psy", score: 12, discipline: "Maîtrise de soi" }],
+      activePsyPowers: [{ name: "Concentration psy", level: 15, attribute: "DEX" as const }],
+    };
+    expect(getActivePsyPowerAttributeBoost(character, "DEX")).toBe(2);
+    expect(getActivePsyPowerAttributeBoost(character, "REF")).toBe(0);
+    expect(getActivePsyPowerAttributeBoost(character, "VIT")).toBe(0);
+  });
+
+  it("niveau 25 (score 9) : +1 par tranche de 3 = +3 sur REF, DEX ET VIT sans avoir à choisir", () => {
+    const character = {
+      psyPowers: [{ name: "Concentration psy", score: 9, discipline: "Maîtrise de soi" }],
+      activePsyPowers: [{ name: "Concentration psy", level: 25 }],
+    };
+    expect(getActivePsyPowerAttributeBoost(character, "REF")).toBe(3);
+    expect(getActivePsyPowerAttributeBoost(character, "DEX")).toBe(3);
+    expect(getActivePsyPowerAttributeBoost(character, "VIT")).toBe(3);
+  });
+
+  it("attribut hors REF/DEX/VIT (ex. INT) : jamais concerné, même à haut palier", () => {
+    const character = {
+      psyPowers: [{ name: "Concentration psy", score: 20, discipline: "Maîtrise de soi" }],
+      activePsyPowers: [{ name: "Concentration psy", level: 35 }],
+    };
+    expect(getActivePsyPowerAttributeBoost(character, "INT")).toBe(0);
+  });
+});
+
+describe("hasActivePsyPowerBoost — Concentration psy compte comme un boost", () => {
+  it("niveau 25+ (toutes caractéristiques physiques) : détecté même sans attribute choisi", () => {
+    expect(hasActivePsyPowerBoost({ activePsyPowers: [{ name: "Concentration psy", level: 25 }] })).toBe(true);
+  });
+
+  it("niveau 15/20 avec attribute choisi : détecté", () => {
+    expect(
+      hasActivePsyPowerBoost({ activePsyPowers: [{ name: "Concentration psy", level: 20, attribute: "DEX" }] }),
+    ).toBe(true);
+  });
+
+  it("niveau 15/20 sans attribute choisi, ou niveau 10 : pas détecté (aucun effet chiffré)", () => {
+    expect(hasActivePsyPowerBoost({ activePsyPowers: [{ name: "Concentration psy", level: 15 }] })).toBe(false);
+    expect(hasActivePsyPowerBoost({ activePsyPowers: [{ name: "Concentration psy", level: 10 }] })).toBe(false);
+  });
+});
+
 describe("getPsyPowerActivationCost — coût en PSP par palier", () => {
   it.each([
     [10, 0],
@@ -345,6 +397,7 @@ describe("getPsyPowerActivationCost — coût en PSP par palier", () => {
 describe("boost générique d'un pouvoir actif (attribut/compétence choisis à l'activation)", () => {
   it("getActivePsyPowerAttributeBoost additionne les boostAmount ciblant l'attribut demandé", () => {
     const character = {
+      psyPowers: [],
       activePsyPowers: [
         { name: "Illusion", level: 20, boostAttribute: "FO" as const, boostAmount: 3 },
         { name: "Vigueur", level: 15, boostAttribute: "FO" as const, boostAmount: 2 },

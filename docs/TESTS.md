@@ -58,6 +58,12 @@ navigateur intégré, cf. session de build).
 - [ ] Sur l'écran "Suivi des constantes" (MJ), avec au moins un pouvoir actif sur un personnage en
       jeu : cliquer "Fin de combat" → tous les pouvoirs actifs des personnages en jeu sont
       désactivés, leur PSP remboursé, l'icône "⚡" disparaît de leurs tuiles.
+- [ ] Sur "Concentration psy" (ex. cas réel Karun), choisir le palier 15 ou 20 → un sélecteur
+      "Caractéristique boostée" (REF/DEX/VIT) apparaît toujours, sans clic supplémentaire ; choisir
+      DEX ou VIT (pas REF) et activer → le bonus apparaît en évidence sur l'attribut choisi dans
+      `AttributesPanel` (pas seulement sur le RA, réservé à REF). Choisir le palier 25 ou plus →
+      le sélecteur disparaît, remplacé par la mention "Toutes les caractéristiques physiques
+      (REF/DEX/VIT)", et les trois sont boostées sans choix à activer.
 
 ## §4 — Permissions
 
