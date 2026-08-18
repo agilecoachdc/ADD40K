@@ -12,7 +12,12 @@ import type { PlayerGroupDetail, PublicUser, Ruleset, UserRole } from "@shared/t
 import { api } from "../../lib/api";
 import { ImagePicker } from "../../components/ImagePicker";
 import { AdminNav } from "../../components/AdminNav";
+import { useTranslation } from "../../lib/i18n";
 
+// Valeurs en français : servent de clé au dictionnaire i18n (cf.
+// src/frontend/lib/i18n.ts), traduites via t() au point d'affichage — même
+// principe que Profile.tsx ROLE_LABELS. Page admin sinon non traduite
+// (hors périmètre actuel), seuls les libellés de rôle le sont ici.
 const ROLE_LABELS: Record<UserRole, string> = { admin: "Admin", gm: "MJ", player: "Joueur" };
 
 function TextInput({ value, onChange, className = "" }: { value: string; onChange: (v: string) => void; className?: string }) {
@@ -31,6 +36,7 @@ function errMsg(err: unknown): string {
 }
 
 export default function PlayerGroups() {
+  const { t } = useTranslation();
   const [groups, setGroups] = useState<PlayerGroupDetail[]>([]);
   const [rulesets, setRulesets] = useState<Ruleset[]>([]);
   const [allUsers, setAllUsers] = useState<PublicUser[]>([]);
@@ -305,7 +311,7 @@ export default function PlayerGroups() {
                       <li key={m.id} className="flex items-center justify-between rounded-lg bg-slate-800/50 px-3 py-2 text-sm">
                         <span>
                           {m.displayName} <span className="text-slate-500">({m.username})</span> ·{" "}
-                          <span className="text-slate-400">{ROLE_LABELS[m.role]}</span>
+                          <span className="text-slate-400">{t(ROLE_LABELS[m.role])}</span>
                         </span>
                         <button
                           type="button"
@@ -331,7 +337,7 @@ export default function PlayerGroups() {
                       <option value="">— Compte —</option>
                       {unassignedUsers.map((u) => (
                         <option key={u.id} value={u.id}>
-                          {u.displayName} ({u.username}) — {ROLE_LABELS[u.role]}
+                          {u.displayName} ({u.username}) — {t(ROLE_LABELS[u.role])}
                         </option>
                       ))}
                     </select>
@@ -351,8 +357,8 @@ export default function PlayerGroups() {
                       onChange={(e) => setNewRole(e.target.value as UserRole)}
                       className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
                     >
-                      <option value="player">Joueur</option>
-                      <option value="gm">MJ</option>
+                      <option value="player">{t(ROLE_LABELS.player)}</option>
+                      <option value="gm">{t(ROLE_LABELS.gm)}</option>
                     </select>
                     <button type="submit" className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">
                       Créer

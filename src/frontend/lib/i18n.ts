@@ -55,6 +55,7 @@ const EN: Record<string, string> = {
   "Administrateur": "Administrator",
   "Maître du jeu": "Game master",
   "Joueur": "Player",
+  "MJ": "GM",
   "Personnage": "Character",
   "Voir la fiche": "View sheet",
   "Compte administrateur — pas de groupe de joueurs assigné.":

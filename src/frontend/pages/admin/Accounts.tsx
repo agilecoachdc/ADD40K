@@ -16,7 +16,12 @@ import { useEffect, useState } from "react";
 import type { PlayerGroup, PublicUser, UserRole } from "@shared/types";
 import { api } from "../../lib/api";
 import { AdminNav } from "../../components/AdminNav";
+import { useTranslation } from "../../lib/i18n";
 
+// Valeurs en français : servent de clé au dictionnaire i18n (cf.
+// src/frontend/lib/i18n.ts), traduites via t() au point d'affichage — même
+// principe que Profile.tsx ROLE_LABELS. Page admin sinon non traduite
+// (hors périmètre actuel), seuls les libellés de rôle le sont ici.
 const ROLE_LABELS: Record<UserRole, string> = { admin: "Admin", gm: "MJ", player: "Joueur" };
 
 function errMsg(err: unknown): string {
@@ -24,6 +29,7 @@ function errMsg(err: unknown): string {
 }
 
 export default function Accounts() {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<PublicUser[]>([]);
   const [groups, setGroups] = useState<PlayerGroup[]>([]);
   const [drafts, setDrafts] = useState<Record<string, UserRole>>({});
@@ -107,7 +113,7 @@ export default function Accounts() {
                       >
                         {(Object.keys(ROLE_LABELS) as UserRole[]).map((role) => (
                           <option key={role} value={role}>
-                            {ROLE_LABELS[role]}
+                            {t(ROLE_LABELS[role])}
                           </option>
                         ))}
                       </select>
