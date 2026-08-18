@@ -13,7 +13,7 @@
   // décommissionné). "custom_domain: true" fait provisionner le DNS + la route
   // automatiquement par `wrangler deploy`, à condition que la zone ac2dc.ch soit
   // sur le même compte Cloudflare que ce token wrangler.
-  "routes": [{ "pattern": "r2t2.ac2dc.ch/*", "custom_domain": true }],
+  "routes": [{ "pattern": "r2t2.ac2dc.ch", "custom_domain": true }],
   "d1_databases": [
     {
       "binding": "DB",
