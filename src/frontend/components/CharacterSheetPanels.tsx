@@ -936,12 +936,45 @@ export function EquipmentPanel({
   );
 }
 
-export function BudgetPanel({ computed }: { computed: CharacterComputed }) {
+/**
+ * `isGm` : distribution d'XP réservée au MJ (jamais au joueur propriétaire,
+ * même si celui-ci a `canEdit`) — cf. POST /api/characters/:id/xp,
+ * routes/characters.ts. `onGrantXp` absent = pas encore câblé côté parent
+ * (ne devrait pas arriver si `isGm` est vrai).
+ */
+export function BudgetPanel({
+  character,
+  computed,
+  isGm,
+  onGrantXp,
+}: {
+  character: Pick<Character, "xp" | "xpTotal">;
+  computed: CharacterComputed;
+  isGm?: boolean;
+  onGrantXp?: (amount: number) => void | Promise<void>;
+}) {
   const { budget } = computed;
+  const [xpAmount, setXpAmount] = useState("");
+  const [xpBusy, setXpBusy] = useState(false);
+
+  async function handleGrant() {
+    const amount = Number(xpAmount);
+    if (!onGrantXp || !amount || !Number.isFinite(amount)) return;
+    setXpBusy(true);
+    try {
+      await onGrantXp(amount);
+      setXpAmount("");
+    } finally {
+      setXpBusy(false);
+    }
+  }
+
   return (
     <Section title="Budget de points">
       <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
         <Metric label="Points raciaux" value={budget.raceSkillPoints} />
+        <Metric label="Pool XP actuel" value={character.xp} />
+        <Metric label="XP total distribué" value={character.xpTotal} />
         <Metric label="Total dispo" value={budget.totalDispo} />
         <Metric label="Coût compétences" value={-budget.skillsCost} />
         <Metric label="Coût pouvoirs psy" value={-budget.psyPowersCost} />
@@ -952,6 +985,30 @@ export function BudgetPanel({ computed }: { computed: CharacterComputed }) {
         <p className="mt-3 rounded-lg bg-red-950 px-3 py-2 text-sm text-red-300">
           ⚠️ Solde négatif : ce personnage dépasse son budget de points de {Math.abs(budget.solde)}.
         </p>
+      )}
+      {isGm && onGrantXp && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-800 pt-3">
+          <label className="text-sm text-slate-400">Donner de l'XP</label>
+          <input
+            type="number"
+            value={xpAmount}
+            onChange={(e) => setXpAmount(e.target.value)}
+            placeholder="ex. 5 ou -3"
+            className="w-24 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
+          />
+          <button
+            type="button"
+            onClick={handleGrant}
+            disabled={xpBusy || !xpAmount}
+            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+          >
+            {xpBusy ? "…" : "Valider"}
+          </button>
+          <p className="w-full text-xs text-slate-500">
+            Positif : ajoute au pool XP disponible. Négatif (pénalité/correction) : retiré des
+            points de départ plutôt que de rendre le pool XP négatif.
+          </p>
+        </div>
       )}
     </Section>
   );

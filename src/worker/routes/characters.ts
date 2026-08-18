@@ -68,6 +68,8 @@ characterRoutes.get("/", async (c) => {
       pspCurrent: parsed.pspCurrent,
       pspMax,
       armorTotals,
+      xp: parsed.xp ?? 0,
+      xpTotal: parsed.xpTotal ?? 0,
     };
   });
 
@@ -182,6 +184,7 @@ characterRoutes.post("/", async (c) => {
     equipment: [],
     pointsDepart: 0,
     xp: 0,
+    xpTotal: 0,
     reputations: "",
     notes: "",
     updatedAt: now,
@@ -228,6 +231,11 @@ characterRoutes.put("/:id", async (c) => {
     ownerUsername: current.ownerUsername, // idem — changement de propriétaire hors périmètre MVP
     updatedAt: new Date().toISOString(),
   };
+  // Le pool XP ne descend jamais sous 0 par cette route (import Excel ou
+  // édition directe) : un ajustement négatif doit passer par le MJ via
+  // POST /characters/:id/xp, qui l'absorbe dans pointsDepart plutôt que de
+  // rendre xp négatif — cf. Character.xp dans shared/types.ts.
+  if (updated.xp < 0) updated.xp = 0;
 
   await c.env.DB.prepare(
     "UPDATE characters SET name = ?1, race = ?2, data = ?3, updated_at = ?4 WHERE id = ?5",
@@ -238,6 +246,53 @@ characterRoutes.put("/:id", async (c) => {
   const referenceData: ReferenceData = existing.player_group_id
     ? await getReferenceDataForGroup(c.env.DB, existing.player_group_id)
     : { races: [], skillCostTable: {}, skills: [], weapons: [], armor: [], psyPowers: [], advantages: [] };
+  const computed = computeCharacter(updated, referenceData);
+  return c.json({ character: updated, computed, canEdit: true, referenceData });
+});
+
+// Distribution d'XP par le MJ — réservé au MJ membre du groupe du
+// personnage (contrairement à PUT ci-dessus, le joueur propriétaire ne peut
+// pas s'en servir : l'XP est décidée par le MJ, jamais auto-attribuée).
+// Un montant positif alimente le pool `xp` (utilisable par le joueur) et
+// `xpTotal` (compteur lifetime, purement informatif). Un montant négatif —
+// une pénalité ou une correction, décidée et appliquée par le MJ, ce qui
+// vaut ici son "approbation" — est absorbée dans `pointsDepart` plutôt que
+// de rendre `xp` négatif : `xp` ne descend jamais sous 0, cf. Character.xp
+// dans shared/types.ts.
+characterRoutes.post("/:id/xp", async (c) => {
+  const id = c.req.param("id");
+  const user = c.get("user");
+
+  const existing = await c.env.DB.prepare(
+    "SELECT id, data, owner_username, player_group_id FROM characters WHERE id = ?1",
+  )
+    .bind(id)
+    .first<CharacterRow>();
+  if (!existing) return c.json({ error: "Personnage introuvable" }, 404);
+  if (user.role !== "gm" || !existing.player_group_id || !user.memberships.includes(existing.player_group_id)) {
+    return c.json({ error: "Réservé au MJ de ce groupe" }, 403);
+  }
+
+  const body = await c.req.json<{ amount?: number }>().catch(() => null);
+  const amount = body?.amount;
+  if (typeof amount !== "number" || !Number.isFinite(amount) || amount === 0) {
+    return c.json({ error: "Montant requis (non nul)" }, 400);
+  }
+
+  const current: Character = JSON.parse(existing.data);
+  const updated: Character = {
+    ...current,
+    xp: amount > 0 ? current.xp + amount : current.xp,
+    xpTotal: amount > 0 ? (current.xpTotal ?? 0) + amount : current.xpTotal ?? 0,
+    pointsDepart: amount < 0 ? current.pointsDepart + amount : current.pointsDepart,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await c.env.DB.prepare("UPDATE characters SET data = ?1, updated_at = ?2 WHERE id = ?3")
+    .bind(JSON.stringify(updated), updated.updatedAt, id)
+    .run();
+
+  const referenceData = await getReferenceDataForGroup(c.env.DB, existing.player_group_id);
   const computed = computeCharacter(updated, referenceData);
   return c.json({ character: updated, computed, canEdit: true, referenceData });
 });

@@ -67,9 +67,23 @@ chaque réponse.
   `owner_username`, un même compte pouvant posséder des personnages dans plusieurs groupes — ou
   rôle `gm` membre du groupe du personnage).
 - Entrée : `Partial<Character>` — fusionné avec les données existantes côté serveur
-  (`id` et `ownerUsername` du client sont ignorés).
+  (`id` et `ownerUsername` du client sont ignorés). `xp` est clampé à `0` minimum si le patch en
+  envoie un négatif (import Excel ou autre) — le pool XP ne descend jamais sous 0 par cette route,
+  cf. `POST /:id/xp` ci-dessous pour les ajustements négatifs (réservés au MJ).
 - Sortie : `{ character: Character, computed: CharacterComputed, canEdit: true, referenceData: ReferenceData }`.
 - Erreurs : `403` (pas le propriétaire ni MJ du groupe), `404` (personnage introuvable), `400` (JSON invalide).
+
+### `POST /api/characters/:id/xp`
+- Auth : session + rôle `gm` membre du groupe du personnage (contrairement à `PUT` ci-dessus, le
+  joueur propriétaire ne peut pas s'en servir même avec `canEdit` — l'XP est décidée par le MJ).
+- Entrée : `{ amount: number }` (non nul). Positif : ajouté à `character.xp` (pool disponible) et
+  `character.xpTotal` (compteur lifetime, purement informatif — cf. shared/types.ts). Négatif :
+  soustrait de `character.pointsDepart` au lieu de `xp` — le pool XP ne descend jamais sous 0, le
+  fait que ce soit le MJ qui applique l'ajustement via cette route vaut son "approbation".
+- Sortie : `{ character: Character, computed: CharacterComputed, canEdit: true, referenceData: ReferenceData }`
+  (même enveloppe que `PUT /:id`).
+- Erreurs : `403` (pas MJ ou pas membre du groupe), `404` (personnage introuvable), `400` (montant
+  manquant, non numérique, ou nul).
 
 ## Profil (`src/worker/routes/profile.ts`)
 

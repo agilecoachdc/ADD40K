@@ -61,6 +61,13 @@ export const api = {
       `/characters/${id}`,
       { method: "PUT", body: JSON.stringify(patch) },
     ),
+  // Distribution d'XP par le MJ (positif = alimente le pool, négatif =
+  // absorbé dans pointsDepart) — réservé au MJ, cf. characters.ts.
+  grantXp: (id: string, amount: number) =>
+    request<{ character: Character; computed: CharacterComputed; canEdit: boolean; referenceData: ReferenceData }>(
+      `/characters/${id}/xp`,
+      { method: "POST", body: JSON.stringify({ amount }) },
+    ),
   createNpc: (groupId: string, input: { name: string; portraitUrl?: string | null; race?: string; vit: number; vol: number }) =>
     request<{ character: Character; computed: CharacterComputed; canEdit: boolean; referenceData: ReferenceData }>(
       `/characters?groupId=${encodeURIComponent(groupId)}`,

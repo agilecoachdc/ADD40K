@@ -161,7 +161,26 @@ export interface Character {
 
   // Budget de points
   pointsDepart: number;
+  /**
+   * Pool d'XP actuellement disponible, distribué par le MJ (bouton "Donner
+   * de l'XP", écran de fiche vue MJ et écran "Suivi des constantes") —
+   * contribue au budget total dispo comme les points de départ
+   * (cf. calc-engine.getTotalDispo). Ne descend jamais sous 0 : un ajustement
+   * négatif approuvé par le MJ (POST /api/characters/:id/xp avec un montant
+   * négatif) est absorbé dans `pointsDepart` plutôt que rendre ce champ
+   * négatif — voir aussi `xpTotal`.
+   */
   xp: number;
+  /**
+   * Total d'XP jamais distribué par le MJ à ce personnage (compteur qui ne
+   * fait qu'augmenter, contrairement à `xp` qui reflète le pool
+   * actuellement disponible) — purement informatif, affiché à côté du pool
+   * actuel sur la fiche (vue MJ) et sur l'écran "Suivi des constantes".
+   * Absent des fiches créées avant l'ajout de ce champ — traité comme `0`
+   * côté route (GET /api/characters, GET/PUT /api/characters/:id), pas de
+   * migration nécessaire (colonne `data` JSON libre).
+   */
+  xpTotal: number;
 
   // Texte libre
   reputations: string;
@@ -373,4 +392,7 @@ export interface CharacterSummary {
   pspMax: number;
   /** VP de protection par membre — mêmes clés que calc-engine.ArmorTotals, dupliquées ici pour éviter un import croisé types.ts ↔ calc-engine.ts. */
   armorTotals: { vpTete: number; vpBras: number; vpTorse: number; vpJambes: number };
+  /** Pool XP actuel et total jamais distribué — cf. Character.xp/xpTotal. Affichés sur la tuile de l'écran "Suivi des constantes". */
+  xp: number;
+  xpTotal: number;
 }

@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import type { Character, ReferenceData } from "@shared/types";
 import { computeCharacter, type CharacterComputed } from "@shared/calc-engine";
 import { api } from "../lib/api";
+import { useAuth } from "../lib/auth-context";
 import {
   IdentityHeader,
   HpPspBar,
@@ -18,6 +19,10 @@ import {
 
 export default function CharacterSheet() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  // Distribution d'XP réservée au MJ (jamais au joueur propriétaire, même
+  // avec canEdit) — cf. BudgetPanel/routes/characters.ts.
+  const isGm = user?.role === "gm";
   // Retour contextuel : la liste et le suivi des constantes passent chacun
   // leur origine + le groupe via l'état de navigation (state.from/groupId)
   // au clic sur une fiche (un compte peut être membre de plusieurs
@@ -97,6 +102,18 @@ export default function CharacterSheet() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Échec de la sauvegarde de l'armure");
       update({ armor: previousArmor });
+    }
+  }
+
+  async function handleGrantXp(amount: number) {
+    if (!id) return;
+    setError(null);
+    try {
+      const { character: saved, referenceData: savedReferenceData } = await api.grantXp(id, amount);
+      setCharacter(saved);
+      setReferenceData(savedReferenceData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de la distribution d'XP");
     }
   }
 
@@ -181,7 +198,7 @@ export default function CharacterSheet() {
       <PsyPowersPanel character={character} computed={computed} editing={editing} update={update} referenceData={referenceData} />
       <AdvantagesPanel character={character} editing={editing} update={update} referenceData={referenceData} />
       <EquipmentPanel character={character} editing={editing} update={update} />
-      <BudgetPanel computed={computed} />
+      <BudgetPanel character={character} computed={computed} isGm={isGm} onGrantXp={handleGrantXp} />
       <LocalisationsPanel />
       </div>
     </div>

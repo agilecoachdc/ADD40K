@@ -65,6 +65,20 @@ Les deux sens utilisent les mêmes coordonnées de cellules que `scripts/import_
 ne préserve pas les images ni la mise en forme riche du classeur original — fonctionnel, pas
 identique visuellement aux fiches de `Fiches App/`.
 
+## Distribution d'XP
+
+Le pool d'XP d'un personnage (`Character.xp`, additionné aux points de départ dans le budget de
+points) est distribué par le MJ, jamais auto-attribué par le joueur : un bouton "Donner de l'XP"
+apparaît, pour le MJ uniquement, sur la fiche détaillée (panneau "Budget de points") et sur chaque
+tuile de l'écran "Suivi des constantes", qui affiche aussi le pool XP actuel et l'XP total jamais
+distribué (`Character.xpTotal`, compteur qui ne fait qu'augmenter, purement informatif).
+
+Un montant positif alimente directement le pool. Un montant négatif — une pénalité ou une
+correction, décidée par le MJ, ce qui vaut son approbation — est absorbé dans les points de départ
+plutôt que de rendre le pool XP négatif : `xp` ne descend jamais sous 0, y compris via un import
+Excel qui enverrait une valeur négative (clampée à 0 côté `PUT /api/characters/:id`). Voir
+`POST /api/characters/:id/xp` dans `docs/API_REFERENCE.md`.
+
 ## Comptes et plateforme
 
 Trois rôles : `admin` (gère jeux/règles/groupes de joueurs et les comptes, pages `/admin/jeux` et

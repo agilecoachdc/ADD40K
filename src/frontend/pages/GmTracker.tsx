@@ -12,6 +12,14 @@
 // propre fiche. PV/PSP max suivent le même calcul que pour un joueur
 // (VIT/VOL + race + taille, cf. calc-engine.ts) — le formulaire affiche un
 // aperçu en direct de ce calcul pendant la saisie.
+//
+// Chaque tuile affiche aussi le pool XP actuel et l'XP total jamais
+// distribué (Character.xp/xpTotal) avec un bouton "+XP" pour en donner sans
+// ouvrir la fiche complète — même mécanisme que sur la fiche détaillée
+// (BudgetPanel, CharacterSheetPanels.tsx), réservé au MJ côté serveur
+// (POST /api/characters/:id/xp). Un montant négatif est absorbé dans les
+// points de départ plutôt que de rendre le pool XP négatif — cf.
+// shared/types.ts.
 
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
@@ -130,18 +138,99 @@ function StepButton({ label, onClick }: { label: string; onClick: () => void }) 
   );
 }
 
+/**
+ * Bouton "+XP" compact — révèle un mini-formulaire inline (montant + Valider)
+ * plutôt qu'un prompt() natif, pour rester cohérent avec le reste de l'UI et
+ * ne pas bloquer le polling pendant la saisie. Géré en état local à la
+ * tuile : chaque tuile est indépendante, pas besoin de le remonter au
+ * parent.
+ */
+function GrantXpControl({ onGrant }: { onGrant: (amount: number) => void | Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const value = Number(amount);
+    if (!value || !Number.isFinite(value)) return;
+    setBusy(true);
+    try {
+      await onGrant(value);
+      setAmount("");
+      setOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(true);
+        }}
+        className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+      >
+        +XP
+      </button>
+    );
+  }
+  return (
+    <form
+      onClick={(e) => e.stopPropagation()}
+      onSubmit={handleSubmit}
+      className="flex items-center gap-1"
+    >
+      <input
+        type="number"
+        autoFocus
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        placeholder="ex. 5"
+        className="w-14 rounded border border-slate-700 bg-slate-800 px-1 py-0.5 text-xs"
+      />
+      <button
+        type="submit"
+        disabled={busy || !amount}
+        className="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+      >
+        {busy ? "…" : "OK"}
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(false);
+          setAmount("");
+        }}
+        className="text-xs text-slate-500 hover:text-slate-300"
+      >
+        ×
+      </button>
+    </form>
+  );
+}
+
 function CharacterTile({
   c,
   isNpc,
   groupId,
   onAdjust,
   onRemove,
+  onGrantXp,
 }: {
   c: CharacterSummary;
   isNpc: boolean;
   groupId: string;
   onAdjust?: (field: "hpCurrent" | "pspCurrent", delta: number) => void;
   onRemove?: () => void;
+  onGrantXp?: (amount: number) => void | Promise<void>;
 }) {
   return (
     <Link
@@ -189,6 +278,19 @@ function CharacterTile({
               {c.name.charAt(0)}
             </div>
           )}
+        </div>
+        {/*
+          Pool XP actuel / total jamais distribué (cf. Character.xp/xpTotal)
+          — affiché pour joueurs et PNJ, avec le contrôle "+XP" du MJ juste
+          à côté (cette page est déjà réservée au MJ, cf. le garde-fou
+          Navigate plus bas).
+        */}
+        <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-400">
+          <span>
+            XP <span className="font-semibold text-amber-300">{c.xp}</span>
+            <span className="text-slate-600"> / total {c.xpTotal}</span>
+          </span>
+          {onGrantXp && <GrantXpControl onGrant={onGrantXp} />}
         </div>
         {isNpc && onAdjust && (
           <div className="mt-2 flex items-center justify-center gap-4 text-xs text-slate-400">
@@ -283,6 +385,21 @@ export default function GmTracker() {
     }
   }
 
+  // Distribution d'XP en direct depuis la tuile — pas besoin d'ouvrir la
+  // fiche complète pour ça (même esprit que les +/- PV/PSP des PNJ ci-dessus,
+  // mais côté API réservé au MJ, cf. POST /characters/:id/xp). Recharge la
+  // liste plutôt qu'une mise à jour optimiste : positif ou négatif touche
+  // xp/xpTotal/pointsDepart selon le signe côté serveur (routes/characters.ts),
+  // plus simple à refléter fidèlement via un GET qu'à recalculer ici.
+  async function grantXp(character: CharacterSummary, amount: number) {
+    try {
+      await api.grantXp(character.id, amount);
+      await loadCharacters();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de la distribution d'XP");
+    }
+  }
+
   async function removeNpc(npc: CharacterSummary) {
     if (!rows) return;
     setRows(rows.map((r) => (r.id === npc.id ? { ...r, inGame: false } : r)));
@@ -372,7 +489,7 @@ export default function GmTracker() {
             <ul className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2">
               {players?.map((c) => (
                 <li key={c.id}>
-                  <CharacterTile c={c} isNpc={false} groupId={groupId!} />
+                  <CharacterTile c={c} isNpc={false} groupId={groupId!} onGrantXp={(amount) => grantXp(c, amount)} />
                 </li>
               ))}
             </ul>
@@ -485,6 +602,7 @@ export default function GmTracker() {
                     groupId={groupId!}
                     onAdjust={(field, delta) => adjustNpc(c, field, delta)}
                     onRemove={() => removeNpc(c)}
+                    onGrantXp={(amount) => grantXp(c, amount)}
                   />
                 </li>
               ))}
