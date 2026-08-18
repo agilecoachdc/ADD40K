@@ -17,8 +17,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "add40k",
-      "database_id": "ecd55801-7e60-4de2-8286-db70548f2325",
+      "database_name": "r2t2",
+      "database_id": "13bf8cdd-519a-4077-89c6-fc9ab5fbe595",
       "migrations_dir": "migrations"
     }
   ],

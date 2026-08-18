@@ -91,7 +91,7 @@ npm run deploy            # release-check.sh -> build -> wrangler deploy
 ```
 
 `npm run deploy` **met l'app en ligne publiquement** — ne l'exécuter qu'après validation locale
-et accord explicite. Avant le tout premier déploiement : `wrangler d1 create add40k`, reporter
+et accord explicite. Avant le tout premier déploiement : `wrangler d1 create r2t2`, reporter
 le `database_id` dans `wrangler.jsonc`, puis `npm run db:migrate:remote`.
 
 ## Documentation

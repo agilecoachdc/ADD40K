@@ -71,12 +71,14 @@ lors du premier import, cf. rapport `scripts/import-report.md`).
 npm run deploy   # release-check.sh (typecheck + tests) -> vite build -> wrangler deploy
 ```
 
-Avant le tout premier déploiement remote : `wrangler d1 create add40k`, reporter le
+Avant le tout premier déploiement remote : `wrangler d1 create r2t2`, reporter le
 `database_id` retourné dans `wrangler.jsonc` (actuellement `REPLACE_WITH_D1_DATABASE_ID`), puis
-`npm run db:migrate:remote`. Note : la base D1 garde son nom interne historique `add40k` (visible
-uniquement dans `wrangler.jsonc`/commandes `wrangler d1`) même si le projet/Worker s'appelle
-désormais `r2t2` — renommer une base D1 existante n'apporte rien et ajoute un risque de migration
-inutile.
+`npm run db:migrate:remote`. Note : `wrangler d1` n'a pas de commande `rename` — la base a été
+"renommée" en créant une nouvelle base `r2t2`, en y import/export-ant les données de l'ancienne
+`add40k` (`wrangler d1 export add40k --remote` puis `wrangler d1 execute r2t2 --remote
+--file=...`, en réordonnant le dump par dépendances FK — l'export brut de `wrangler d1 export`
+n'est pas dans le bon ordre), puis en supprimant l'ancienne base une fois les comptes vérifiés
+identiques.
 
 **`wrangler deploy` expose l'app publiquement — ne jamais l'exécuter sans confirmation explicite
 de l'utilisateur** (cf. plan, section Déploiement).

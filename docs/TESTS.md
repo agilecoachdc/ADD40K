@@ -33,7 +33,7 @@ navigateur intégré, cf. session de build).
 - [ ] Modifier une compétence (score) → le coût et le solde se recalculent en direct, avant même
       d'enregistrer.
 - [ ] Cliquer "Enregistrer" → retour en lecture seule, valeurs persistées (vérifiable via
-      `wrangler d1 execute add40k --local --command "SELECT data FROM characters WHERE id=...`).
+      `wrangler d1 execute r2t2 --local --command "SELECT data FROM characters WHERE id=...`).
 - [ ] Cliquer "Annuler" après modification → repasse en lecture seule sans appeler l'API,
       valeurs d'avant l'édition restaurées au prochain chargement.
 - [ ] Boutons +/- PV et PSP → mettent à jour le compteur actuel/max immédiatement (état local),

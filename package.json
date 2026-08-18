@@ -14,8 +14,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:migrate:local": "wrangler d1 migrations apply add40k --local",
-    "db:migrate:remote": "wrangler d1 migrations apply add40k --remote",
+    "db:migrate:local": "wrangler d1 migrations apply r2t2 --local",
+    "db:migrate:remote": "wrangler d1 migrations apply r2t2 --remote",
     "import:xlsx": "python3 scripts/import_xlsx.py",
     "deploy": "bash scripts/release-check.sh && npm run build && wrangler deploy"
   },
