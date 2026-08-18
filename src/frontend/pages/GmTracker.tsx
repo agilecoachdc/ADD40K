@@ -27,7 +27,7 @@ import { ATTRIBUTES, type AttributeScores, type CharacterSummary, type Reference
 import { getHpMax, getPspMax } from "@shared/calc-engine";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
-import { RaceArmorSilhouette } from "../components/RaceArmorSilhouette";
+import { LocalisationSilhouette, RaceArmorSilhouette } from "../components/RaceArmorSilhouette";
 import { resizePortraitToDataUrl } from "../lib/image";
 
 const POLL_INTERVAL_MS = 1000;
@@ -406,6 +406,11 @@ export default function GmTracker() {
 
   const players = rows?.filter((c) => c.inGame && !c.isNpc && !c.archived) ?? null;
   const npcs = rows?.filter((c) => c.inGame && c.isNpc && !c.archived) ?? null;
+  // Le plus haut RA parmi les personnages en jeu — "Suivant" reboucle à 0
+  // une fois ce rang dépassé, plutôt que de continuer à grimper au-delà de
+  // tout personnage réellement en jeu.
+  const inGameRows = rows?.filter((c) => c.inGame && !c.archived) ?? [];
+  const maxRank = inGameRows.length > 0 ? Math.max(...inGameRows.map((c) => c.actionRank)) : 0;
 
   // Ajuste PV/PSP d'un PNJ et sauvegarde immédiatement — pas de fiche à
   // ouvrir, c'est tout l'intérêt de ces boutons pour le MJ en cours de jeu.
@@ -509,9 +514,13 @@ export default function GmTracker() {
           haut = agit plus tard) ou recule ("Précédent", pour corriger un
           oubli) au fil des actions. Les tuiles dont le RA correspond
           exactement sont surlignées ci-dessous (plusieurs personnages
-          peuvent agir au même rang).
+          peuvent agir au même rang). "Suivant" reboucle à 0 une fois le
+          plus haut RA en jeu dépassé (maxRank) — pas de round qui grimpe
+          indéfiniment. Silhouette de localisation générique en repère
+          visuel constant, à côté du compteur.
         */}
-        <div className="mb-6 flex items-center justify-center gap-3 rounded-xl bg-slate-900 px-4 py-3 shadow">
+        <div className="mb-6 flex items-center justify-center gap-4 rounded-xl bg-slate-900 px-4 py-3 shadow">
+          <LocalisationSilhouette size={64} />
           <button
             type="button"
             onClick={() => setCurrentRank((r) => r - 1)}
@@ -525,7 +534,7 @@ export default function GmTracker() {
           </div>
           <button
             type="button"
-            onClick={() => setCurrentRank((r) => r + 1)}
+            onClick={() => setCurrentRank((r) => (r >= maxRank ? 0 : r + 1))}
             className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
           >
             Suivant →

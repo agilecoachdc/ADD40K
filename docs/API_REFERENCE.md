@@ -77,7 +77,10 @@ chaque réponse.
   `weapons[].equipped` (arme en main — un des termes du Rang d'Action, cf. `computed.actionRank`
   et `calc-engine.getActionRank`) et `activePsyPowers` (pouvoirs activés "à la demande" en séance,
   cf. `ActivePsyPower` dans `shared/types.ts` — seul "Concentration psy" y a un effet chiffré, un
-  bonus de Réflexe pris en compte dans le calcul du RA).
+  bonus de Réflexe pris en compte dans le calcul du RA). C'est également par cette route (patch
+  `{ pointsDepart }`) que le MJ absorbe un solde négatif (bouton "Accepter" de BudgetPanel) — le
+  blocage de l'enregistrement en cas de solde négatif est une validation côté client uniquement
+  (bouton "Enregistrer" désactivé), pas une contrainte appliquée par cette route elle-même.
 - Sortie : `{ character: Character, computed: CharacterComputed, canEdit: true, referenceData: ReferenceData }`
   — `computed.actionRank` est dérivé à la volée (Réflexe, arme équipée, avantages/pouvoir
   "Concentration" actifs), jamais stocké tel quel.

@@ -18,7 +18,7 @@ interface RaceSilhouetteConfig {
   tusks?: boolean;
 }
 
-const DEFAULT_CONFIG: RaceSilhouetteConfig = { heightScale: 1, widthScale: 1, headScale: 1, ears: "round" };
+export const DEFAULT_CONFIG: RaceSilhouetteConfig = { heightScale: 1, widthScale: 1, headScale: 1, ears: "round" };
 
 const RACE_SILHOUETTES: Record<string, RaceSilhouetteConfig> = {
   humain: { heightScale: 1.0, widthScale: 1.0, headScale: 1.0, ears: "round" },
@@ -31,9 +31,9 @@ const RACE_SILHOUETTES: Record<string, RaceSilhouetteConfig> = {
   gnome: { heightScale: 0.6, widthScale: 0.88, headScale: 1.28, ears: "large" },
 };
 
-const SILHOUETTE_FILL = "#334155"; // slate-700
+export const SILHOUETTE_FILL = "#334155"; // slate-700
 
-function buildGeometry(cfg: RaceSilhouetteConfig) {
+export function buildGeometry(cfg: RaceSilhouetteConfig) {
   const feetY = 156;
   const bodyH = 132 * cfg.heightScale;
   const topY = feetY - bodyH;
@@ -176,6 +176,58 @@ export function RaceArmorSilhouette({
       <VpBadge x={50} y={g.badgeTorsoY} value={armorTotals.vpTorse} />
       <VpBadge x={g.legLeft.x + g.legLeft.w / 2} y={g.badgeLegY} value={armorTotals.vpJambes} />
       <VpBadge x={g.legRight.x + g.legRight.w / 2} y={g.badgeLegY} value={armorTotals.vpJambes} />
+    </svg>
+  );
+}
+
+function LocLabel({ x, y, label }: { x: number; y: number; label: string }) {
+  return (
+    <text
+      x={x}
+      y={y + 4}
+      textAnchor="middle"
+      fontSize={11}
+      fontWeight={700}
+      fill="#facc15"
+      stroke="#0f172a"
+      strokeWidth={3}
+      paintOrder="stroke"
+    >
+      {label}
+    </text>
+  );
+}
+
+/**
+ * Silhouette générique (toujours humaine — DEFAULT_CONFIG, pas la race d'un
+ * personnage précis) affichant la table de localisation des touches (d10) :
+ * remplace la section texte "Localisations" en fin de fiche par un visuel
+ * jumeau de RaceArmorSilhouette, affiché juste à côté (WeaponsArmorPanel)
+ * pour une lecture d'un coup d'œil pendant le jeu. Table fixe (1-2 jambe
+ * g., 3-4 jambe d., 5-7 torse, 8 bras g., 9 bras d., 10 tête) — cf.
+ * shared/reference-data.ts LOCALISATIONS (généré par scripts/import_xlsx.py,
+ * dupliqué ici en dur car elle ne varie pas d'un personnage ou d'une règle
+ * à l'autre).
+ */
+export function LocalisationSilhouette({ size = 120 }: { size?: number }) {
+  const g = buildGeometry(DEFAULT_CONFIG);
+  const height = Math.round(size * 1.6);
+
+  return (
+    <svg width={size} height={height} viewBox="0 0 100 160" aria-hidden="true">
+      <ellipse cx={g.headCx} cy={g.headCy} rx={g.headRx} ry={g.headRy} fill={SILHOUETTE_FILL} />
+      <polygon points={g.torso} fill={SILHOUETTE_FILL} />
+      <rect x={g.armLeft.x} y={g.armLeft.y} width={g.armLeft.w} height={g.armLeft.h} rx={3} fill={SILHOUETTE_FILL} />
+      <rect x={g.armRight.x} y={g.armRight.y} width={g.armRight.w} height={g.armRight.h} rx={3} fill={SILHOUETTE_FILL} />
+      <rect x={g.legLeft.x} y={g.legLeft.y} width={g.legLeft.w} height={g.legLeft.h} rx={3} fill={SILHOUETTE_FILL} />
+      <rect x={g.legRight.x} y={g.legRight.y} width={g.legRight.w} height={g.legRight.h} rx={3} fill={SILHOUETTE_FILL} />
+
+      <LocLabel x={g.headCx} y={g.headCy} label="10" />
+      <LocLabel x={g.armLeft.x + g.armLeft.w / 2} y={g.badgeArmY} label="8" />
+      <LocLabel x={g.armRight.x + g.armRight.w / 2} y={g.badgeArmY} label="9" />
+      <LocLabel x={50} y={g.badgeTorsoY} label="5-7" />
+      <LocLabel x={g.legLeft.x + g.legLeft.w / 2} y={g.badgeLegY} label="1-2" />
+      <LocLabel x={g.legRight.x + g.legRight.w / 2} y={g.badgeLegY} label="3-4" />
     </svg>
   );
 }

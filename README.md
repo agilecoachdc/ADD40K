@@ -103,8 +103,42 @@ seulement pendant qu'un pouvoir est actif :
   sur le RA parmi la vingtaine décrite dans les règles.
 
 L'écran "Suivi des constantes" affiche le RA de chaque personnage sur sa tuile, un rang courant en
-haut de l'écran (boutons Précédent/Suivant pour dérouler le round) et surligne les tuiles dont le
-RA correspond exactement au rang affiché — plusieurs personnages peuvent agir au même rang.
+haut de l'écran (boutons Précédent/Suivant pour dérouler le round — "Suivant" reboucle à 0 une fois
+dépassé le plus haut RA parmi les personnages en jeu) et surligne les tuiles dont le RA correspond
+exactement au rang affiché — plusieurs personnages peuvent agir au même rang.
+
+## Descriptions du catalogue et infobulles
+
+Compétences, avantages/inconvénients et pouvoirs psy portent chacun une `description` extraite des
+Règles ADD40K V0.2 (`src/shared/reference-data.ts`, croisé avec le classeur Excel dès l'origine —
+cf. l'en-tête du fichier). Affichée en infobulle native (attribut `title`) au survol du nom, en
+lecture seule, sur la fiche personnage. Quelques entrées du catalogue n'ont pas d'équivalent
+identifiable dans les règles (ex. "Sciences théo", "Affinité (VOL) Téléportation") et restent sans
+description plutôt que d'en inventer une. Armes et armures n'ont pas de description : les règles ne
+décrivent que le tableau chiffré (dégâts/RA/VP/prix), sans texte par objet.
+
+## Fiche repliable
+
+Chaque section de la fiche personnage (Identité, Attributs, Compétences, Armes, Armures, Pouvoirs
+psy, Avantages, Équipement, Budget de points...) se replie/déplie au clic sur son titre
+(`Section` dans `CharacterSheetPanels.tsx`) — pratique sur mobile pour ne garder ouvert que ce dont
+on a besoin en séance. Ouvertes par défaut, état non persisté (juste un confort d'affichage pendant
+la session).
+
+## Localisations
+
+La table de localisation des touches (d10 : 1-2 jambe g., 3-4 jambe d., 5-7 torse, 8 bras g., 9 bras
+d., 10 tête) est affichée comme une silhouette (`LocalisationSilhouette`,
+`RaceArmorSilhouette.tsx`) à côté de la silhouette d'armure sur la fiche (section "Armures"), et en
+repère générique en haut de l'écran "Suivi des constantes" — remplace l'ancienne section texte
+"Localisations" en fin de fiche.
+
+## Budget de points hors limites
+
+Un solde négatif (dépense au-delà du budget) bloque l'enregistrement de la fiche en mode édition —
+il faut d'abord ajuster la fiche, ou passer par le MJ : soit une distribution d'XP (ci-dessus), soit
+le bouton "Accepter" du message d'avertissement rouge, qui absorbe le déficit dans les points de
+départ pour ramener le solde à 0 (`onAcceptDeficit`, `BudgetPanel`).
 
 ## Comptes et plateforme
 

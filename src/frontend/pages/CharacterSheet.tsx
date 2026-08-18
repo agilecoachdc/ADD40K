@@ -14,7 +14,6 @@ import {
   AdvantagesPanel,
   EquipmentPanel,
   BudgetPanel,
-  LocalisationsPanel,
 } from "../components/CharacterSheetPanels";
 
 export default function CharacterSheet() {
@@ -153,8 +152,37 @@ export default function CharacterSheet() {
     }
   }
 
+  // Le MJ "accepte" un solde négatif (avertissement rouge de BudgetPanel) en
+  // absorbant le déficit dans les points de départ — plutôt que de laisser
+  // le personnage hors budget indéfiniment ou de forcer une réduction de
+  // compétences. Ramène le solde à 0 exactement (le déficit ajouté = le
+  // manque actuel).
+  async function handleAcceptDeficit() {
+    if (!character || !id) return;
+    const deficit = Math.abs(computed.budget.solde);
+    if (deficit === 0) return;
+    setError(null);
+    try {
+      const { character: saved, referenceData: savedReferenceData } = await api.updateCharacter(id, {
+        pointsDepart: character.pointsDepart + deficit,
+      });
+      setCharacter(saved);
+      setReferenceData(savedReferenceData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de la correction du solde");
+    }
+  }
+
   async function save() {
     if (!character || !id) return;
+    // Bloque l'enregistrement si l'édition en cours dépasse le budget de
+    // points — le solde négatif doit être résolu (ajuster la fiche, ou
+    // demander au MJ un octroi d'XP / d'accepter le déficit via
+    // BudgetPanel, disponibles même hors édition) avant de sauvegarder.
+    if (computed.budget.solde < 0) {
+      setError("Solde négatif : ajustez la fiche avant d'enregistrer (ou demandez au MJ de l'XP ou d'accepter le déficit).");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -196,7 +224,8 @@ export default function CharacterSheet() {
                   </button>
                   <button
                     onClick={save}
-                    disabled={saving}
+                    disabled={saving || computed.budget.solde < 0}
+                    title={computed.budget.solde < 0 ? "Solde négatif — ajustez la fiche avant d'enregistrer" : undefined}
                     className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
                   >
                     {saving ? "Enregistrement…" : "Enregistrer"}
@@ -243,8 +272,7 @@ export default function CharacterSheet() {
       />
       <AdvantagesPanel character={character} editing={editing} update={update} referenceData={referenceData} />
       <EquipmentPanel character={character} editing={editing} update={update} />
-      <BudgetPanel character={character} computed={computed} isGm={isGm} onGrantXp={handleGrantXp} />
-      <LocalisationsPanel />
+      <BudgetPanel character={character} computed={computed} isGm={isGm} onGrantXp={handleGrantXp} onAcceptDeficit={handleAcceptDeficit} />
       </div>
     </div>
   );

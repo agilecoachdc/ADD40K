@@ -17,13 +17,7 @@ import {
 } from "@shared/types";
 import type { CharacterComputed } from "@shared/calc-engine";
 import { getPsyPowerTotal, getSkillTotal, getWeaponSuggestedScore, getWeaponTotals } from "@shared/calc-engine";
-// LOCALISATIONS est une légende générique (répartition des touches par
-// localisation), pas une donnée de catalogue liée à une règle — elle reste
-// donc en dur, contrairement au reste de reference-data.ts (races/compétences/
-// armes/armures/pouvoirs/avantages), qui vient désormais du groupe de
-// l'utilisateur via la prop `referenceData` (cf. CharacterSheet.tsx).
-import { LOCALISATIONS } from "@shared/reference-data";
-import { RaceArmorSilhouette } from "./RaceArmorSilhouette";
+import { LocalisationSilhouette, RaceArmorSilhouette } from "./RaceArmorSilhouette";
 import { resizePortraitToDataUrl } from "../lib/image";
 
 type Update = (patch: Partial<Character>) => void;
@@ -39,11 +33,27 @@ const ATTRIBUTE_LABELS: Record<Attribute, string> = {
   VOL: "Volonté",
 };
 
+/**
+ * Toutes les sections de la fiche passent par ce wrapper — le rendre
+ * repliable ici les rend TOUTES repliables d'un coup, sans toucher chaque
+ * panneau. Ouvert par défaut (pas de régression de visibilité) ; l'état
+ * n'est pas persisté (juste un confort d'affichage pendant la session,
+ * pas une préférence à retenir entre deux visites).
+ */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(true);
   return (
     <section className="rounded-xl bg-slate-900 p-4 shadow">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">{title}</h2>
-      {children}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="mb-3 flex w-full items-center justify-between text-left text-sm font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-200"
+        aria-expanded={open}
+      >
+        <span>{title}</span>
+        <span className="text-slate-500">{open ? "▾" : "▸"}</span>
+      </button>
+      {open && children}
     </section>
   );
 }
@@ -380,7 +390,9 @@ export function SkillsPanel({
                   className="flex-1"
                 />
               ) : (
-                <span className="text-slate-200">{s.name}</span>
+                <span className="text-slate-200" title={referenceData.skills.find((sd) => sd.name === s.name)?.description}>
+                  {s.name}
+                </span>
               )}
               {editing ? (
                 <NumberInput value={s.score} onChange={(n) => setSkill(i, { score: n })} />
@@ -688,8 +700,15 @@ export function WeaponsArmorPanel({
       </Section>
 
       <Section title="Armures">
-        <div className="mb-3 flex justify-center">
+        {/*
+          Silhouette d'armure (VP par membre) et silhouette de localisation
+          (table de touches d10, générique — remplace l'ancienne section
+          texte "Localisations" en fin de fiche) côte à côte, pour associer
+          d'un coup d'œil "combien de VP ici" et "quel jet touche ici".
+        */}
+        <div className="mb-3 flex justify-center gap-4">
           <RaceArmorSilhouette race={character.race} armorTotals={computed.armorTotals} size={110} />
+          <LocalisationSilhouette size={110} />
         </div>
 
         {!editing && canEdit && (
@@ -931,7 +950,10 @@ export function PsyPowersPanel({
                     className="flex-1"
                   />
                 ) : (
-                  <span className="text-slate-200">
+                  <span
+                    className="text-slate-200"
+                    title={referenceData.psyPowers.find((pd) => pd.name === p.name)?.description}
+                  >
                     {p.name} <span className="text-slate-500">({p.discipline})</span>
                   </span>
                 )}
@@ -1010,7 +1032,9 @@ export function AdvantagesPanel({
                 className="flex-1"
               />
             ) : (
-              <span className="text-slate-200">{a.label}</span>
+              <span className="text-slate-200" title={referenceData.advantages.find((ad) => ad.label === a.label)?.description}>
+                {a.label}
+              </span>
             )}
             <span className={a.value >= 0 ? "text-emerald-400" : "text-red-400"}>
               {a.value >= 0 ? "+" : ""}
@@ -1089,15 +1113,29 @@ export function BudgetPanel({
   computed,
   isGm,
   onGrantXp,
+  onAcceptDeficit,
 }: {
   character: Pick<Character, "pointsDepart" | "xp" | "xpAvailable">;
   computed: CharacterComputed;
   isGm?: boolean;
   onGrantXp?: (amount: number) => void | Promise<void>;
+  /** Absorbe le solde négatif dans les points de départ — réservé au MJ, cf. CharacterSheet.tsx handleAcceptDeficit. */
+  onAcceptDeficit?: () => void | Promise<void>;
 }) {
   const { budget } = computed;
   const [xpAmount, setXpAmount] = useState("");
   const [xpBusy, setXpBusy] = useState(false);
+  const [deficitBusy, setDeficitBusy] = useState(false);
+
+  async function handleAcceptDeficit() {
+    if (!onAcceptDeficit) return;
+    setDeficitBusy(true);
+    try {
+      await onAcceptDeficit();
+    } finally {
+      setDeficitBusy(false);
+    }
+  }
   // Coût net réellement consommé sur le total dispo (compétences + pouvoirs
   // psy + avantages) — équivalent à `totalDispo - solde`, affiché comme un
   // seul chiffre en plus du détail par poste ci-dessous.
@@ -1145,9 +1183,20 @@ export function BudgetPanel({
         <Metric label="Solde" value={budget.solde} emphasis />
       </dl>
       {budget.solde < 0 && (
-        <p className="mt-3 rounded-lg bg-red-950 px-3 py-2 text-sm text-red-300">
-          ⚠️ Solde négatif : ce personnage dépasse son budget de points de {Math.abs(budget.solde)}.
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-950 px-3 py-2 text-sm text-red-300">
+          <span>⚠️ Solde négatif : ce personnage dépasse son budget de points de {Math.abs(budget.solde)}.</span>
+          {isGm && onAcceptDeficit && (
+            <button
+              type="button"
+              onClick={handleAcceptDeficit}
+              disabled={deficitBusy}
+              title="Ajoute le déficit aux points de départ pour ramener le solde à 0"
+              className="shrink-0 rounded-lg bg-red-800 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {deficitBusy ? "…" : "Accepter"}
+            </button>
+          )}
+        </div>
       )}
       {isGm && onGrantXp && (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-800 pt-3">
@@ -1167,10 +1216,6 @@ export function BudgetPanel({
           >
             {xpBusy ? "…" : "Valider"}
           </button>
-          <p className="w-full text-xs text-slate-500">
-            Positif : ajoute au pool XP disponible. Négatif (pénalité/correction) : retiré des
-            points de départ plutôt que de rendre le pool XP négatif.
-          </p>
         </div>
       )}
     </Section>
@@ -1188,10 +1233,7 @@ function Metric({ label, value, emphasis }: { label: string; value: number; emph
   );
 }
 
-export function LocalisationsPanel() {
-  return (
-    <Section title="Localisations">
-      <pre className="whitespace-pre-wrap text-sm text-slate-300">{LOCALISATIONS}</pre>
-    </Section>
-  );
-}
+// LocalisationsPanel (section texte "Localisations" en fin de fiche) a été
+// remplacé par LocalisationSilhouette, affichée à côté de la silhouette
+// d'armure dans WeaponsArmorPanel ci-dessus — plus lisible d'un coup d'œil
+// en jeu, cf. RaceArmorSilhouette.tsx.

@@ -164,35 +164,43 @@ export const referenceData: ReferenceData = {
   "skills": [
     {
       "name": "Arme de poing (PER)",
-      "attribute": "PER"
+      "attribute": "PER",
+      "description": "Savoir tirer précisément et instinctivement avec un pistolet, un pistolet mitrailleur ou un revolver."
     },
     {
       "name": "Fusils (PER)",
-      "attribute": "PER"
+      "attribute": "PER",
+      "description": "Connaître les techniques d'utilisation et d'entretien des fusils automatiques ou non."
     },
     {
       "name": "Mêlée (DEX)",
-      "attribute": "DEX"
+      "attribute": "DEX",
+      "description": "La capacité à utiliser les armes blanches, comme les couteaux, les haches, les gourdins."
     },
     {
       "name": "Esquive (REF)",
-      "attribute": "REF"
+      "attribute": "REF",
+      "description": "L'habileté à éviter les coups reçus, ou les objets jetés. Il est possible d'éviter les armes de jet et à feu (voire les règles de combat)."
     },
     {
       "name": "Commandement (COM)",
-      "attribute": "COM"
+      "attribute": "COM",
+      "description": "L'autorité naturelle permettant de diriger un groupe. À +6, vous pouvez prendre la tête d'un gang de raiders sans craindre les oppositions, alors qu'à +10, vous avez le niveau d'un Monsieur Johnson."
     },
     {
       "name": "Etiquette (COM)",
-      "attribute": "COM"
+      "attribute": "COM",
+      "description": "Savoir comment se comporter en société. Connaître les us et coutumes des communautés et des groupes d'individus, pour se fondre dans le groupe ou éviter de commettre des impairs."
     },
     {
       "name": "interview (COM)",
-      "attribute": "COM"
+      "attribute": "COM",
+      "description": "Savoir comment se comporter devant les caméras et ce qu'il faut dire ou ne pas dire aux médias. Cette compétence peut influer énormément sur la réputation des personnages. Un jet réussi peut apporter une bonne réputation, un jet raté peut en faire descendre une, ou pire, en faire gagner une mauvaise."
     },
     {
       "name": "Persuasion (COM)",
-      "attribute": "COM"
+      "attribute": "COM",
+      "description": "La capacité à embrouiller les gens, mentir, persuader. À +2, vous pouvez improviser des mensonges de manière crédible, à +5 vous pouvez monter de gros bobards très crédibles, et à +8 vous pouvez vendre du sable à un nomade. Le baratin est plus efficace en petit comité."
     },
     {
       "name": "Sciences théo (INT)",
@@ -200,27 +208,33 @@ export const referenceData: ReferenceData = {
     },
     {
       "name": "Informatique (INT)",
-      "attribute": "INT"
+      "attribute": "INT",
+      "description": "Permet d'utiliser, de programmer ou de réparer les ordinateurs. Ceux-ci sont utilisés dans la majeure partie du monde."
     },
     {
       "name": "Sciences dures (DEX)",
-      "attribute": "DEX"
+      "attribute": "DEX",
+      "description": "Toutes les connaissances pour pouvoir réparer une arme, un véhicule et y apporter des modifications. Pour réparer un moteur de vaisseau complexe, il faut un équipement élaboré qui va au-delà d'un simple tournevis."
     },
     {
       "name": "Médecine (INT) (DEX)",
-      "attribute": "INT"
+      "attribute": "INT",
+      "description": "Votre connaissance du corps humain, votre capacité à soigner des patients, à faire des diagnostics, des opérations, ou à élaborer des médicaments. À +3, vous savez faire une attelle, recoudre une plaie et préparer quelques médications simples. À +6, vous êtes capable de pratiquer une opération chirurgicale et vous diagnostiquez la plupart des maladies."
     },
     {
       "name": "Gestion (INT)",
-      "attribute": "INT"
+      "attribute": "INT",
+      "description": "Savoir gérer les comptes d'une société : les investissements, prévoir les charges, les profits, tenir une comptabilité, etc. Renifler les bons investissements."
     },
     {
       "name": "Histoire, (INT)",
-      "attribute": "INT"
+      "attribute": "INT",
+      "description": "L'histoire du monde avant la catastrophe et les années qui ont suivi. Inclut la connaissance de l'âge d'or et du mode de vie d'alors. Peut servir à identifier un objet ancien ou deviner la fonction d'un bâtiment."
     },
     {
       "name": "Athlétisme (VIT)",
-      "attribute": "VIT"
+      "attribute": "VIT",
+      "description": "L'entraînement physique permettant de courir vite et longtemps, nager, sauter en longueur ou en largeur, lancer des objets lourds, etc."
     },
     {
       "name": "Résistance aux tortures et drogues (VIT)",
@@ -228,51 +242,63 @@ export const referenceData: ReferenceData = {
     },
     {
       "name": "Survie (zone) (VIT)",
-      "attribute": "VIT"
+      "attribute": "VIT",
+      "description": "Le B.A.-BA des techniques de survie : comment se nourrir, rester discret et économiser ses forces dans un environnement sauvage ou inhospitalier. Sert aussi à savoir quels lieux éviter dans un quartier en ruine (contamination radioactive, etc.)."
     },
     {
       "name": "Discretion (DEX)",
-      "attribute": "DEX"
+      "attribute": "DEX",
+      "description": "L'art de se mouvoir silencieusement et sans être vu. S'oppose à la vigilance. Peut bénéficier de bonus dans une foule, ou dans un environnement obscur. À +8, vous êtes un voleur doué d'un bon potentiel."
     },
     {
       "name": "Contrefaçon (DEX)",
-      "attribute": "DEX"
+      "attribute": "DEX",
+      "description": "Permet de fabriquer de faux documents, d'imiter des signatures et de reproduire la mise en page exacte de documents officiels. Permet aussi de reconnaître les faux documents."
     },
     {
       "name": "Déguisement (DEX)",
-      "attribute": "DEX"
+      "attribute": "DEX",
+      "description": "Modifier son apparence à l'aide d'accessoires pour passer inaperçu. À +6, vous savez très facilement improviser un déguisement avec peu d'accessoires."
     },
     {
       "name": "Pickpocket (DEX)",
-      "attribute": "DEX"
+      "attribute": "DEX",
+      "description": "L'art et la manière de faire les poches de ses concitoyens, ou de dérober discrètement des objets sur un étalage. En dessous de 4, ne vous lancez pas dans cette activité à plein temps."
     },
     {
       "name": "Chercher (PER)",
-      "attribute": "PER"
+      "attribute": "PER",
+      "description": "La faculté de chercher, fouiller quelqu'un ou une pièce. Il faut que le personnage sache ce qu'il cherche."
     },
     {
       "name": "Sens (PER)",
-      "attribute": "PER"
+      "attribute": "PER",
+      "description": "L'utilisation de ses 5 sens : avoir une bonne vue, le sens de l'observation, une ouïe fine... Contrairement à la vigilance, cette compétence est utilisée consciemment (observer quelqu'un à distance, écouter derrière une porte...)."
     },
     {
       "name": "Sécurité (DEX)",
-      "attribute": "DEX"
+      "attribute": "DEX",
+      "description": "Savoir comment reconnaître et neutraliser des appareils électroniques comme les alarmes, des serrures à reconnaissance vocale ou des caméras de surveillance. À +3, vous avez déjà des films d'espionnage au cinéma. À +10, vous êtes l'Arsène Lupin de votre société."
     },
     {
       "name": "Conn. des rues (PER)",
-      "attribute": "PER"
+      "attribute": "PER",
+      "description": "La connaissance des quartiers, des rues, des gangs, de l'actualité et des modes de vie locaux."
     },
     {
       "name": "Pilotage définir type (REF)",
-      "attribute": "REF"
+      "attribute": "REF",
+      "description": "Savoir conduire un véhicule terrestre ou aérien (à préciser à l'achat de la compétence). Connaître les manœuvres d'urgence, négocier les endroits difficiles à grande vitesse."
     },
     {
       "name": "Explosifs,demolition (INT)",
-      "attribute": "INT"
+      "attribute": "INT",
+      "description": "La capacité à reconnaître des explosifs, à les utiliser dans les meilleures conditions (effets, sécurité). La compétence \"chimie\" permet d'en fabriquer."
     },
     {
       "name": "Corp système (INT)",
-      "attribute": "INT"
+      "attribute": "INT",
+      "description": "Cela représente votre réputation au sein de votre hiérarchie ; plus cette valeur est haute, plus vous avez accès à des données sécurisées."
     },
     {
       "name": "Affinité (VOL) Téléportation",
@@ -692,393 +718,490 @@ export const referenceData: ReferenceData = {
   "psyPowers": [
     {
       "name": "Acuité sensorielle",
-      "discipline": "Mental"
+      "discipline": "Mental",
+      "description": "Le personnage peut affiner ses propres sens. \nNiveau 15: Le P.J peut affiner le sens qu'il veut. A chaque utilisation, il peut augmenter l'un de ses 5 sens de 1 point par niveau. L'effet dure un nombre de tour égal au score du pouvoir.\nNiveau 20: Le P.J peut entendre et voir à une distance supérieure à la normale. Toutes les distances sont réduites : Les distances jusqu'à normale deviennent proches et les distances à vue deviennent normales. Pour l'ouïe, le personnage peut entendre jusqu'à une portée à vue. Chaque utilisation permet de voir un seul endroit. Le pouvoir dure score utilisation ou niveau round.\nNiveau 25 : Possible d'entendre les sons provenant d'un endroit avec lequel on a un lien.\nNiveau  30\tPossible de déterminer l'emplacement d'une personne sur une distance de 10+1/niveau kilomètre. Il faut posséder un lien ou connaître le véritable nom de la personne. L'O.P a conscience de la présence de chaque être se trouvant à portée. Il sait où ils se trouvent, et s' il les a connus d'une quelconque manière (vu physiquement ou par description) il connaît leur identité. L'effet dure un nombre de minutes égale au score de l'O.P. Possible de voir un endroit avec lequel on a un lien.\nNiveau 35 : Permet de retrouver une personne n'importe où pour autant que l'O.P possède un lien avec la personne. Permet de voir et d'entendre par l'intermédiaire d'une personne ou d'un objet avec lequel on a un lien."
     },
     {
       "name": "Charme",
-      "discipline": "Mental"
+      "discipline": "Mental",
+      "description": "Le personnage peut influencer les réactions d'un autre être.\nNiveau 15 : Permet d'influencer légèrement l'opinion de quelqu'un. Ajoute+1 dans les jets d'interaction et +3 avec des personnes du sexe opposé.\nNiveau 20 : Pousse une cible à éprouver de la sympathie ou de l'antipathie envers une autre personne.\nNiveau 25 : Le P.J peut influencer les pensées d'une cible de façon radicale, transformant la confiance en méfiance et inversement. La cible apparaît comme le chef d'un groupe de personnes pendant score x minute.\nNiveau 30 : Le P.J peut influencer les pensées et opinions qu'une cible peut avoir sur le monde. Cela s'avère plus compliqué lorsque lesdites opinions sont solides.\nNiveau 35 : Lie totalement une cible au P.J si celui-ci réussit à vaincre la volonté de la cible. Ce lien est permanent ou jusqu'à ce que le P.J relâche la cible. Celle-ci se conduira comme étant le plus dévoué des esclaves."
     },
     {
       "name": "Hypnagogie",
-      "discipline": "Mental"
+      "discipline": "Mental",
+      "description": "Le personnage peut affecter le sommeil et les rêves d'un autre être.\nNiveau 15 : Le P.J provoque le sommeil. Ajoutez un point de difficulté au niveau par cible en plus de la première. En cas d'utilisation réussie, les cibles doivent toutes effectuer un jet de volonté contre le score du personnage +1d10. Regardez la marge d'échec et appliquez le résultat adéquat (0-2 Somnolent : -1 à tous les jets pendant 2d10 minutes ; 3-5 Épuisé : -4 pendant 1d10 x 15 minutes ; 6-9 Sommeil : score heure ; 10+ Sommeil : score x 2 heures, ne peut être réveillée).\nNiveau 20 : Le P.J peut utiliser les rêves d'une cible pour communiquer avec elle. La cible doit être endormie et le P.J conscient.\nNiveau 25 : Le P.J peut communiquer et affecter les rêves de la cible, lui envoyer des cauchemars, ou se repaître de son sommeil réparateur (récupère son score en heures de sommeil ou en PSP temporaires, perdus en 6 heures).\nNiveau 30 : Le personnage peut entrer dans les rêves de la cible et en prendre totalement le contrôle. La cible doit réussir un jet de Volonté pour ne pas sombrer dans la folie.\nNiveau 35 : Le personnage contrôle tous les rêves de la cible ; tous les malheurs du songe l'affectent aussi dans le monde réel."
     },
     {
       "name": "Illusion",
-      "discipline": "Mental"
+      "discipline": "Mental",
+      "description": "Le personnage peut affecter la perception sensorielle d'un autre être. Cette discipline touche tous les sens. Le jet sert à déterminer si la victime parvient à surmonter les fausses indications qu'elle reçoit. Chaque utilisation dure un nombre de minutes égal au score dans le pouvoir.\nNiveau 15 : Crée une illusion n'affectant qu'un seul sens. Augmente ou diminue l'intensité d'une sensation. Annule momentanément une sensation. Déplace l'image d'un objet de lm de sa position actuelle.\nNiveau 20 : Crée une illusion affectant deux sens. Augmente ou diminue l'intensité  de deux sensations. Annule la capacité d'un objet à affecter deux sens. Déplace l'image d'un objet à 5m.\nNiveau 25 : Crée une illusion qui affecte quatre sens. Permet de discerner les illusions de la réalité. Augmente ou diminue l'intensité de quatre sens. Annule la capacité d'un objet à affecter quatre sens. Déplace l'image  d'un objet à 500m de sa position actuelle.\nNiveau 30 : Crée une illusion affectant les 5 sens. Modifie totalement un objet à l'exception du touché. Annule la capacité d'un objet à affecter les 5 sens. Déplace l'image d'un objet à vue de sa position originelle.\nNiveau 35 : Altère radicalement la perception de l'univers d'une cible (le magicien lui fait voir, sentir, etc. absolument ce qu'il veut). L'image d'un objet est déplacée vers un lieu avec lequel le mage possède un lien."
     },
     {
       "name": "Télépathie",
-      "discipline": "Mental"
+      "discipline": "Mental",
+      "description": "Le personnage peut communiquer avec d'autres êtres. Les pouvoirs télépathiques offrant une traduction simultanée, il n'existe pas de barrière entre les langues.\nNiveau 15 : Permet de communiquer un message ne comportant pas plus de 20 mots à l'esprit d'une cible.\nNiveau 20 : Le personnage peut dialoguer avec un autre pendant score x minute. La cible doit être à vue.\nNiveau 25 : Permet de combiner son conscient à celui d'un autre être. Tant que les deux esprits sont joints, le personnage prend connaissance des pensées superficielles de l'autre et vice versa. Le personnage peut bloquer la réciproque en dépensant un PSP. Il est possible d'entretenir une conversation. La durée est égale à score x 5 minutes. Permet d'attirer un personnage vers un endroit pour peu que l'on ait un lien avec elle.\nNiveau 30 : Permet d'implanter un ordre dans l'esprit de la cible qui accomplira la mission dans la mesure de ses capacités.\nNiveau 35 : Parasite mental : Toutes les informations mentales (due au 5 sens) que reçoit la cible du pouvoir sont transmises au personnage. La cible ne se souviendra jamais d'avoir reçu de telles informations si le personnage dépense 1 PSP. En fait, la cible servira de plate-forme de transit pour les informations. Ce pouvoir n'affectera en rien le comportement du sujet. Le pouvoir dure 1 jour x score dans le pouvoir."
     },
     {
       "name": "Préscience",
-      "discipline": "Mental"
+      "discipline": "Mental",
+      "description": "Le personnage peut prédire le futur le plus probable.\nNiveau 15 : Sens du danger (ldl0 rounds avant que ça n'arrive).\nNiveau 20 : Permet de connaître l'événement le plus probable qui va se dérouler durant la prochaine minute.\nNiveau 25 : En touchant la cible, le personnage peut deviner un des éléments majeurs qui affecteront le futur proche de cette dernière. Un événement majeur est déterminé par utilisation.\nNiveau 30 : Visions aléatoires concernant le futur lointain. Celles-ci peuvent correspondre à un futur variant entre 5 jours et 1000 ans.\nNiveau 35 : Le personnage peut contrôler son destin. S' il meurt de cause violente, il peut utiliser ce pouvoir. En cas de réussite, il avait prévu son décès et il peut \" revenir \" au round précédent l'action. Évidemment si le personnage est mis devant un peloton d'exécution, il ne lui sert à rien d'utiliser ce pouvoir. Il n'est possible de revenir en arrière que de 1 round."
     },
     {
       "name": "Cryokinésie",
-      "discipline": "Psychokinésie"
+      "discipline": "Psychokinésie",
+      "description": "Le personnage peut abaisser la température ambiante. Sauf précision contraire, la température ambiante est toujours de 20 degré\nC. Toute température inférieure sera perçue comme froide. A 5 les plantes commenceront à dépérir. A 0 l'eau gèle. Ensuite, le temps nécessaire pour les engelures sera réduit de 1 minute par tranche de -5 en commençant à 5 minutes. Les plantes gèleront, deviendront cassantes et mourront si elles ne sont pas réchauffées correctement. A -25, les engelures apparaîtront en quelques secondes. Le métal deviendra cassant à partir de -15 et les armes seront inutilisables à partir de -20. L'électronique gèlera à partir de -5. Il est impossible de descendre en dessous du 0 absolu (env. -273 degrés C).\nNiveau 15 : Refroidi un espace de lm cube par score de pouvoir à raison de 1 degré par score et par round d'utilisation (il faut rester concentré et payer chaque round). Peut faire apparaître une engelure au toucher.\nNiveau 20 : Refroidi un espace de lm cube par score de pouvoir à raison de 2 degré par score et par round d'utilisation (il faut rester concentré et payer chaque round). Peut geler du métal au toucher.\nNiveau 25 : Refroidi un espace de 1m cube par score de pouvoir à raison de 4 degré par score et par round d'utilisation (il faut rester concentré et payer chaque round).\nNiveau 30 : Le personnage peut faire chuter sa propre température corporelle. Ses organes vitaux ne travaillent presque plus du tout et il peut ainsi hiberner sur une période allant de 1 jour à 100 ans. Le personnage ne vieillit  pas et n'a pas besoin de se sustenter. Par année passée dans cet état, il effectue un jet d'essence. En cas d'échec, il ne se réveille pas et il faudra tenter l'année d'après. En cas de maladresse, le réveille n'est plus possible sans intervention extérieure. En cas de réussite critique, le personnage se réveille instantanément. Il lui faudra une période de réadaptation égale au nombre d'années passées en torpeur en nombre de mois. Dans cet état, le personnage est totalement vulnérable.\nNiveau 35: Le personnage projette un souffle proche du 0 absolu. Tous les êtres vivants dans l'air d'effet doivent réussir un jet de Vitalité -5. En cas d'échec, c'est la mort directe. En cas de réussite, ils perdent tous un point de vitalité permanent dû aux engelures diverses. Le métal et l'électronique deviennent automatiquement inutilisables. Les dimensions du souffle sont de score x mètre de long et score/2 mètres de large (avec lm de largeur au sommet)."
     },
     {
       "name": "Electrokinésie",
-      "discipline": "Psychokinésie"
+      "discipline": "Psychokinésie",
+      "description": "Le personnage manipule l'électricité.\nNiveau 15 : Le personnage peut émettre une décharge d'électricité puissante. Tout objet ou personnes en contact endure le score du personnage + 1d10 en points de dommage.\nNiveau 20 : Le personnage peut charger son corps d'électricité et infliger 1d10+score points de dégâts au toucher. Le pouvoir ne\ndure score du personnage en round ou jusqu'à ce que le personnage se « décharge » en touchant quelqu'un ou quelque chose.\nNiveau 25 : Le personnage peut perturber le fonctionnement des appareils électriques de façon permanente. Peut projeter un éclair hors de son corps et viser une cible (score + perception pour toucher -1/mètre de distance de la cible) située à portée. Il produit 1d10 + niveau x2 points de dégâts.\nNiveau 30 : Le personnage contrôle tous les systèmes électriques se trouvant à proximité. Il peut les diriger comme il le souhaite.\nNiveau 35 : Cœur de tonnerre : Le personnage est le système électrique. Il peut se déplacer à la vitesse de la lumière dans le système et se rendre n'importe où tant qu’une conduction électrique est possible (attention donc à la distance dans les isolants comme le vide). Il affecte tout, entend tout, etc. Attention, les réseaux sont protégés par des agents ayant des pouvoirs similaires."
     },
     {
       "name": "Kinésie",
-      "discipline": "Psychokinésie"
+      "discipline": "Psychokinésie",
+      "description": "Le personnage peut manier l'énergie cinétique.\nNiveau 15 : Le personnage peut projeter une force cinétique puissante mais grossière infligeant niveau+ ldl0 points de dégâts. Il faut réussir un jet de Per + score -1/m de la cible.\nNiveau 20 : Coussin mental : Tous les dégâts dus à la cinétique sont réduits de (10 x score)% avec un maximum de 90%. Dure un round et dans une direction.\nNiveau 25: Projection d'une force cinétique puissante de niveau x 2 +1d10 points de dégâts si elle touche. Bouclier mental : Forme une barrière protégeant de toutes les attaques cinétique et réduisant les dommages de score x 5% avec un maximum de 90%. Il faut alimenter le bouclier à chaque round.\nNiveau 30 : Le personnage peut voler en utilisant l'énergie cinétique brute. Il ne doit jamais descendre en dessous de 60 km/h +10 km/h par score dans le pouvoir. Le pouvoir élèvera le personnage de 10 m par tranche de 10 km/h et par minute. Ainsi un personnage avec un score de 10 pourra se retrouver à 900m d'altitude après 5 minutes de vol. N'oubliez pas de redescendre avant que le pouvoir ne prenne fin. La durée est égale à score x 10 minutes.\nNiveau 35 : Cercle de protection : Protège tous les êtres dans un rayon de 20m des attaques cinétiques de 90%. Durée score x minute. Projection d'un force cinétique de niveaux 5 + ldl0 points de dégâts."
     },
     {
       "name": "Télékinésie",
-      "discipline": "Psychokinésie"
+      "discipline": "Psychokinésie",
+      "description": "Le personnage peut manier l'énergie cinétique.\nNiveau 15 : Le personnage peut projeter une force cinétique puissante mais grossière infligeant niveau+ ldl0 points de dégâts. Il faut réussir un jet de Per + score -1/m de la cible.\nNiveau 20 : Coussin mental : Tous les dégâts dus à la cinétique sont réduits de (10 x score)% avec un maximum de 90%. Dure un round et dans une direction.\nNiveau 25: Projection d'une force cinétique puissante de niveau x 2 +1d10 points de dégâts si elle touche. Bouclier mental : Forme une barrière protégeant de toutes les attaques cinétique et réduisant les dommages de score x 5% avec un maximum de 90%. Il faut alimenter le bouclier à chaque round.\nNiveau 30 : Le personnage peut voler en utilisant l'énergie cinétique brute. Il ne doit jamais descendre en dessous de 60 km/h +10 km/h par score dans le pouvoir. Le pouvoir élèvera le personnage de 10 m par tranche de 10 km/h et par minute. Ainsi un personnage avec un score de 10 pourra se retrouver à 900m d'altitude après 5 minutes de vol. N'oubliez pas de redescendre avant que le pouvoir ne prenne fin. La durée est égale à score x 10 minutes.\nNiveau 35 : Cercle de protection : Protège tous les êtres dans un rayon de 20m des attaques cinétiques de 90%. Durée score x minute. Projection d'un force cinétique de niveaux 5 + ldl0 points de dégâts."
     },
     {
       "name": "Pyrokinésie",
-      "discipline": "Psychokinésie"
+      "discipline": "Psychokinésie",
+      "description": "Le personnage accroît les températures. A partir de 30, un humain se sentira très mal à l'aise. A 40 il sera rouge et se fatiguera très rapidement. A 50 le métal sera chaud. Le plastique fond à 60 et le métal à 500.\nNiveau 15 : Chauffe un espace de lm cube par score de pouvoir à raison de 1 degré par score et par round d'utilisation (il faut rester concentré et payer chaque round). Peut faire brûler des matériaux inflammables au toucher.\nNiveau 20 : Chauffe un espace de 1m cube par score de pouvoir à raison de 2 degré par score et par round d'utilisation (il faut rester concentré et payer chaque round). Peut chauffer du métal au rouge au toucher.\nNiveau 25 : Chauffe un espace de lm cube par score de pouvoir à raison de 4 degré par score et par round d'utilisation (il faut rester concentré et payer chaque round). Peut brûler des matériaux inflammables à distance.\nNiveau 30 : Torche humaine : Le personnage enflamme son corps. Toute personne l'approchant à moins de lm recevra des dommages de 9+ ldl0 à chaque round. Les dommages aux poings du personnage sont augmentés de 5. Il est de plus immunisé à la chaleur et au feu. Par contre, il subit 1 point de dommage par litre d'eau versé sur lui. Peut chauffer du métal à distance.\nNiveau 35 : Brasier éternel de l'enfer : Ce pouvoir crée un cercle de chaleur de score x 20m autour du personnage. La température dans le cercle peut augmenter à raison de 5 degrés par round jusqu'à un maximum de 100 degrés."
     },
     {
       "name": "Téléportation",
-      "discipline": "Psychokinésie"
+      "discipline": "Psychokinésie",
+      "description": "Le personnage peut désassembler ses molécules et les reconstituer dans un autre lieu dans le même espace-temps.\nNiveau 15: Téléportation jusqu'à 100 m.\nNiveau 20 : Téléportation à vue ou 10m pour une cible au contact autre que le personnage. \nNiveau 25 : Téléportation à vue. Téléporte une cible qui est au contact jusqu'à une distance visible de 500m ou 10m si la cible n'est pas au contact.\nNiveau 30 : Téléporte une cible à vue ou à 500m si la cible n'est pas au contact.\nNiveau 35 : Téléporte sans limite vers un lieu avec lequel on a un lien. Les cibles autres que le personnage qui ne sont pas au contact peuvent être téléportées à vue. Possibilité d’enchaîner les téléportations sans décompter d’actions à chaque round."
     },
     {
       "name": "Concentration psy",
-      "discipline": "Maîtrise de soi"
+      "discipline": "Maîtrise de soi",
+      "description": "Le personnage est capable de concentrer son énergie de façon à renforcer ses facultés.\nNiveau 15 : Le personnage peut améliorer de 1 point son REF, sa PRE, sa DEX ou sa VIT par tranche de 5 dans son score de pouvoir et par utilisation. Sa durée est de score x min.\nNiveau 20 : Le personnage est capable d'augmenter une de ses caractéristiques physiques de 1 point par tranche de 2 dans son score de pouvoir. Durée: Score x min.\nLe personnage est capable d'améliorer toutes ses caractéristiques\nphysiques \nNiveau 25 de 1 points par tranche de 3 points dans son score 1 r1/ ·\nNiveau 30 : Le personnage est capable d'augmenter toutes ses capacités physiques de 1 point par niveau du pouvoir.\nNiveau 35 : Appel de l'avatar : Toutes les caractéristiques physiques du personnage augmentent de J5 pendant score x min."
     },
     {
       "name": "Soin",
-      "discipline": "Maîtrise de soi"
+      "discipline": "Maîtrise de soi",
+      "description": "Le personnage peut soigner les dégâts physiques que d'autres personnes ou lui-même ont endurés.\nNiveau 15 : La cible récupère score/2 points de vie en une journée.\nNiveau 20 : Permet de stabiliser l'état d'un patient. Redonne score/2 points de vie instantanément.\nNiveau 25 : Redonne score points de vie instantanément. Permet de remettre des fractures et de souder les os brisés.\nNiveau 30 : Permet de créer un cercle de guérison. Tous les personnages dans le cercle récupèrent score points de vie en une heure à condition de ne pas quitter le cercle.\nNiveau 35 : Ramène un personnage à la vie si son corps ne comporte plus aucune blessure et que le décès ne remonte pas à plus de score minutes."
     },
     {
       "name": "Modification de la matière",
-      "discipline": "Maîtrise de soi"
+      "discipline": "Maîtrise de soi",
+      "description": "Le personnage peut manipuler la matière. \nNiveau 15 : Perçoit toutes les sensations de la matière touchée ou la direction de la matière la plus proche. Crée de la matière primaire brute (boue, poussière, argile, etc.) dans un rayon de 3m.\nNiveau 20 : Crée de la matière tel que du verre, de la pierre dans un rayon de 3m. Transforme jusqu'à 100kg de matière en une autre (du même état). Détruit 50 kg de matière de matière brute ou un objet complexe.\nNiveau 25 : Crée des matériaux élaborés comme du métal avec une forme simple (une épée, un bouclier, une bouteille de boisson sans le contenu, etc.). Transforme jusqu'à 500 kg de matière en une autre (d'un état différent). Détruit 100 kg de matière ou 5 objets complexes.\nNiveau 30 : Crée une forme élaborée en métal ou en tout autre matériau similaire avec possibilité de mélange de matière (bouteille avec contenu, armure de cuir cloutée, etc.). Transforme un objet en un autre de la même matière. Détruit 500 kg de matière ou tous les objets dans un rayon de 3m.\nNiveau 35 : Crée un objet de n'importe quel objet existant (dragoon ou encore un W.I.L.D Predator, etc.). Transforme totalement un objet en un autre. Détruit 1 tonne de matière ou tous les objets dans un rayon de 10m."
     },
     {
       "name": "Maîtrise du corps",
-      "discipline": "Maîtrise de soi"
+      "discipline": "Maîtrise de soi",
+      "description": "Le personnage est capable de maîtriser son corps et de le transformer.\nNiveau 15 : Le personnage évite les jets d'hémorragie et d'évanouissement ainsi que les jets contre la mort. La durée du pouvoir est de score x min.\nNiveau 20 : Le personnage peut contrôler le fonctionnement de son corps. Il peut ralentir son cœur jusqu'à obtenir un rythme proche de celui de la mort. Il ne dépend ainsi que de peu d'oxygène (voire pas du tout). Certains besoins comme la sensation de faim et la douleur disparaissent. Les effets des gaz peuvent être neutralisés. Permet de recouvrir les cicatrices et de stopper les hémorragies. Peut modifier sa taille entre -1 et +1. Peut baisser la PRE jusqu'à 2 en modifiant son corps de manière effrayante.\nNiveau 25 : Permet de transformer certaines parties du corps. Permet de changer l'apparence générale. Peut aller d'une taille de\n-3 à +3. Peut créer des appendices mineures (comme des doigts qui se tortillent comme des serpents). Peut baisser la présence jusqu'à 1. \nNiveau 30 : Permet de prendre un aspect totalement\tdifférent\t(tout\ten\trestant humanoïde). Peut aller jusqu'à une taille de -5 à +5. Peut créer des appendices majeurs (comme un bras transformé en tentacule). Peut baisser la PRE à O.\nNiveau 35 : Modification radicale du corps. Le personnage peut se faire pousser des ailes pour voler à 30 km/h. Il peut s'ajouter un bras supplémentaire ou une queue. Il peut modifier sa taille de 5 cm à +1O. Il peut se rendre tellement laid que les êtres vivants voulant l'approcher devront réussir un jet de volonté - 3 chaque round ou fuir en courant."
     },
     {
       "name": "Régénération",
-      "discipline": "Maîtrise de soi"
+      "discipline": "Maîtrise de soi",
+      "description": "Le personnage peut augmenter sa vitesse de régénération.\nNiveau 15 : Le rythme de guérison est doublé pour une semaine.\nNiveau 20 : Le rythme de guérison est triplé jusqu'au rétablissement du patient. Les cicatrices laissées par les blessures dues au feu et similaires peuvent être guéries.\nNiveau 25 : Le rythme de guérison est quintuplé jusqu'au rétablissement du patient. Les os brisés peuvent être remis en place.\nNiveau 30 : Le rythme de guérison est de score points de vie par jour jusqu'à rétablissement du patient. Les blessures majeures peuvent être guéries."
     }
   ],
   "advantages": [
     {
       "label": "Affinité : +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous êtes doués pour un certain type de discipline. Il doit être augmenté comme une compétence magique normale et débute au niveau 1. Cet avantage coûte +10 si il s'agit d'une affinité rare (près des plantes, sur des créatures non humanoïdes, ...). +20 pour des choses plus communes comme la guérison ou sous terre et +30 si il s'agit d'une discipline. (chic à +2 à la place pour une compétence)"
     },
     {
       "label": "Affinité : + 20",
-      "value": 20.0
+      "value": 20.0,
+      "description": "Vous êtes doués pour un certain type de discipline. Il doit être augmenté comme une compétence magique normale et débute au niveau 1. Cet avantage coûte +10 si il s'agit d'une affinité rare (près des plantes, sur des créatures non humanoïdes, ...). +20 pour des choses plus communes comme la guérison ou sous terre et +30 si il s'agit d'une discipline. (chic à +2 à la place pour une compétence)"
     },
     {
       "label": "Affinité : +30",
-      "value": 30.0
+      "value": 30.0,
+      "description": "Vous êtes doués pour un certain type de discipline. Il doit être augmenté comme une compétence magique normale et débute au niveau 1. Cet avantage coûte +10 si il s'agit d'une affinité rare (près des plantes, sur des créatures non humanoïdes, ...). +20 pour des choses plus communes comme la guérison ou sous terre et +30 si il s'agit d'une discipline. (chic à +2 à la place pour une compétence)"
     },
     {
       "label": "Immunité (maladies): +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous avez une résistance innée à une certaine substance : +1 face aux maladies non létales."
     },
     {
       "label": "Immunité (maladies graves) : + 20",
-      "value": 20.0
+      "value": 20.0,
+      "description": "Vous avez une résistance innée à une certaine substance : +2 face aux maladies létales."
     },
     {
       "label": "Immunité (radiations) : + 30",
-      "value": 30.0
+      "value": 30.0,
+      "description": "Vous avez une résistance innée à une certaine substance : +4 face aux radiations."
     },
     {
       "label": "Réputation: + 10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous avez une excellente réputation. Référez-vous à la table des réputations pour voir les effets."
     },
     {
       "label": "Réputation : +20",
-      "value": 20.0
+      "value": 20.0,
+      "description": "Vous avez une excellente réputation. Référez-vous à la table des réputations pour voir les effets."
     },
     {
       "label": "Revenus: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous gagnez une somme équivalant au coût de cet avantage x 1000 par mois. Cela peut être dû à des actions que vous possédez ou alors des intérêts sur un prêt que vous avez effectué à une tierce personne ou encore à cause  de votre job."
     },
     {
       "label": "Revenus : +20",
-      "value": 20.0
+      "value": 20.0,
+      "description": "Vous gagnez une somme équivalant au coût de cet avantage x 1000 par mois. Cela peut être dû à des actions que vous possédez ou alors des intérêts sur un prêt que vous avez effectué à une tierce personne ou encore à cause  de votre job."
     },
     {
       "label": "Revenus : +30",
-      "value": 30.0
+      "value": 30.0,
+      "description": "Vous gagnez une somme équivalant au coût de cet avantage x 1000 par mois. Cela peut être dû à des actions que vous possédez ou alors des intérêts sur un prêt que vous avez effectué à une tierce personne ou encore à cause  de votre job."
     },
     {
       "label": "Revenus : + 40",
-      "value": 40.0
+      "value": 40.0,
+      "description": "Vous gagnez une somme équivalant au coût de cet avantage x 1000 par mois. Cela peut être dû à des actions que vous possédez ou alors des intérêts sur un prêt que vous avez effectué à une tierce personne ou encore à cause  de votre job."
     },
     {
       "label": "Revenus : +50",
-      "value": 50.0
+      "value": 50.0,
+      "description": "Vous gagnez une somme équivalant au coût de cet avantage x 1000 par mois. Cela peut être dû à des actions que vous possédez ou alors des intérêts sur un prêt que vous avez effectué à une tierce personne ou encore à cause  de votre job."
     },
     {
       "label": "Richesse: + 10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous commencez la  partie avec de l'argent supplémentaire. Cet avantage vous rapporte  10000c  par niveau."
     },
     {
       "label": "Richesse : + 20",
-      "value": 20.0
+      "value": 20.0,
+      "description": "Vous commencez la  partie avec de l'argent supplémentaire. Cet avantage vous rapporte  10000c  par niveau."
     },
     {
       "label": "Richesse : +30",
-      "value": 30.0
+      "value": 30.0,
+      "description": "Vous commencez la  partie avec de l'argent supplémentaire. Cet avantage vous rapporte  10000c  par niveau."
     },
     {
       "label": "Ambidextre: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous pouvez utiliser les deux mains aussi bien l'une que l'autre. Vous ne souffrez pas des malus habituels."
     },
     {
       "label": "Attentif: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous êtes très attentif  avec l'une de vos compétences.  Votre  degré de maladresse est réduit de 1 et celui de critique augmenté de 1."
     },
     {
       "label": "Berserk: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous devenez un fou de guerre à chaque situation stressante.  Vous gagnez +2 aux dommages physiques, à l'attaque physique et à l'encaissement. Lorsque vous désirez vous calmer, il faudra réussir un jet de volonté avec -5. Tant que vous êtes pris de cette rage, vous attaquez l'être vivant le plus proche (en favorisant d'abord les ennemis)."
     },
     {
       "label": "Bonne constitution: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous résistez extrêmement bien à la douleur. Réduisez les malus dus à la douleur de moitié (pas de malus à blessure légère, -1 à moyenne et-3 à grave). De plus, vous recevez un bonus de +1 à l'encaissement et à la résistance à la torture."
     },
     {
       "label": "Concentration: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Tous malus à vos compétences dû à la perturbation ou autres circonstances défavorables est limités à 3."
     },
     {
       "label": "Contacts sociaux : +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Partout où vous allez, lancez un jet sous Présence -5. En cas de réussite, vous connaissez quelqu'un dans le quartier. Il faut spécifier la classe sociale en prenant cet avantage (pègre, corporatif, membre de gang, ...)."
     },
     {
       "label": "Convalescence rapide : +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Ajoutez +2 à votre rythme de guérison."
     },
     {
       "label": "Esprit attentif : +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous avez un bonus de +3 contre les mensonges, les baratins,"
     },
     {
       "label": "Liens familiaux étroits : +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous avez des liens familiaux très étroits avec votre famille. Ces derniers pourront vous aider occasionnellement mais il faudra vous attendre à leur rendre des services dès qu'ils vous le demanderont."
     },
     {
       "label": "Orientation: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous êtes capable de vous orienter dans les dédales de  la  ville même les yeux fermés."
     },
     {
       "label": "Sommeil léger : +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous avez un sommeil extrêmement léger. Au moindre signe de danger, il vous est possible  de faire  un jet de perception à -3 pour vous réveiller."
     },
     {
       "label": "Téméraire : +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous ne vous rendez pas compte des dangers. Si un jet de volonté est nécessaire pour résister à la  peur, vous pourrez ajouter +3 à vos jets."
     },
     {
       "label": "Volonté de fer : +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "+3 pour tous les jets d'influences mentaux."
     },
     {
       "label": "Apprentissage rapide·: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous avez une capacité phénoménale à apprendre  grâce à vos erreurs ou à vos réussites magistrales. A chaque fois que vous faites une maladresse avec une compétence, vous pouvez ajouter un XP dans cette compétence. Un seul XP peut être gagné de cette façon par compétence et par scénario."
     },
     {
       "label": "Mémoire Eidétique: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous pouvez retenir quasiment n'importe quelle scène après y avoir assisté une fois. Lorsque vous devez vous rappeler d'une scène, lancez un jet d'intelligence +3. Si le jet est réussi, vous vous rappelez de la scène et pouvez faire un second jet à +6 pour vous la rappeler dans les moindres détails."
     },
     {
       "label": "Chantage: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous avez de quoi faire chanter un puissant de ce monde. Cela vous rapporte environ 10000c par année. Attention de ne pas abuser de ce moyen."
     },
     {
       "label": "Chef de bande: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous êtes le chef d'une bande ou d'un groupe. Vous êtes libre de déterminer le genre et l'activité de votre groupe. Le nombre de membres est équivalent à votre score de présence +3."
     },
     {
       "label": "Grand: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Votre taille est de +1. Ajoutez +1 à vos jets d'encaissement et aux autres jets appropriés (calcul de PV, MV et dégâts physiques)."
     },
     {
       "label": "Mentor: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous avez quelqu'un qui peut vous apprendre trois compétences et avec qui vous pouvez vous entraîner au moins une fois par année. Cela vous rapporte 3 X.P par année à répartir dans les compétences choisies (il peut vous entraîner jusqu'à un score de 5 dans chaque compétence)."
     },
     {
       "label": "Réflexes éclairs: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous avez des réflexes hors du commun. A chaque fois que vous êtes surpris vous lancez un jet de réflexes +3. Si le jet est réussi, vous réagissez par réflexe. Il vous faudra dire l'action (attaquer, bloquer, esquiver...)."
     },
     {
       "label": "Touche-à-tout: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous n’avez pas le malus habituel dans les compétences que vous ne connaissez pas (à moins que cela soit trop spécial comme la lecture, les pouvoirs)."
     },
     {
       "label": "Concentration rapide: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vos pouvoirs psy se concentrent plus rapidement et vous pouvez les actionner comme si vous aviez un REF augmenté de 3. Ainsi, si vous avez 6 de REF, vous pouvez actionner vos pouvoirs au RA 9. Ce pouvoir ne vous permet pas d'avoir des actions supplémentaires."
     },
     {
       "label": "Chic: +10",
-      "value": 10.0
+      "value": 10.0,
+      "description": "Vous avez un chic avec une compétence particulière (non magique) qui vous accorde un bonus de +2 sur votre jet."
     },
     {
       "label": "Maîtrise psychique: +20",
-      "value": 20.0
+      "value": 20.0,
+      "description": "Vous maîtrisez parfaitement le flux. Ajoutez +1 à votre seuil de succès critique et -1 à vos maladresses (min. 1). De plus, les jets de résistance contre vos pouvoirs se font avec un malus de 3."
     },
     {
       "label": "Prestige corporatiste: +20",
-      "value": 20.0
+      "value": 20.0,
+      "description": "Quelque chose fait que vos compagnons de travail vous envient. Ils vous respectent et attendront toujours plus de vous que des autres. Vous gagnez 1 point de CCL."
     },
     {
       "label": "Protection : +20",
-      "value": 20.0
+      "value": 20.0,
+      "description": "Vous êtes sous la protection d'un puissant de ce monde. Vous gagnez une réputation, bonne ou mauvaise, de 2. Ceux qui sont au courant de cette protection vous traitent avec respect, les autres ne vivent pas assez longtemps pour l'apprendre."
     },
     {
       "label": "Réserve de PSP : +20",
-      "value": 20.0
+      "value": 20.0,
+      "description": "Votre réserve de PSP est plus élevée que la normale et vous disposez de X points en plus"
     },
     {
       "label": "Taille de géant : +30",
-      "value": 30.0
+      "value": 30.0,
+      "description": "Vous êtes anormalement grand pour votre race. Ajoutez +2 à votre taille."
     },
     {
       "label": "Affinité Science : +40",
-      "value": 40.0
+      "value": 40.0,
+      "description": "Vous êtes en parfaite symbiose avec une science mais au détriment des autres. Prenez une compétence affinité avec la science de votre choix au niveau 1. Vous pouvez augmenter cette affinité comme une autre compétence normale. Vous pouvez choisir au début n'importe quelle discipline de cette science et n'êtes plus limité par votre squad (vous gagnez cependant les points de folies pour chaque discipline apprise). De plus votre parfaite maîtrise de cette science diminue le coût en PSP de vos pouvoirs de 1 à chaque utilisation. Cependant, vous ne pourrez jamais apprendre une discipline d'une autre science et débutez la partie avec 1 pt de folie permanent en plus. (pourrait être une simple réduction du coût de PSP)"
     },
     {
       "label": "Ennemis : -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "-1 pour un ennemi de votre niveau -4 pour un puissant corporatif."
     },
     {
       "label": "Ennemis : -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "-1 pour un ennemi de votre niveau -4 pour un puissant corporatif."
     },
     {
       "label": "Ennemis : -30",
-      "value": -30.0
+      "value": -30.0,
+      "description": "-1 pour un ennemi de votre niveau -4 pour un puissant corporatif."
     },
     {
       "label": "Mauvaise réputation : -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Comme l'avantage réputation mais vous avez une mauvaise réputation. -1 pour une mauvaise réputation de +2 -2 pour une mauvaise réputation de +4"
     },
     {
       "label": "Mauvaise réputation : -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Comme l'avantage réputation mais vous avez une mauvaise réputation. -1 pour une mauvaise réputation de +2 -2 pour une mauvaise réputation de +4"
     },
     {
       "label": "Circonstance nuisible : -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Vos pouvoirs sont amoindris de façon alarmante dans certaines circonstances et vous soustrayez 3 à vos jets dans cette situation."
     },
     {
       "label": "Allergie : -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Vous êtes particulièrement allergique à une substance bien particulière. Le contact avec cette substance peut vous causer de graves troubles inflammatoires ou autres afflictions."
     },
     {
       "label": "Aversion : -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Vous avez une aversion irraisonnée pour une certaine substance ou un certain type de personne. Tous vos jets sont diminués de 2 lorsque vous vous trouvez près de l'objet de votre dégoût. Il vous faudra réussir un jet de volonté pour pouvoir vous approcher de l’objet de votre aversion."
     },
     {
       "label": "Cauchemars : -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Vous faites des cauchemars pratiquement toutes les nuits. Le sommeil est pour vous votre pire ennemi. Parfois, ces cauchemars sont tellement horribles que vous avez un -3 sur tous vos jets le lendemain."
     },
     {
       "label": "Cœur sensible : -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Vous ne supportez pas de voir la souffrance d'autrui. Lorsque vous devez être témoin de la souffrance d'autrui, vous avez une pénalité de -3 sur tous vos jets pour l'heure à venir."
     },
     {
       "label": "Compulsion: -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Vous avez un besoin qui peut vous causer des problèmes tel que le sexe, la perfection, le jeu..."
     },
     {
       "label": "Frêle constitution : -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Vous êtes plutôt chétif et supportez assez mal la douleur. Soustrayez 1 à votre encaissement. De plus, les malus dû aux blessures sont majorés de 2."
     },
     {
       "label": "Illusion: -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Vous vous faites des illusions sur un sujet bien précis. Par exemple, que vous êtes le fils d'un puissant corporatiste ou que votre ami imaginaire est réel."
     },
     {
       "label": "Secret: -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Vous avez un secret que vous ne pouvez dévoiler sous peine d'avoir de graves ennuis."
     },
     {
       "label": "Sommeil lourd: -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Vous avez du mal à vous réveiller une fois endormi. Vous souffrez d'un malus de 3 sur toutes vos actions pendant 1/2 heure après le réveil et vous aurez sans doute envie d'aller vous coucher."
     },
     {
       "label": "Timidité: -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Toute action effectuée dans des réunions se font avec un malus de 3 et si vous faites l'objet de l'attention du publique, le malus est de 5."
     },
     {
       "label": "Difficultés: -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Ajoutez +3 à tous les niveaux de pouvoirs."
     },
     {
       "label": "Don tapageur: -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Les gens se sentent mal à l'aise autour de vous. Certains ont même des nausées ou des maux de têtes."
     },
     {
       "label": "Effets secondaires nuisibles: -10",
-      "value": -10.0
+      "value": -10.0,
+      "description": "Votre don s'accompagne souvent d'un effet secondaire nuisible (telle une mauvaise odeur, ...)."
     },
     {
       "label": "Infaillibilité illusoire: -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Votre opinion sur vos capacités est extrêmement exagérée. Cela peut devenir très dangereux dans certaines situations."
     },
     {
       "label": "Manque de concentration: -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Ajoutez +1 à votre seuil de maladresse et -1 à votre seuil de réussite critique."
     },
     {
       "label": "Faible -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Vous êtes particulièrement facile à dominer. -3 à tous vos jets d'influences mentaux."
     },
     {
       "label": "Haine: -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Vous avez une haine viscérale pour quelque chose ou quelqu'un. Vous recherchez sans cesse une occasion de nuire ou de dominer ce que vous détestez à un point tel que votre raison est obscurcie."
     },
     {
       "label": "Mauvaise aura: -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Vous avez une particularité qui fait que les gens n’ont pas confiance en vous. Vous avez un malus de 3 pour toutes les interactions sociales."
     },
     {
       "label": "Emporté: -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Vous vous mettez facilement en colère. Vous êtes extrêmement impulsif et il vous est facile d'agir imprudemment sous la colère. Faites un jet de volonté -3 à chaque fois qu'il y a un risque que vous vous mettiez en colère."
     },
     {
       "label": "Petit: -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Votre taille est de -1 (adaptez votre encaissement)."
     },
     {
       "label": "Vengeance: -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Vous avez un compte à régler. Vous êtes obsédé par cette vendetta à l'encontre d'une personne (ou peut-être d'un groupe entier)."
     },
     {
       "label": "Concentration lente: -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Votre score de REF est diminué de 3 lorsque vous utilisez vos pouvoirs pour le calcul des RA. Ainsi si vous avez 7 de REF et que vous utilisez des sorts, vous ne pourrez le faire qu'au RA 4 et 1."
     },
     {
       "label": "Défaillance majeure : -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Une science vous est totalement inaccessible. De plus, si vous devez effectuer des jets de résistances contre un pouvoir affilié à cette Science, divisez par deux votre caractéristique associée."
     },
     {
       "label": "Esprit fragile: -20",
-      "value": -20.0
+      "value": -20.0,
+      "description": "Après avoir utilisé un pouvoir, vous devrez passer un tour à ne rien faire si ce n'est récupérer vos facultés mentales."
     },
     {
       "label": "Dépendance: -30",
-      "value": -30.0
+      "value": -30.0,
+      "description": "Une fois  que  vous lancerez un pouvoir, il vous  faudra réussir un jet de volonté à -3  pour pouvoir vous arrêter."
     },
     {
       "label": "Pouvoir douloureux: -30",
-      "value": -30.0
+      "value": -30.0,
+      "description": "A chaque fois que vous utilisez un pouvoir, vous souffrez d'un malus de 2 cumulatif sur tous vos jets. Vous pourrez récupérer en une minute par point négatif."
     },
     {
       "label": "Nanisme: -40",
-      "value": -40.0
+      "value": -40.0,
+      "description": "Votre taille n'a pas évolué depuis votre enfance. La course peut vous poser certains problèmes. Votre taille est de -2."
     },
     {
       "label": "Protection mentale inexistante: -40",
-      "value": -40.0
+      "value": -40.0,
+      "description": "Vous n'avez aucune protection contre les pouvoirs vous affectant mentalement."
     },
     {
       "label": "Dans les nuages: -30",
-      "value": -30.0
+      "value": -30.0,
+      "description": "On ne peut prendre cet inconvénient avec l'avantage concentration. Bien que vous n'oubliiez pas certaines choses comme votre adresse ou votre nom, vous en oubliez par contre d'autres telles que noms, adresses des autres et même ce que vous avez mangé récemment. A chaque fois que vous devrez vous rappeler de quelque chose, vous devrez faire un jet d'intelligence -3."
     }
   ]
 };
