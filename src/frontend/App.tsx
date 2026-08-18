@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import type { UserRole } from "@shared/types";
 import { useAuth } from "./lib/auth-context";
 import Login from "./pages/Login";
+import Home from "./pages/Home";
 import CharacterList from "./pages/CharacterList";
 import CharacterSheet from "./pages/CharacterSheet";
 import GmTracker from "./pages/GmTracker";
@@ -35,6 +36,14 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route
         path="/"
+        element={
+          <RequireAuth>
+            <Home />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/groupe"
         element={
           <RequireAuth>
             <CharacterList />

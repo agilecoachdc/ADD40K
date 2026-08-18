@@ -1,3 +1,8 @@
+// Écran "Personnages" d'un groupe — deuxième étage de la navigation
+// (Accueil "Groupes" -> ce groupe -> personnages -> Suivi des constantes),
+// cf. Home.tsx. Toujours scopé au groupe de l'utilisateur connecté
+// (joueur ou MJ) ; un admin (sans groupe) n'atteint jamais cette route.
+
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { CharacterSummary, ReferenceData } from "@shared/types";
@@ -12,13 +17,12 @@ export default function CharacterList() {
   const [referenceData, setReferenceData] = useState<ReferenceData | null>(null);
   // Image du groupe (fond d'écran) — remplace le fond ADD40K en dur : chaque
   // groupe a la sienne (cf. migrations/0004_images.sql), plateforme par
-  // défaut si le groupe n'en a pas (ou pour un admin, sans groupe).
+  // défaut si le groupe n'en a pas.
   const [groupImageUrl, setGroupImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const isGm = user?.role === "gm";
-  const isAdmin = user?.role === "admin";
   const backgroundUrl = groupImageUrl ?? "/r2t2-banner.jpg";
 
   function raceLabel(race: string) {
@@ -31,7 +35,7 @@ export default function CharacterList() {
   const importTargetId = useRef<string | null>(null);
 
   function loadCharacters() {
-    if (isAdmin) return Promise.resolve(); // pas de groupe/personnages pour un admin
+    if (!user?.playerGroupId) return Promise.resolve();
     return api
       .listCharacters()
       .then(({ characters, referenceData, groupImageUrl }) => {
@@ -44,7 +48,8 @@ export default function CharacterList() {
 
   useEffect(() => {
     loadCharacters();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.playerGroupId]);
 
   // Bascule le statut "en jeu" et sauvegarde immédiatement (MJ uniquement),
   // même principe que le toggle d'armure sur la fiche : pas de mode édition
@@ -159,7 +164,12 @@ export default function CharacterList() {
       <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden" onChange={handleFileSelected} />
       <div className="mx-auto max-w-3xl px-4 py-6">
         <header className="mb-6 flex items-center justify-between gap-3">
-          <h1 className="text-lg font-semibold">{isAdmin ? "Administration" : "Personnages ADD40K"}</h1>
+          <div className="flex items-center gap-3">
+            <Link to="/" className="text-sm text-indigo-400 hover:underline">
+              ← Groupes
+            </Link>
+            <h1 className="text-lg font-semibold">Personnages</h1>
+          </div>
           <div className="flex items-center gap-3 text-sm text-slate-400">
             {isGm && (
               <Link
@@ -169,26 +179,14 @@ export default function CharacterList() {
                 Suivi des constantes
               </Link>
             )}
-            {isAdmin && (
-              <>
-                <Link to="/admin/jeux" className="text-indigo-400 hover:underline">
-                  Jeux &amp; règles
-                </Link>
-                <Link to="/admin/groupes" className="text-indigo-400 hover:underline">
-                  Groupes
-                </Link>
-              </>
-            )}
-            {!isAdmin && (
-              <a
-                href="https://drive.google.com/drive/folders/1bCHRg2AuKnBwizC9arAxvLRCQ8ikCJ6s"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-indigo-400 hover:underline"
-              >
-                Dossier Drive
-              </a>
-            )}
+            <a
+              href="https://drive.google.com/drive/folders/1bCHRg2AuKnBwizC9arAxvLRCQ8ikCJ6s"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-400 hover:underline"
+            >
+              Dossier Drive
+            </a>
             <Link to="/profil" className="text-indigo-400 hover:underline">
               Mon profil
             </Link>
@@ -199,209 +197,210 @@ export default function CharacterList() {
           </div>
         </header>
 
-        {isAdmin && (
-          <p className="text-slate-400">
-            Compte administrateur — pas de groupe de joueurs assigné. Utilisez « Jeux &amp; règles » pour créer un
-            jeu et une règle, puis « Groupes » pour créer un groupe de joueurs et y rattacher des comptes.
+        {!user?.playerGroupId ? (
+          <p className="text-sm text-slate-500">
+            Vous n'êtes rattaché à aucun groupe.{" "}
+            <Link to="/profil" className="text-indigo-400 hover:underline">
+              Rejoindre ou créer un groupe
+            </Link>
+            .
           </p>
-        )}
-
-        {!isAdmin && (
-        <>
-        {error && <p className="text-red-400">{error}</p>}
-        {!rows && !error && <p className="text-slate-400">Chargement…</p>}
-
-        {isGm && <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Joueurs</h2>}
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {rows?.filter((c) => !c.isNpc && !c.archived).map((c) => {
-            const canEdit = isGm || c.owner_username === user?.username;
-            const busy = busyId === c.id;
-            return (
-              <li key={c.id} className="flex items-center gap-2">
-                <Link
-                  to={`/personnages/${c.id}`}
-                  className="flex flex-1 items-center justify-between rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
-                >
-                  <div>
-                    <p className="font-medium text-slate-100">{c.name}</p>
-                    <p className="text-sm text-slate-400">{raceLabel(c.race)}</p>
-                  </div>
-                  {c.owner_username === user?.username && (
-                    <span className="rounded-full bg-indigo-600/20 px-2 py-1 text-xs text-indigo-300">Ma fiche</span>
-                  )}
-                </Link>
-                <div className="flex shrink-0 flex-col items-center gap-1">
-                  {isGm && (
-                    <label className="flex flex-col items-center gap-0.5 text-xs text-slate-400">
-                      <input
-                        type="checkbox"
-                        checked={c.inGame}
-                        onChange={() => toggleInGame(c)}
-                        aria-label={`${c.name} en jeu`}
-                      />
-                      En jeu
-                    </label>
-                  )}
-                  <div className="flex gap-1">
-                    {canEdit && (
-                      <button
-                        type="button"
-                        onClick={() => handleImportClick(c.id)}
-                        disabled={busy}
-                        title="Importer depuis une fiche Excel"
-                        aria-label={`Importer la fiche de ${c.name} depuis Excel`}
-                        className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700 disabled:opacity-50"
-                      >
-                        ⬆︎ Excel
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleExport(c.id, c.name)}
-                      disabled={busy}
-                      title="Exporter vers une fiche Excel"
-                      aria-label={`Exporter la fiche de ${c.name} vers Excel`}
-                      className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700 disabled:opacity-50"
-                    >
-                      ⬇︎ Excel
-                    </button>
-                  </div>
-                  {isGm && (
-                    <div className="flex gap-1">
-                      <button
-                        type="button"
-                        onClick={() => toggleIsNpc(c)}
-                        title="Passer ce personnage en PNJ"
-                        aria-label={`Passer ${c.name} en PNJ`}
-                        className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
-                      >
-                        → PNJ
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setArchived(c, true)}
-                        title="Archiver ce personnage"
-                        aria-label={`Archiver ${c.name}`}
-                        className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
-                      >
-                        Archiver
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-
-        {/*
-          Section PNJ — MJ uniquement : les PNJ n'ont pas de joueur pour
-          cocher "En jeu" depuis leur propre fiche (contrairement aux
-          personnages joueurs ci-dessus), donc c'est ici que le MJ décide
-          lesquels apparaissent sur l'écran "Suivi des constantes"
-          (rows.inGame filtré côté GmTracker.tsx).
-        */}
-        {isGm && rows && rows.some((c) => c.isNpc && !c.archived) && (
+        ) : (
           <>
-            <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wide text-slate-400">PNJ</h2>
+            {error && <p className="text-red-400">{error}</p>}
+            {!rows && !error && <p className="text-slate-400">Chargement…</p>}
+
+            {isGm && <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Joueurs</h2>}
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {rows.filter((c) => c.isNpc && !c.archived).map((c) => (
-                <li key={c.id} className="flex items-center gap-2">
-                  <Link
-                    to={`/personnages/${c.id}`}
-                    className="flex flex-1 items-center justify-between rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
-                  >
-                    <div>
-                      <p className="font-medium text-slate-100">{c.name}</p>
-                      <p className="text-sm text-slate-400">{raceLabel(c.race)}</p>
-                    </div>
-                  </Link>
-                  <div className="flex shrink-0 flex-col items-center gap-1">
-                    <label className="flex flex-col items-center gap-0.5 text-xs text-slate-400">
-                      <input
-                        type="checkbox"
-                        checked={c.inGame}
-                        onChange={() => toggleInGame(c)}
-                        aria-label={`${c.name} en jeu`}
-                      />
-                      En jeu
-                    </label>
-                    <div className="flex gap-1">
-                      <button
-                        type="button"
-                        onClick={() => toggleIsNpc(c)}
-                        title="Passer ce PNJ en personnage joueur"
-                        aria-label={`Passer ${c.name} en personnage joueur`}
-                        className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
-                      >
-                        → Joueur
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setArchived(c, true)}
-                        title="Archiver ce PNJ"
-                        aria-label={`Archiver ${c.name}`}
-                        className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
-                      >
-                        Archiver
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-
-        {/*
-          Bouton d'accès aux personnages archivés — toujours visible côté MJ
-          (sous la section PNJ), qu'il y en ait ou non, pour rester un point
-          d'entrée stable plutôt qu'apparaître/disparaître selon le contenu.
-        */}
-        {isGm && rows && (
-          <>
-            <button
-              type="button"
-              onClick={() => setShowArchived((v) => !v)}
-              className="mb-3 mt-8 text-sm text-indigo-400 hover:underline"
-            >
-              {showArchived ? "▾" : "▸"} Personnages archivés ({rows.filter((c) => c.archived).length})
-            </button>
-
-            {showArchived && (
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {rows
-                  .filter((c) => c.archived)
-                  .map((c) => (
-                    <li
-                      key={c.id}
-                      className="flex items-center justify-between gap-2 rounded-xl bg-slate-900/60 px-4 py-3 shadow"
+              {rows?.filter((c) => !c.isNpc && !c.archived).map((c) => {
+                const canEdit = isGm || c.owner_username === user?.username;
+                const busy = busyId === c.id;
+                return (
+                  <li key={c.id} className="flex items-center gap-2">
+                    <Link
+                      to={`/personnages/${c.id}`}
+                      className="flex flex-1 items-center justify-between rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
                     >
                       <div>
-                        <p className="font-medium text-slate-300">{c.name}</p>
-                        <p className="text-sm text-slate-500">
-                          {raceLabel(c.race)} · {c.isNpc ? "PNJ" : "Joueur"}
-                        </p>
+                        <p className="font-medium text-slate-100">{c.name}</p>
+                        <p className="text-sm text-slate-400">{raceLabel(c.race)}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setArchived(c, false)}
-                        title="Désarchiver ce personnage"
-                        aria-label={`Désarchiver ${c.name}`}
-                        className="shrink-0 rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+                      {c.owner_username === user?.username && (
+                        <span className="rounded-full bg-indigo-600/20 px-2 py-1 text-xs text-indigo-300">Ma fiche</span>
+                      )}
+                    </Link>
+                    <div className="flex shrink-0 flex-col items-center gap-1">
+                      {isGm && (
+                        <label className="flex flex-col items-center gap-0.5 text-xs text-slate-400">
+                          <input
+                            type="checkbox"
+                            checked={c.inGame}
+                            onChange={() => toggleInGame(c)}
+                            aria-label={`${c.name} en jeu`}
+                          />
+                          En jeu
+                        </label>
+                      )}
+                      <div className="flex gap-1">
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => handleImportClick(c.id)}
+                            disabled={busy}
+                            title="Importer depuis une fiche Excel"
+                            aria-label={`Importer la fiche de ${c.name} depuis Excel`}
+                            className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+                          >
+                            ⬆︎ Excel
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleExport(c.id, c.name)}
+                          disabled={busy}
+                          title="Exporter vers une fiche Excel"
+                          aria-label={`Exporter la fiche de ${c.name} vers Excel`}
+                          className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+                        >
+                          ⬇︎ Excel
+                        </button>
+                      </div>
+                      {isGm && (
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleIsNpc(c)}
+                            title="Passer ce personnage en PNJ"
+                            aria-label={`Passer ${c.name} en PNJ`}
+                            className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+                          >
+                            → PNJ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setArchived(c, true)}
+                            title="Archiver ce personnage"
+                            aria-label={`Archiver ${c.name}`}
+                            className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+                          >
+                            Archiver
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/*
+              Section PNJ — MJ uniquement : les PNJ n'ont pas de joueur pour
+              cocher "En jeu" depuis leur propre fiche (contrairement aux
+              personnages joueurs ci-dessus), donc c'est ici que le MJ décide
+              lesquels apparaissent sur l'écran "Suivi des constantes"
+              (rows.inGame filtré côté GmTracker.tsx).
+            */}
+            {isGm && rows && rows.some((c) => c.isNpc && !c.archived) && (
+              <>
+                <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wide text-slate-400">PNJ</h2>
+                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {rows.filter((c) => c.isNpc && !c.archived).map((c) => (
+                    <li key={c.id} className="flex items-center gap-2">
+                      <Link
+                        to={`/personnages/${c.id}`}
+                        className="flex flex-1 items-center justify-between rounded-xl bg-slate-900 px-4 py-3 shadow transition hover:bg-slate-800"
                       >
-                        Désarchiver
-                      </button>
+                        <div>
+                          <p className="font-medium text-slate-100">{c.name}</p>
+                          <p className="text-sm text-slate-400">{raceLabel(c.race)}</p>
+                        </div>
+                      </Link>
+                      <div className="flex shrink-0 flex-col items-center gap-1">
+                        <label className="flex flex-col items-center gap-0.5 text-xs text-slate-400">
+                          <input
+                            type="checkbox"
+                            checked={c.inGame}
+                            onChange={() => toggleInGame(c)}
+                            aria-label={`${c.name} en jeu`}
+                          />
+                          En jeu
+                        </label>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleIsNpc(c)}
+                            title="Passer ce PNJ en personnage joueur"
+                            aria-label={`Passer ${c.name} en personnage joueur`}
+                            className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+                          >
+                            → Joueur
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setArchived(c, true)}
+                            title="Archiver ce PNJ"
+                            aria-label={`Archiver ${c.name}`}
+                            className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+                          >
+                            Archiver
+                          </button>
+                        </div>
+                      </div>
                     </li>
                   ))}
-                {rows.filter((c) => c.archived).length === 0 && (
-                  <p className="text-sm text-slate-500">Aucun personnage archivé.</p>
+                </ul>
+              </>
+            )}
+
+            {/*
+              Bouton d'accès aux personnages archivés — toujours visible côté MJ
+              (sous la section PNJ), qu'il y en ait ou non, pour rester un point
+              d'entrée stable plutôt qu'apparaître/disparaître selon le contenu.
+            */}
+            {isGm && rows && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowArchived((v) => !v)}
+                  className="mb-3 mt-8 text-sm text-indigo-400 hover:underline"
+                >
+                  {showArchived ? "▾" : "▸"} Personnages archivés ({rows.filter((c) => c.archived).length})
+                </button>
+
+                {showArchived && (
+                  <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {rows
+                      .filter((c) => c.archived)
+                      .map((c) => (
+                        <li
+                          key={c.id}
+                          className="flex items-center justify-between gap-2 rounded-xl bg-slate-900/60 px-4 py-3 shadow"
+                        >
+                          <div>
+                            <p className="font-medium text-slate-300">{c.name}</p>
+                            <p className="text-sm text-slate-500">
+                              {raceLabel(c.race)} · {c.isNpc ? "PNJ" : "Joueur"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setArchived(c, false)}
+                            title="Désarchiver ce personnage"
+                            aria-label={`Désarchiver ${c.name}`}
+                            className="shrink-0 rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+                          >
+                            Désarchiver
+                          </button>
+                        </li>
+                      ))}
+                    {rows.filter((c) => c.archived).length === 0 && (
+                      <p className="text-sm text-slate-500">Aucun personnage archivé.</p>
+                    )}
+                  </ul>
                 )}
-              </ul>
+              </>
             )}
           </>
-        )}
-        </>
         )}
       </div>
     </div>

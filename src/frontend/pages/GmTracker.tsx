@@ -337,7 +337,7 @@ export default function GmTracker() {
             <h1 className="text-lg font-semibold">Suivi des constantes</h1>
             <p className="text-sm text-slate-400">Personnages en jeu — PV / PSP en direct</p>
           </div>
-          <Link to="/" className="text-sm text-indigo-400 hover:underline">
+          <Link to="/groupe" className="text-sm text-indigo-400 hover:underline">
             ← Personnages
           </Link>
         </header>

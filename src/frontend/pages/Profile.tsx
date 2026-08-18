@@ -13,6 +13,7 @@ import type { PlayerGroup, ProfileInfo, Ruleset } from "@shared/types";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
 import { resizePortraitToDataUrl } from "../lib/image";
+import { GroupThumb } from "../components/GroupThumb";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrateur",
@@ -22,16 +23,6 @@ const ROLE_LABELS: Record<string, string> = {
 
 function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : "Erreur";
-}
-
-function GroupThumb({ url, name }: { url: string | null; name: string }) {
-  return url ? (
-    <img src={url} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
-  ) : (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-slate-600">
-      {name.charAt(0)}
-    </div>
-  );
 }
 
 export default function Profile() {

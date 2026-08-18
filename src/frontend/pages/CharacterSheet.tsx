@@ -23,7 +23,7 @@ export default function CharacterSheet() {
   // fiche ; sans état (accès direct par URL), on retombe sur l'accueil.
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from;
-  const backTo = from === "suivi" ? "/suivi" : "/";
+  const backTo = from === "suivi" ? "/suivi" : "/groupe";
   const backLabel = from === "suivi" ? "← Suivi des constantes" : "← Personnages";
   const [character, setCharacter] = useState<Character | null>(null);
   // Catalogue du groupe de ce personnage — renvoyé par GET /characters/:id
