@@ -78,6 +78,25 @@ export interface SkillEntry {
    * par l'avantage "Volonté de fer".
    */
   justifications?: SkillJustification[];
+  /**
+   * Cette compétence est une compétence d'Affinité (Règles ADD40K V0.2) :
+   * un pur modificateur pour une autre compétence, un pouvoir psy précis,
+   * ou toute une discipline/science de pouvoirs psy (cible choisie
+   * explicitement via `affinityTargetSkillName`/`affinityTargetPowerName`/
+   * `affinityTargetDiscipline` ci-dessous — un seul des trois renseigné à
+   * la fois). Contrairement à une compétence normale, son propre `score`
+   * n'ajoute PAS l'attribut lié à son total affiché (pas de VOL ici) : le
+   * bonus s'applique intégralement à la cible, où l'attribut est déjà
+   * compté une fois (cf. calc-engine.getSkillDisplayTotal,
+   * getPowerAffinityBonus — jamais les deux à la fois).
+   */
+  isAffinity?: boolean;
+  /** Cible d'une compétence d'Affinité : une autre compétence précise (nom exact, cf. calc-engine.getSkillAffinityBonus). */
+  affinityTargetSkillName?: string;
+  /** Cible d'une compétence d'Affinité : un pouvoir psy précis (nom exact, cf. calc-engine.getPowerAffinityBonus). */
+  affinityTargetPowerName?: string;
+  /** Cible d'une compétence d'Affinité : toute une discipline/science de pouvoirs psy (ex. "Psychokinésie") — s'applique à tous les pouvoirs de cette discipline sans avoir à les cibler individuellement. */
+  affinityTargetDiscipline?: string;
 }
 
 export interface SkillJustification {

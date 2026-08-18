@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import type { ActivePsyPower, Character, ReferenceData } from "@shared/types";
-import { computeCharacter, getPsyPowerActivationCost, type CharacterComputed } from "@shared/calc-engine";
+import { computeCharacter, getMaxEquippedWeapons, getPsyPowerActivationCost, type CharacterComputed } from "@shared/calc-engine";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import { useTranslation } from "../lib/i18n";
@@ -142,11 +142,26 @@ export default function CharacterSheet() {
   // Bascule "arme équipée" et sauvegarde immédiatement, même principe que
   // toggleArmor ci-dessus — seule l'arme équipée compte dans le Rang
   // d'Action (cf. calc-engine.getActionRank), pas besoin d'ouvrir le mode
-  // édition pour ça.
+  // édition pour ça. Une seule arme équipée à la fois normalement, deux
+  // avec l'avantage "Ambidextre" (cf. getMaxEquippedWeapons) — équiper une
+  // arme au-delà de ce plafond déséquipe automatiquement la/les plus
+  // anciennes en trop plutôt que d'empiler sans limite.
   async function toggleWeaponEquipped(index: number) {
     if (!character || !id) return;
     const previousWeapons = character.weapons;
-    const nextWeapons = previousWeapons.map((w, i) => (i === index ? { ...w, equipped: !w.equipped } : w));
+    const target = previousWeapons[index];
+    if (!target) return;
+    const nowEquipping = !target.equipped;
+    let nextWeapons = previousWeapons.map((w, i) => (i === index ? { ...w, equipped: nowEquipping } : w));
+    if (nowEquipping) {
+      const maxEquipped = getMaxEquippedWeapons(character);
+      const equippedIndexes = nextWeapons.map((w, i) => (w.equipped ? i : -1)).filter((i) => i !== -1);
+      const overflow = equippedIndexes.length - maxEquipped;
+      if (overflow > 0) {
+        const toUnequip = new Set(equippedIndexes.filter((i) => i !== index).slice(0, overflow));
+        nextWeapons = nextWeapons.map((w, i) => (toUnequip.has(i) ? { ...w, equipped: false } : w));
+      }
+    }
     update({ weapons: nextWeapons });
     try {
       await api.updateCharacter(id, { weapons: nextWeapons });

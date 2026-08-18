@@ -21,8 +21,10 @@ import {
   CONCENTRATION_PSY_ATTRIBUTES,
   getActivePsyPowerAttributeBoost,
   getActivePsyPowerSkillBoost,
+  getMaxEquippedWeapons,
   getPsyPowerActivationCost,
   getPsyPowerTotal,
+  getSkillDisplayTotal,
   getSkillJustifications,
   getSkillJustifiedScore,
   getSkillTotal,
@@ -415,6 +417,9 @@ export function SkillsPanel({
   const { t } = useTranslation();
   const skills = character.skills;
   const [expandedJustifications, setExpandedJustifications] = useState<number | null>(null);
+  // Disciplines/sciences du catalogue de la règle (dédupliquées) — cible
+  // possible d'une compétence d'Affinité "science entière" (cf. plus bas).
+  const disciplines = [...new Set(referenceData.psyPowers.map((p) => p.discipline))];
   function setSkill(i: number, patch: Partial<(typeof skills)[number]>) {
     update({ skills: skills.map((s, idx) => (idx === i ? { ...s, ...patch } : s)) });
   }
@@ -425,6 +430,17 @@ export function SkillsPanel({
   function setSkillJustifications(i: number, justifications: SkillJustification[]) {
     setSkill(i, { justifications, justification: undefined });
   }
+  function affinityKindOf(s: (typeof skills)[number]): "skill" | "power" | "discipline" {
+    if (s.affinityTargetPowerName != null) return "power";
+    if (s.affinityTargetDiscipline != null) return "discipline";
+    return "skill";
+  }
+  function affinityTargetLabel(s: (typeof skills)[number]): string {
+    if (s.affinityTargetPowerName) return `${t("Pouvoir")} : ${s.affinityTargetPowerName}`;
+    if (s.affinityTargetDiscipline) return `${t("Discipline")} : ${s.affinityTargetDiscipline}`;
+    if (s.affinityTargetSkillName) return `${t("Compétence")} : ${s.affinityTargetSkillName}`;
+    return t("— cible non choisie —");
+  }
   return (
     <Section title={t("Compétences")}>
       <div className="mb-1 hidden grid-cols-[1fr_auto_auto_auto] gap-2 px-1 text-xs text-slate-500 sm:grid">
@@ -434,26 +450,33 @@ export function SkillsPanel({
         <span className="text-right">{t("Total")}</span>
       </div>
       {editing && (
-        <datalist id="skill-free-justification-source">
-          {character.advantages.map((a, ai) => (
-            <option key={`a-${ai}`} value={a.label} />
-          ))}
-          {character.equipment.map((e, ei) => (
-            <option key={`e-${ei}`} value={e.label} />
-          ))}
-        </datalist>
+        <>
+          <datalist id="skill-free-justification-source">
+            {character.advantages.map((a, ai) => (
+              <option key={`a-${ai}`} value={a.label} />
+            ))}
+            {character.equipment.map((e, ei) => (
+              <option key={`e-${ei}`} value={e.label} />
+            ))}
+          </datalist>
+          <datalist id="affinity-skill-target-source">
+            {referenceData.skills.map((sd, sdi) => (
+              <option key={sdi} value={sd.name} />
+            ))}
+          </datalist>
+        </>
       )}
       <ul className="space-y-1">
         {skills.map((s, i) => {
           const justifications = getSkillJustifications(s);
           const justifiedScore = getSkillJustifiedScore(s);
-          const { attribute, attributeValue, total } = getSkillTotal(s.name, justifiedScore, computed.attributeTotals, s.attribute);
-          const boost = getActivePsyPowerSkillBoost(character, s.name);
+          const display = getSkillDisplayTotal(s, character, computed.attributeTotals);
+          const extra = display.affinityBonus + display.activeBoost;
           return (
             <li key={i} className="space-y-1">
               <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-2 text-sm">
                 {editing ? (
-                  s.free ? (
+                  s.free || s.isAffinity ? (
                     <TextInput
                       value={s.name}
                       onChange={(v) => setSkill(i, { name: v })}
@@ -480,6 +503,14 @@ export function SkillsPanel({
                         {t("Gratuite")}
                       </span>
                     )}
+                    {s.isAffinity && (
+                      <span
+                        className="ml-1.5 rounded-full bg-sky-600/20 px-1.5 py-0.5 text-[10px] font-medium text-sky-300"
+                        title={affinityTargetLabel(s)}
+                      >
+                        {t("Affinité")}
+                      </span>
+                    )}
                   </span>
                 )}
                 {editing ? (
@@ -488,17 +519,17 @@ export function SkillsPanel({
                   <span className="w-10 text-right tabular-nums text-slate-300">{justifiedScore}</span>
                 )}
                 <span className="w-14 text-right text-xs tabular-nums text-slate-500">
-                  {attribute ? `+${attributeValue} ${attribute}` : "—"}
+                  {display.attribute ? `+${display.attributeValue} ${display.attribute}` : "—"}
                 </span>
                 <span className="flex w-14 items-center justify-end gap-1 text-right">
-                  <span className="font-semibold tabular-nums text-indigo-300">{total + boost}</span>
-                  {boost !== 0 && (
+                  <span className="font-semibold tabular-nums text-indigo-300">{display.total}</span>
+                  {extra !== 0 && (
                     <span
                       className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
-                      title={t("Bonus de pouvoir psy actif")}
+                      title={t("Bonus d'affinité et/ou de pouvoir actif")}
                     >
-                      {boost > 0 ? "+" : ""}
-                      {boost}
+                      {extra > 0 ? "+" : ""}
+                      {extra}
                     </span>
                   )}
                 </span>
@@ -522,7 +553,7 @@ export function SkillsPanel({
                     />
                     {t("Gratuite (avantage/matériel)")}
                   </label>
-                  {s.free && (
+                  {s.free && !s.isAffinity && (
                     <>
                       <select
                         value={s.attribute ?? ""}
@@ -543,6 +574,80 @@ export function SkillsPanel({
                       >
                         {justifications.length > 0 ? `${t("Justifications")} (${justifications.length})` : t("+ Justification")}
                       </button>
+                    </>
+                  )}
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={s.isAffinity ?? false}
+                      onChange={(e) =>
+                        setSkill(i, {
+                          isAffinity: e.target.checked,
+                          attribute: e.target.checked ? null : s.attribute,
+                          affinityTargetSkillName: e.target.checked ? (s.affinityTargetSkillName ?? "") : undefined,
+                          affinityTargetPowerName: e.target.checked ? s.affinityTargetPowerName : undefined,
+                          affinityTargetDiscipline: e.target.checked ? s.affinityTargetDiscipline : undefined,
+                        })
+                      }
+                    />
+                    {t("Affinité")}
+                  </label>
+                  {s.isAffinity && (
+                    <>
+                      <select
+                        value={affinityKindOf(s)}
+                        onChange={(e) => {
+                          const kind = e.target.value as "skill" | "power" | "discipline";
+                          setSkill(i, {
+                            affinityTargetSkillName: kind === "skill" ? "" : undefined,
+                            affinityTargetPowerName: kind === "power" ? "" : undefined,
+                            affinityTargetDiscipline: kind === "discipline" ? "" : undefined,
+                          });
+                        }}
+                        className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
+                      >
+                        <option value="skill">{t("Compétence")}</option>
+                        <option value="power">{t("Pouvoir")}</option>
+                        <option value="discipline">{t("Discipline")}</option>
+                      </select>
+                      {affinityKindOf(s) === "skill" && (
+                        <input
+                          list="affinity-skill-target-source"
+                          type="text"
+                          value={s.affinityTargetSkillName ?? ""}
+                          onChange={(e) => setSkill(i, { affinityTargetSkillName: e.target.value })}
+                          placeholder={t("— choisir une compétence —")}
+                          className="min-w-[160px] flex-1 rounded border border-slate-700 bg-slate-800 px-2 py-1"
+                        />
+                      )}
+                      {affinityKindOf(s) === "power" && (
+                        <select
+                          value={s.affinityTargetPowerName ?? ""}
+                          onChange={(e) => setSkill(i, { affinityTargetPowerName: e.target.value })}
+                          className="rounded border border-slate-700 bg-slate-800 px-2 py-1"
+                        >
+                          <option value="">{t("— choisir un pouvoir —")}</option>
+                          {character.psyPowers.map((p) => (
+                            <option key={p.name} value={p.name}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {affinityKindOf(s) === "discipline" && (
+                        <select
+                          value={s.affinityTargetDiscipline ?? ""}
+                          onChange={(e) => setSkill(i, { affinityTargetDiscipline: e.target.value })}
+                          className="rounded border border-slate-700 bg-slate-800 px-2 py-1"
+                        >
+                          <option value="">{t("— choisir une discipline —")}</option>
+                          {disciplines.map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </>
                   )}
                 </div>
@@ -638,9 +743,14 @@ export function WeaponsArmorPanel({
     update({ weapons: weapons.map((x, idx) => (idx === i ? { ...x, modifiers } : x)) });
   }
 
+  const maxEquippedWeapons = getMaxEquippedWeapons(character);
+
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Section title={t("Armes")}>
+        {maxEquippedWeapons > 1 && (
+          <p className="mb-2 text-xs text-slate-500">{t("Ambidextre : jusqu'à 2 armes équipées à la fois")}</p>
+        )}
         <ul className="space-y-2">
           {weapons.map((w, i) => {
             const totals = getWeaponTotals(w, computed.attributeTotals.REF);

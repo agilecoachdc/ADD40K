@@ -221,19 +221,118 @@ export function getArmorTotals(character: Pick<Character, "armor">): ArmorTotals
     );
 }
 
+// ---------------------------------------------------------------------------
+// Affinité — compétences d'Affinité (Règles ADD40K V0.2) : de purs
+// modificateurs pour une compétence, un pouvoir psy précis, ou toute une
+// discipline/science de pouvoirs psy (cible choisie explicitement à
+// l'édition, cf. SkillEntry.isAffinity/affinityTargetSkillName/
+// affinityTargetPowerName/affinityTargetDiscipline). Contrairement à une
+// compétence normale, une compétence d'Affinité n'ajoute PAS son propre
+// attribut (VOL) à son score affiché — cf. getSkillDisplayTotal — l'attribut
+// est déjà compté une seule fois, au niveau de la cible (getPowerAffinityBonus
+// pour un pouvoir ajoute VOL comme d'habitude ; getSkillAffinityBonus pour
+// une compétence laisse le calcul d'attribut de la compétence ciblée
+// inchangé, la contribution d'Affinité s'y ajoute en plus).
+// ---------------------------------------------------------------------------
+
+/** Nom historique (avant le ciblage explicite) d'une compétence d'Affinité dédiée à un seul pouvoir — ex. "Affinité (VOL) Téléportation". Toujours reconnu en lecture pour ne pas casser les fiches existantes. */
+function legacyAffinitySkillName(powerName: string): string {
+  return `Affinité (VOL) ${powerName}`;
+}
+
 /**
- * Score total d'un pouvoir psy = score du pouvoir + VOL_total + score de la
- * compétence d'affinité correspondante si le personnage la possède (ex.
- * "Affinité (VOL) Téléportation" pour le pouvoir "Téléportation" — cf.
- * char_sheet!AK114 = données!H20 + K12(affinité) + K19(pouvoir)).
+ * Bonus total d'Affinité pour un pouvoir psy donné = somme des compétences
+ * d'Affinité du personnage qui le ciblent, soit directement par son nom
+ * (`affinityTargetPowerName`), soit via toute sa discipline
+ * (`affinityTargetDiscipline`, ex. une compétence "Affinité Psychokinésie"
+ * boost tous les pouvoirs de cette discipline sans avoir à les cibler un
+ * par un). Rétrocompatibilité : si aucune compétence "nouvelle forme" ne
+ * cible ce pouvoir, retombe sur l'ancien nom figé (`legacyAffinitySkillName`)
+ * — jamais les deux à la fois, pour ne pas compter un même bonus deux fois
+ * une fois une fiche migrée vers le ciblage explicite.
+ */
+export function getPowerAffinityBonus(
+  character: Pick<Character, "skills">,
+  power: { name: string; discipline?: string },
+): number {
+  let bonus = 0;
+  let matchedExplicit = false;
+  for (const s of character.skills) {
+    if (!s.isAffinity) continue;
+    if (s.affinityTargetPowerName === power.name || (power.discipline && s.affinityTargetDiscipline === power.discipline)) {
+      bonus += s.score;
+      matchedExplicit = true;
+    }
+  }
+  if (!matchedExplicit) {
+    const legacy = character.skills.find((s) => !s.isAffinity && s.name === legacyAffinitySkillName(power.name));
+    if (legacy) bonus += legacy.score;
+  }
+  return bonus;
+}
+
+/**
+ * Bonus total d'Affinité pour une compétence donnée (nom exact) = somme des
+ * compétences d'Affinité du personnage qui la ciblent explicitement via
+ * `affinityTargetSkillName`. Nouveau mécanisme (pas d'équivalent historique
+ * pour cibler une compétence, seulement un pouvoir) — s'ajoute au score
+ * total affiché de la compétence ciblée (cf. getSkillDisplayTotal), en plus
+ * de son propre attribut lié, qui reste calculé normalement.
+ */
+export function getSkillAffinityBonus(character: Pick<Character, "skills">, skillName: string): number {
+  return character.skills.reduce(
+    (sum, s) => sum + (s.isAffinity && s.affinityTargetSkillName === skillName ? s.score : 0),
+    0,
+  );
+}
+
+/**
+ * Score total d'un pouvoir psy = score du pouvoir + VOL_total + bonus
+ * d'Affinité le ciblant (cf. getPowerAffinityBonus ci-dessus).
  */
 export function getPsyPowerTotal(
-  power: { name: string; score: number },
+  power: { name: string; score: number; discipline?: string },
   character: Pick<Character, "skills">,
   attributeTotals: AttributeScores,
 ): number {
-  const affinity = character.skills.find((s) => s.name === `Affinité (VOL) ${power.name}`);
-  return power.score + attributeTotals.VOL + (affinity?.score ?? 0);
+  return power.score + attributeTotals.VOL + getPowerAffinityBonus(character, power);
+}
+
+export interface SkillDisplayTotal {
+  attribute: Attribute | null;
+  attributeValue: number;
+  /** Bonus des compétences d'Affinité ciblant cette compétence (0 pour une compétence d'Affinité elle-même, cf. ci-dessous). */
+  affinityBonus: number;
+  /** Bonus des pouvoirs psy actifs ciblant cette compétence (cf. getActivePsyPowerSkillBoost). 0 pour une compétence d'Affinité. */
+  activeBoost: number;
+  /** Score total affiché = score de base (+ justifications) + attribut + affinityBonus + activeBoost — ou juste le score de base pour une compétence d'Affinité (cf. ci-dessous). */
+  total: number;
+}
+
+/**
+ * Score total affiché d'une compétence sur la fiche, tous bonus combinés —
+ * remplace un appel manuel à getSkillTotal + getSkillAffinityBonus +
+ * getActivePsyPowerSkillBoost par les panneaux d'affichage (SkillsPanel).
+ *
+ * Cas particulier d'une compétence d'Affinité (`skill.isAffinity`) : son
+ * propre total affiché = son score de base SEUL (+ justifications
+ * éventuelles), sans ajout d'attribut ni d'aucun bonus — une compétence
+ * d'Affinité n'est jamais elle-même "jouée", c'est un pur modificateur pour
+ * sa cible (où l'attribut lié à la cible, lui, reste compté normalement).
+ */
+export function getSkillDisplayTotal(
+  skill: Pick<SkillEntry, "name" | "score" | "attribute" | "isAffinity" | "justification" | "justifications">,
+  character: Pick<Character, "skills" | "activePsyPowers">,
+  attributeTotals: AttributeScores,
+): SkillDisplayTotal {
+  const baseScore = getSkillJustifiedScore(skill);
+  if (skill.isAffinity) {
+    return { attribute: null, attributeValue: 0, affinityBonus: 0, activeBoost: 0, total: baseScore };
+  }
+  const { attribute, attributeValue } = getSkillTotal(skill.name, baseScore, attributeTotals, skill.attribute);
+  const affinityBonus = getSkillAffinityBonus(character, skill.name);
+  const activeBoost = getActivePsyPowerSkillBoost(character, skill.name);
+  return { attribute, attributeValue, affinityBonus, activeBoost, total: baseScore + attributeValue + affinityBonus + activeBoost };
 }
 
 export interface WeaponTotals {
@@ -322,6 +421,25 @@ function getConcentrationAdvantageRefDelta(
   if (labels.some((l) => l.startsWith(CONCENTRATION_RAPIDE_LABEL))) return 3;
   if (labels.some((l) => l.startsWith(CONCENTRATION_LENTE_LABEL))) return -3;
   return 0;
+}
+
+const AMBIDEXTROUS_LABEL = "Ambidextre";
+
+/** Avantage "Ambidextre" (catalogue) — permet d'équiper 2 armes à la fois plutôt qu'une seule. */
+export function hasAmbidextrousAdvantage(character: Pick<Character, "advantages">): boolean {
+  return character.advantages.some((a) => a.label.startsWith(AMBIDEXTROUS_LABEL));
+}
+
+/**
+ * Nombre maximum d'armes équipées simultanément — 1 normalement, 2 avec
+ * l'avantage "Ambidextre" (cf. hasAmbidextrousAdvantage). getActionRank
+ * ci-dessous ne lit que la première arme équipée trouvée dans la liste :
+ * avec deux armes équipées, seule celle-ci compte pour le Rang d'Action —
+ * combiner les deux armes dans le calcul du RA est hors périmètre tant
+ * qu'aucune règle précise n'a été communiquée pour le combat à deux armes.
+ */
+export function getMaxEquippedWeapons(character: Pick<Character, "advantages">): number {
+  return hasAmbidextrousAdvantage(character) ? 2 : 1;
 }
 
 /**

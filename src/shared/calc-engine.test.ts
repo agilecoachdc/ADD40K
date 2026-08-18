@@ -14,10 +14,14 @@ import {
   getArmorTotals,
   getAttributeTotal,
   getHpMax,
+  getMaxEquippedWeapons,
+  getPowerAffinityBonus,
   getPspMax,
   getPsyPowerActivationCost,
   getPsyPowerTotal,
+  getSkillAffinityBonus,
   getSkillCost,
+  getSkillDisplayTotal,
   getSkillJustifications,
   getSkillJustifiedScore,
   getSkillsCostTotal,
@@ -26,6 +30,7 @@ import {
   getWeaponSuggestedScore,
   getWeaponTotals,
   hasActivePsyPowerBoost,
+  hasAmbidextrousAdvantage,
   parseSkillAttribute,
 } from "./calc-engine";
 import { referenceData } from "./reference-data";
@@ -201,6 +206,20 @@ describe("getWeaponTotals", () => {
       0,
     );
     expect(totals).toEqual({ ra: 10, damage: 6, baseScore: 7 });
+  });
+});
+
+describe("hasAmbidextrousAdvantage / getMaxEquippedWeapons", () => {
+  it("sans l'avantage Ambidextre : 1 arme équipée maximum", () => {
+    const character = { advantages: [{ label: "Réputation: +10", value: 10 }] };
+    expect(hasAmbidextrousAdvantage(character)).toBe(false);
+    expect(getMaxEquippedWeapons(character)).toBe(1);
+  });
+
+  it("avec l'avantage Ambidextre : 2 armes équipées maximum", () => {
+    const character = { advantages: [{ label: "Ambidextre: +10", value: 10 }] };
+    expect(hasAmbidextrousAdvantage(character)).toBe(true);
+    expect(getMaxEquippedWeapons(character)).toBe(2);
   });
 });
 
@@ -475,6 +494,73 @@ describe("getPsyPowerTotal", () => {
     const attributeTotals = computeCharacter(sternTack, referenceData).attributeTotals;
     const power = sternTack.psyPowers.find((p) => p.name === "Téléportation")!;
     expect(getPsyPowerTotal(power, sternTack, attributeTotals)).toBe(14);
+  });
+});
+
+describe("Affinité — ciblage explicite (compétence, pouvoir, ou discipline entière)", () => {
+  it("getPowerAffinityBonus : ancien nom figé toujours reconnu (rétrocompatibilité, cas réel Stern Tack)", () => {
+    expect(getPowerAffinityBonus(sternTack, { name: "Téléportation", discipline: "Psychokinésie" })).toBe(5);
+  });
+
+  it("getPowerAffinityBonus : ciblage explicite d'un pouvoir précis (affinityTargetPowerName)", () => {
+    const character = {
+      skills: [{ name: "Affinité", score: 7, isAffinity: true, affinityTargetPowerName: "Soin" }],
+    };
+    expect(getPowerAffinityBonus(character, { name: "Soin", discipline: "Guérison" })).toBe(7);
+    expect(getPowerAffinityBonus(character, { name: "Autre pouvoir", discipline: "Guérison" })).toBe(0);
+  });
+
+  it("getPowerAffinityBonus : ciblage d'une discipline entière (affinityTargetDiscipline) — s'applique à tous les pouvoirs de cette discipline", () => {
+    const character = {
+      skills: [{ name: "Affinité", score: 4, isAffinity: true, affinityTargetDiscipline: "Psychokinésie" }],
+    };
+    expect(getPowerAffinityBonus(character, { name: "Téléportation", discipline: "Psychokinésie" })).toBe(4);
+    expect(getPowerAffinityBonus(character, { name: "Pyrokinésie", discipline: "Psychokinésie" })).toBe(4);
+    expect(getPowerAffinityBonus(character, { name: "Charme", discipline: "Télépathie" })).toBe(0);
+  });
+
+  it("getPowerAffinityBonus : plusieurs compétences d'Affinité ciblant le même pouvoir s'additionnent", () => {
+    const character = {
+      skills: [
+        { name: "Affinité", score: 3, isAffinity: true, affinityTargetPowerName: "Soin" },
+        { name: "Affinité Guérison", score: 2, isAffinity: true, affinityTargetDiscipline: "Guérison" },
+      ],
+    };
+    expect(getPowerAffinityBonus(character, { name: "Soin", discipline: "Guérison" })).toBe(5);
+  });
+
+  it("getSkillAffinityBonus : une compétence d'Affinité peut aussi cibler une autre compétence (pas seulement un pouvoir)", () => {
+    const character = {
+      skills: [{ name: "Affinité tir", score: 6, isAffinity: true, affinityTargetSkillName: "Arme de poing (PER)" }],
+    };
+    expect(getSkillAffinityBonus(character, "Arme de poing (PER)")).toBe(6);
+    expect(getSkillAffinityBonus(character, "Mêlée (DEX)")).toBe(0);
+  });
+
+  it("getSkillDisplayTotal : une compétence d'Affinité n'ajoute PAS son propre attribut à son total affiché — juste son score de base", () => {
+    const character = {
+      skills: [{ name: "Affinité (VOL)", score: 5, isAffinity: true, affinityTargetPowerName: "Soin" }],
+      activePsyPowers: [],
+    };
+    const attributeTotals = computeCharacter(sternTack, referenceData).attributeTotals; // VOL non nul
+    const display = getSkillDisplayTotal(character.skills[0]!, character, attributeTotals);
+    expect(display.attribute).toBeNull();
+    expect(display.total).toBe(5); // pas 5 + VOL
+  });
+
+  it("getSkillDisplayTotal : une compétence normale ciblée par une Affinité reçoit le bonus en plus de son attribut habituel", () => {
+    const character = {
+      skills: [
+        { name: "Commandement (COM)", score: 6 },
+        { name: "Affinité commandement", score: 3, isAffinity: true, affinityTargetSkillName: "Commandement (COM)" },
+      ],
+      activePsyPowers: [],
+    };
+    const attributeTotals = computeCharacter(sternTack, referenceData).attributeTotals;
+    const display = getSkillDisplayTotal(character.skills[0]!, character, attributeTotals);
+    expect(display.attribute).toBe("COM");
+    expect(display.affinityBonus).toBe(3);
+    expect(display.total).toBe(6 + attributeTotals.COM + 3);
   });
 });
 

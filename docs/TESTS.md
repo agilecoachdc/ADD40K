@@ -70,6 +70,19 @@ navigateur intégré, cf. session de build).
       `AttributesPanel` (pas seulement sur le RA, réservé à REF). Choisir le palier 25 ou plus →
       le sélecteur disparaît, remplacé par la mention "Toutes les caractéristiques physiques
       (REF/DEX/VIT)", et les trois sont boostées sans choix à activer.
+- [ ] Ajouter une compétence, cocher "Affinité" (indépendant de "Gratuite") → le champ nom devient
+      du texte libre, un sélecteur "Compétence"/"Pouvoir"/"Discipline" apparaît. Choisir "Pouvoir"
+      et cibler un pouvoir psy possédé → le score total de ce pouvoir (`PsyPowersPanel`) augmente
+      du score de la ligne d'Affinité. Choisir "Discipline" → tous les pouvoirs de cette discipline
+      en bénéficient. Choisir "Compétence" et cibler une autre compétence de la fiche → le total de
+      cette compétence (`SkillsPanel`) augmente d'autant, badge ambre affiché. La ligne d'Affinité
+      elle-même n'affiche que son score de base en "Total" (pas de colonne "Attribut" — toujours
+      "—"), même si son nom contient un code d'attribut.
+- [ ] Sur une fiche sans l'avantage "Ambidextre" : cocher "équipée" sur une 2ᵉ arme → la 1ʳᵉ se
+      déséquipe automatiquement (une seule à la fois). Ajouter l'avantage "Ambidextre: +10" →
+      un message "Ambidextre : jusqu'à 2 armes équipées à la fois" apparaît sur la section Armes,
+      et deux armes peuvent désormais rester équipées simultanément ; une 3ᵉ déséquipe la plus
+      ancienne des deux.
 
 ## §4 — Permissions
 

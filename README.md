@@ -92,7 +92,12 @@ agit tôt. Calculé (`calc-engine.getActionRank`, jamais stocké) comme `BASE_RA
 Predator) est déjà un rang à part entière, lu tel quel dans la table du classeur : il s'additionne
 au socle, il ne s'en soustrait pas. Une arme non équipée compte comme mains nues (RA 0 de
 catalogue). Une seule arme peut être marquée "équipée" à la fois (case à cocher sur la fiche, à
-côté du nom de chaque arme, même principe que l'armure).
+côté du nom de chaque arme, même principe que l'armure) — deux avec l'avantage "Ambidextre"
+(`calc-engine.getMaxEquippedWeapons`, `CharacterSheet.toggleWeaponEquipped` déséquipe automatiquement
+la plus ancienne au-delà de cette limite). Avec deux armes équipées, seule la première trouvée dans
+la liste compte pour le RA (`getActionRank` ne lit que la première arme équipée) — combiner les deux
+armes dans ce calcul est hors périmètre tant qu'aucune règle précise de combat à deux armes n'a été
+communiquée.
 
 Deux éléments du catalogue (Règles ADD40K V0.2) modifient le Réflexe pris en compte, mais
 seulement pendant qu'un pouvoir est actif :
@@ -194,6 +199,28 @@ plus souvent hors du catalogue de règle (son nom ne suit donc pas la convention
 pour en déduire l'attribut lié), son nom se saisit en texte libre et son attribut se choisit
 manuellement dans un sélecteur dédié (`SkillEntry.attribute`, prioritaire sur le parsing du nom —
 `calc-engine.getSkillTotal`).
+
+## Affinité (modificateur pour une compétence, un pouvoir, ou toute une discipline)
+
+Une compétence peut être marquée "Affinité" (`SkillEntry.isAffinity`, indépendant de "Gratuite" —
+les deux peuvent se cumuler) : un pur modificateur, sans ajout de son propre attribut à son score
+affiché (déjà compté une fois au niveau de la cible, cf. `calc-engine.getSkillDisplayTotal`). La
+cible se choisit explicitement à l'édition plutôt que d'être déduite du nom de la ligne — trois
+formes possibles, un seul champ renseigné à la fois :
+- `affinityTargetSkillName` — une autre compétence précise (ex. "Affinité tir" boostant "Arme de
+  poing (PER)") ; nouveau, sans équivalent avant cette itération (l'Affinité ne ciblait auparavant
+  que des pouvoirs psy).
+- `affinityTargetPowerName` — un pouvoir psy précis.
+- `affinityTargetDiscipline` — toute une discipline/science de pouvoirs psy (ex. "Psychokinésie")
+  — s'applique à tous les pouvoirs de cette discipline sans avoir à les cibler un par un.
+
+Le bonus s'ajoute au score total affiché de sa cible (`calc-engine.getPowerAffinityBonus` pour un
+pouvoir — `getPsyPowerTotal` en tient compte automatiquement — ou `getSkillAffinityBonus` pour une
+compétence, mis en évidence par un badge ambre dans `SkillsPanel`, comme un bonus de pouvoir actif).
+L'ancienne compétence catalogue "Affinité (VOL) Téléportation" (un nom figé, dédié uniquement au
+pouvoir "Téléportation") reste reconnue en lecture pour les fiches existantes — rétrocompatibilité
+transparente, sans réécriture forcée — mais le mécanisme désormais recommandé est le ciblage
+explicite ci-dessus, disponible pour n'importe quelle ligne "Affinité" ajoutée sur la fiche.
 
 ## Traduction
 

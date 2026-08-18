@@ -59,12 +59,13 @@ const FR: GuideContent = {
         "Un attribut total = score de base (saisi sur la fiche) + bonus racial (fixé par la race du personnage) + bonus « tech » (rare, ex. cyberware). Cliquer sur un attribut en mode édition affiche ce détail.",
         "Une compétence se choisit normalement dans le catalogue de la règle (son nom encode l'attribut lié, ex. « Commandement (COM) ») ; son score total = score saisi + total de l'attribut lié.",
         "Une compétence peut aussi être marquée « Gratuite (avantage/matériel) » lorsqu'elle est déjà acquise via un avantage et/ou du matériel plutôt qu'achetée en points — son coût est alors exclu du budget. Une compétence gratuite accepte plusieurs lignes de justification (bouton « + Justification »), chacune pouvant porter sa propre contribution en points, qui s'additionnent au score de base ; comme elle est en général hors catalogue, son nom se saisit librement et son attribut lié se choisit manuellement.",
+        "Une compétence peut aussi être marquée « Affinité » : un pur modificateur (pas d'ajout d'attribut à son propre score, déjà compté au niveau de la cible) pour une autre compétence, un pouvoir psy précis, ou toute une discipline de pouvoirs psy — la cible se choisit explicitement (case « Compétence »/« Pouvoir »/« Discipline » puis sélection du nom exact) plutôt que d'être déduite du nom de la ligne. Le bonus s'ajoute automatiquement au score total de sa cible, mis en évidence par un badge ambre.",
       ],
     },
     {
       title: "Armes et armures",
       paragraphs: [
-        "Une seule arme peut être « équipée » à la fois (case à cocher à côté de son nom) — c'est la seule qui compte dans le calcul du Rang d'Action. Des modificateurs justifiés (ex. une amélioration listée dans l'équipement) peuvent s'ajouter aux valeurs de base d'une arme (score, dégâts, Rang d'Action) via le bouton « Modificateurs ».",
+        "Une seule arme peut être « équipée » à la fois (case à cocher à côté de son nom) — c'est la seule qui compte dans le calcul du Rang d'Action — sauf avec l'avantage « Ambidextre », qui permet d'en équiper deux simultanément ; équiper une arme au-delà de cette limite déséquipe automatiquement la plus ancienne. Des modificateurs justifiés (ex. une amélioration listée dans l'équipement) peuvent s'ajouter aux valeurs de base d'une arme (score, dégâts, Rang d'Action) via le bouton « Modificateurs ».",
         "Plusieurs armures peuvent être actives en même temps ; leur protection (VP par membre : tête/bras/torse/jambes) s'additionne et s'affiche sous forme de silhouette, à côté d'une silhouette de localisation qui indique quel jet touche quel membre.",
       ],
     },
@@ -186,12 +187,13 @@ const EN: GuideContent = {
         "An attribute total = base score (entered on the sheet) + racial bonus (set by the character's race) + \"tech\" bonus (rare, e.g. cyberware). Clicking an attribute in edit mode shows this breakdown.",
         "A skill is normally picked from the ruleset's catalog (its name encodes the linked attribute, e.g. \"Commandement (COM)\"); its total score = entered score + the linked attribute's total.",
         "A skill can also be marked \"Free (advantage/gear)\" when it's already granted by an advantage and/or gear rather than bought with points — its cost is then excluded from the budget. A free skill accepts several justification lines (\"+ Justification\" button), each carrying its own point contribution that adds up to the base score; since it's usually outside the catalog, its name is typed freely and its linked attribute is chosen manually.",
+        "A skill can also be marked \"Affinity\": a pure modifier (no attribute added to its own score, already counted at the target's level) for another skill, a specific psychic power, or an entire psychic discipline — the target is chosen explicitly (\"Skill\"/\"Power\"/\"Discipline\" then the exact name) rather than inferred from the line's name. The bonus is automatically added to its target's total score, highlighted with an amber badge.",
       ],
     },
     {
       title: "Weapons and armor",
       paragraphs: [
-        "Only one weapon can be \"equipped\" at a time (checkbox next to its name) — it's the only one that counts toward the Action Rank. Justified modifiers (e.g. an upgrade listed in equipment) can add to a weapon's base values (score, damage, Action Rank) via the \"Modifiers\" button.",
+        "Only one weapon can be \"equipped\" at a time (checkbox next to its name) — it's the only one that counts toward the Action Rank — except with the \"Ambidextrous\" advantage, which allows equipping two at once; equipping a weapon past that limit automatically unequips the oldest one. Justified modifiers (e.g. an upgrade listed in equipment) can add to a weapon's base values (score, damage, Action Rank) via the \"Modifiers\" button.",
         "Several pieces of armor can be active at once; their protection (VP per body part: head/arms/torso/legs) adds up and is shown as a silhouette, next to a hit-location silhouette showing which roll hits which body part.",
       ],
     },
