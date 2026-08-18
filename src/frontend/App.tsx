@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import CharacterList from "./pages/CharacterList";
 import CharacterSheet from "./pages/CharacterSheet";
 import GmTracker from "./pages/GmTracker";
+import Documentation from "./pages/Documentation";
 import Profile from "./pages/Profile";
 import GamesRulesets from "./pages/admin/GamesRulesets";
 import PlayerGroups from "./pages/admin/PlayerGroups";
@@ -64,6 +65,14 @@ export default function App() {
         element={
           <RequireAuth>
             <GmTracker />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/documentation/:groupId"
+        element={
+          <RequireAuth>
+            <Documentation />
           </RequireAuth>
         }
       />

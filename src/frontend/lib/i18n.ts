@@ -30,6 +30,17 @@ const EN: Record<string, string> = {
   "Enregistrement…": "Saving…",
   "Chargement…": "Loading…",
 
+  // Documentation.tsx
+  "Documentation": "Documentation",
+  "Guide de la plateforme": "Platform guide",
+  "Généralités": "General",
+  "Pour le MJ": "For the GM",
+  "Pour le joueur": "For the player",
+  "Règles du jeu": "Game rules",
+  "Races": "Races",
+  "Bonus par attribut": "Attribute bonus",
+  "Bonus de taille": "Size bonus",
+
   // Login.tsx
   "Identifiant": "Username",
   "Mot de passe": "Password",

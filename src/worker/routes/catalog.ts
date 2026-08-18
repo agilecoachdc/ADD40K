@@ -11,7 +11,7 @@
 import { Hono } from "hono";
 import type { Env } from "../lib/session";
 import { uniqueSlugId } from "../lib/ids";
-import type { Game, JoinRequest, PlayerGroup, PublicUser, Ruleset } from "../../shared/types";
+import type { Game, JoinRequest, PlayerGroup, PublicUser, ReferenceData, Ruleset } from "../../shared/types";
 
 type HonoEnv = { Bindings: Env; Variables: { user: PublicUser } };
 
@@ -211,6 +211,37 @@ catalogRoutes.delete("/groups/:id/join-requests/:userId", async (c) => {
     .bind(groupId, c.req.param("userId"))
     .run();
   return c.json({ ok: true });
+});
+
+// Catalogue complet (ReferenceData) de la règle assignée à ce groupe, avec
+// le nom de la règle et du jeu — alimente la page Documentation (accessible
+// depuis l'écran "Personnages" du groupe), pour afficher les règles du jeu
+// réellement utilisées par cette table sans passer par /api/admin/*.
+// Ouvert à tout membre approuvé du groupe (joueur ou MJ), pas seulement au
+// MJ : consulter les règles est utile à tous.
+catalogRoutes.get("/groups/:id/reference", async (c) => {
+  const user = c.get("user");
+  const groupId = c.req.param("id");
+  if (!user.memberships.includes(groupId)) return c.json({ error: "Non membre de ce groupe" }, 403);
+
+  const row = await c.env.DB.prepare(
+    `SELECT g.name AS group_name, r.name AS ruleset_name, r.reference_data, ga.name AS game_name
+     FROM player_groups g
+     JOIN rulesets r ON r.id = g.ruleset_id
+     JOIN games ga ON ga.id = r.game_id
+     WHERE g.id = ?1`,
+  )
+    .bind(groupId)
+    .first<{ group_name: string; ruleset_name: string; reference_data: string; game_name: string }>();
+  if (!row) return c.json({ error: "Groupe introuvable" }, 404);
+
+  const referenceData: ReferenceData = JSON.parse(row.reference_data);
+  return c.json({
+    referenceData,
+    groupName: row.group_name,
+    rulesetName: row.ruleset_name,
+    gameName: row.game_name,
+  });
 });
 
 // Créer un nouveau groupe — réservé au MJ (un joueur rejoint une table déjà

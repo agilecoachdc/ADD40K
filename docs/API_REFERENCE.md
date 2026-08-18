@@ -188,6 +188,12 @@ groupe, ou éditer son propre groupe) sans passer par les routes CRUD complètes
 - `GET /api/games` — liste des jeux (résumé, comme `/api/admin/games`).
 - `GET /api/rulesets[?gameId=]` — liste des règles (résumé, sans `referenceData`).
 - `GET /api/groups` — liste des groupes de joueurs (résumé, sans `members`, avec `driveUrl`).
+- `GET /api/groups/:id/reference` — Auth : membre approuvé de ce groupe (joueur ou MJ, 403 sinon).
+  Sortie : `{ referenceData: ReferenceData, groupName, rulesetName, gameName }` — catalogue complet
+  de la règle assignée à ce groupe (mêmes données que `/api/characters?groupId=`, mais accessible
+  sans passer par la liste des personnages). Alimente la page Documentation
+  (`/documentation/:groupId`, accessible depuis l'écran "Personnages"), qui affiche les règles du
+  jeu réellement utilisées par ce groupe à côté du guide générique de la plateforme.
 - `POST /api/groups/join` — Auth : joueur ou MJ (403 si admin). Entrée : `{ groupId }`. Ouvre une
   demande d'adhésion (idempotent) — **n'accorde plus l'accès immédiatement** : la ligne
   `group_memberships` créée démarre à `status = 'pending'` et doit être approuvée par un MJ déjà

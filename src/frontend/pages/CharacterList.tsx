@@ -239,6 +239,11 @@ export default function CharacterList() {
                 {t("Dossier Drive")}
               </a>
             )}
+            {groupId && (
+              <Link to={`/documentation/${groupId}`} className="text-indigo-400 hover:underline">
+                {t("Documentation")}
+              </Link>
+            )}
             <Link to="/profil" className="text-indigo-400 hover:underline">
               {t("Mon profil")}
             </Link>

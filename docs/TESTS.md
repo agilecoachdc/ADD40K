@@ -25,6 +25,12 @@ navigateur intégré, cf. session de build).
 - [ ] Le solde de points affiche un avertissement rouge si négatif (cas réel : Stern Tack,
       Frigg, Jonas, Stella sont tous en négatif après import — attendu, cf.
       `scripts/import-report.md`).
+- [ ] Depuis l'écran "Personnages" d'un groupe, cliquer "Documentation" → guide de la plateforme
+      (sections communes + spécifiques au rôle connecté) et règles du jeu du groupe (races,
+      compétences, armes, armures, pouvoirs psy, avantages, table de coût) affichés sans erreur.
+      Connecté en joueur → section "Pour le joueur" (pas "Pour le MJ"). Changer la langue du
+      compte (page Profil) → le guide de la plateforme bascule en anglais, les règles du jeu
+      restent en français (contenu du catalogue non traduit).
 
 ## §3 — Édition
 

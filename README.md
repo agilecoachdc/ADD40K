@@ -212,6 +212,25 @@ Ajouter une 3ᵉ langue : créer son dictionnaire dans `i18n.ts`, l'ajouter à `
 lister le nouveau code dans `Language` (`shared/types.ts`) et `VALID_LANGUAGES`
 (`routes/profile.ts`).
 
+## Page Documentation (dans l'app)
+
+Accessible depuis l'écran "Personnages" de chaque groupe (`/documentation/:groupId`,
+`Documentation.tsx`) — ouverte à tout membre approuvé (joueur ou MJ), pas seulement au MJ. Deux
+volets :
+- **Guide de la plateforme** (`src/frontend/lib/platform-guide.ts`) : contenu générique
+  d'utilisation de l'app, indépendant de la règle jouée — sections communes (navigation, fiche,
+  attributs/compétences, armes/armures, pouvoirs psy, budget, import/export) puis spécifiques au
+  rôle (joueur : sa fiche, ses coéquipiers ; MJ : PNJ, Suivi des constantes, XP, demandes
+  d'adhésion, solde négatif, personnalisation du groupe). Bilingue par bloc complet (FR/EN, pas de
+  traduction phrase à phrase comme `i18n.ts` — plus adapté à de la prose longue) ; suit la langue
+  choisie sur le profil.
+- **Règles du jeu** : rendu direct du catalogue (`ReferenceData`) de la règle assignée à ce groupe
+  (races, compétences, armes, armures, pouvoirs psy, avantages/inconvénients, table de coût), via
+  `GET /api/groups/:id/reference` (nouvelle route, ouverte à tout membre — pas besoin des droits
+  admin pour consulter les règles de sa propre table). Reste dans la langue source du catalogue
+  (français pour ADD40K) — seul le chrome de la page (titres de tableaux) suit la langue du
+  compte ; traduire le contenu du catalogue lui-même est hors périmètre de cette itération.
+
 ## Comptes et plateforme
 
 Trois rôles : `admin` (gère jeux/règles/groupes de joueurs et les comptes, pages `/admin/jeux` et

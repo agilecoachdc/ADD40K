@@ -158,6 +158,12 @@ export const api = {
     id: string,
     patch: { name?: string; description?: string; rulesetId?: string; imageUrl?: string | null; driveUrl?: string | null },
   ) => request<{ group: PlayerGroup }>(`/groups/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
+  // Catalogue complet de la règle de ce groupe + nom de la règle/du jeu —
+  // page Documentation, ouvert à tout membre approuvé (pas seulement MJ).
+  getGroupReference: (groupId: string) =>
+    request<{ referenceData: ReferenceData; groupName: string; rulesetName: string; gameName: string }>(
+      `/groups/${groupId}/reference`,
+    ),
 
   // Approbation des demandes d'adhésion — réservé au MJ membre (approuvé)
   // du groupe ciblé (cf. migrations/0006_join_approval.sql).
