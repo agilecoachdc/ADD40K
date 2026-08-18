@@ -35,7 +35,7 @@ import {
   parseSkillAttribute,
 } from "./calc-engine";
 import { referenceData } from "./reference-data";
-import type { Character } from "./types";
+import type { AttributeScores, Character } from "./types";
 import charactersSeed from "../../scripts/characters.seed.json";
 
 const sternTack = (charactersSeed as Character[]).find((c) => c.name === "Stern Tack")!;
@@ -252,7 +252,7 @@ describe("getActionRank", () => {
   // getWeaponTotals ci-dessus.
   function baseCharacter(): Pick<
     Character,
-    "race" | "attributeScores" | "attributeTechBonus" | "weapons" | "advantages" | "psyPowers" | "activePsyPowers"
+    "race" | "attributeScores" | "attributeTechBonus" | "weapons" | "advantages" | "psyPowers" | "activePsyPowers" | "skills"
   > {
     return {
       race: "gith",
@@ -262,6 +262,7 @@ describe("getActionRank", () => {
       advantages: [],
       psyPowers: [],
       activePsyPowers: [],
+      skills: [],
     };
   }
 
@@ -377,32 +378,51 @@ describe("getActivePsyPowerAttributeBoost — Concentration psy sur DEX/VIT (pas
   // était câblé) — getActivePsyPowerAttributeBoost inclut désormais le bonus
   // de Concentration psy pour n'importe quel attribut physique, affiché en
   // évidence sur AttributesPanel comme n'importe quel autre pouvoir.
+  // VOL à 0 et aucune compétence d'Affinité dans ces fixtures : isole la
+  // formule par palier (score total = score de base seul, cf.
+  // getConcentrationPsyAttributeBonus qui utilise désormais getPsyPowerTotal
+  // — score + Volonté + Affinité, testé séparément ci-dessous).
+  const zeroAttributeTotals: AttributeScores = { FO: 0, VIT: 0, DEX: 0, REF: 0, PER: 0, COM: 0, INT: 0, VOL: 0 };
+
   it("niveau 15, attribut choisi DEX (score 12) : +1 par tranche de 5 = +2 sur DEX, rien sur REF/VIT", () => {
     const character = {
+      skills: [],
       psyPowers: [{ name: "Concentration psy", score: 12, discipline: "Maîtrise de soi" }],
       activePsyPowers: [{ name: "Concentration psy", level: 15, attribute: "DEX" as const }],
     };
-    expect(getActivePsyPowerAttributeBoost(character, "DEX")).toBe(2);
-    expect(getActivePsyPowerAttributeBoost(character, "REF")).toBe(0);
-    expect(getActivePsyPowerAttributeBoost(character, "VIT")).toBe(0);
+    expect(getActivePsyPowerAttributeBoost(character, zeroAttributeTotals, "DEX")).toBe(2);
+    expect(getActivePsyPowerAttributeBoost(character, zeroAttributeTotals, "REF")).toBe(0);
+    expect(getActivePsyPowerAttributeBoost(character, zeroAttributeTotals, "VIT")).toBe(0);
   });
 
   it("niveau 25 (score 9) : +1 par tranche de 3 = +3 sur REF, DEX ET VIT sans avoir à choisir", () => {
     const character = {
+      skills: [],
       psyPowers: [{ name: "Concentration psy", score: 9, discipline: "Maîtrise de soi" }],
       activePsyPowers: [{ name: "Concentration psy", level: 25 }],
     };
-    expect(getActivePsyPowerAttributeBoost(character, "REF")).toBe(3);
-    expect(getActivePsyPowerAttributeBoost(character, "DEX")).toBe(3);
-    expect(getActivePsyPowerAttributeBoost(character, "VIT")).toBe(3);
+    expect(getActivePsyPowerAttributeBoost(character, zeroAttributeTotals, "REF")).toBe(3);
+    expect(getActivePsyPowerAttributeBoost(character, zeroAttributeTotals, "DEX")).toBe(3);
+    expect(getActivePsyPowerAttributeBoost(character, zeroAttributeTotals, "VIT")).toBe(3);
   });
 
   it("attribut hors REF/DEX/VIT (ex. INT) : jamais concerné, même à haut palier", () => {
     const character = {
+      skills: [],
       psyPowers: [{ name: "Concentration psy", score: 20, discipline: "Maîtrise de soi" }],
       activePsyPowers: [{ name: "Concentration psy", level: 35 }],
     };
-    expect(getActivePsyPowerAttributeBoost(character, "INT")).toBe(0);
+    expect(getActivePsyPowerAttributeBoost(character, zeroAttributeTotals, "INT")).toBe(0);
+  });
+
+  it("le score total (score + Volonté + Affinité) compte, pas le seul score de base — cas réel Karun : score de base 3, VOL 5, Affinité +7 = total 15, niveau 15 -> +3 REF", () => {
+    const character = {
+      skills: [{ name: "Affinité", score: 7, isAffinity: true, affinityTargetPowerName: "Concentration psy" }],
+      psyPowers: [{ name: "Concentration psy", score: 3, discipline: "Maîtrise de soi" }],
+      activePsyPowers: [{ name: "Concentration psy", level: 15, attribute: "REF" as const }],
+    };
+    const attributeTotals = { ...zeroAttributeTotals, VOL: 5 };
+    expect(getActivePsyPowerAttributeBoost(character, attributeTotals, "REF")).toBe(3);
   });
 });
 
@@ -439,6 +459,7 @@ describe("getPsyPowerActivationCost — coût en PSP par palier", () => {
 describe("boost générique d'un pouvoir actif (attribut/compétence choisis à l'activation)", () => {
   it("getActivePsyPowerAttributeBoost additionne les boostAmount ciblant l'attribut demandé", () => {
     const character = {
+      skills: [],
       psyPowers: [],
       activePsyPowers: [
         { name: "Illusion", level: 20, boostAttribute: "FO" as const, boostAmount: 3 },
@@ -446,9 +467,10 @@ describe("boost générique d'un pouvoir actif (attribut/compétence choisis à 
         { name: "Acuité", level: 15, boostAttribute: "PER" as const, boostAmount: 5 },
       ],
     };
-    expect(getActivePsyPowerAttributeBoost(character, "FO")).toBe(5);
-    expect(getActivePsyPowerAttributeBoost(character, "PER")).toBe(5);
-    expect(getActivePsyPowerAttributeBoost(character, "VOL")).toBe(0);
+    const attributeTotals: AttributeScores = { FO: 0, VIT: 0, DEX: 0, REF: 0, PER: 0, COM: 0, INT: 0, VOL: 0 };
+    expect(getActivePsyPowerAttributeBoost(character, attributeTotals, "FO")).toBe(5);
+    expect(getActivePsyPowerAttributeBoost(character, attributeTotals, "PER")).toBe(5);
+    expect(getActivePsyPowerAttributeBoost(character, attributeTotals, "VOL")).toBe(0);
   });
 
   it("getActivePsyPowerSkillBoost additionne les boostAmount ciblant la compétence demandée (nom exact)", () => {

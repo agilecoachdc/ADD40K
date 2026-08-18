@@ -135,9 +135,13 @@ et `pspMax`, cf. `CharacterSheet.setActivePower`). "Concentration psy" garde son
 (`calc-engine.getConcentrationPsyAttributeBonus`) : aux paliers 15/20, un sélecteur dédié (toujours
 visible à ces paliers, pas replié) impose de choisir UNE caractéristique physique (REF/DEX/VIT) à
 booster ; à partir du palier 25, les trois sont boostées automatiquement (simple repère informatif,
-pas de sélecteur). Le bonus obtenu est mis en évidence comme celui de tout autre pouvoir (badge
-ambre sur `AttributesPanel`, pris en compte dans le RA pour REF) — corrige un gap où choisir
-DEX/VIT plutôt que REF n'avait auparavant aucun effet visible nulle part dans l'app. Pour tout
+pas de sélecteur). Le calcul se base sur le score TOTAL du pouvoir — score de base + Volonté +
+Affinité, cf. `getPsyPowerTotal` — et non son seul score de base (cas réel signalé : Karun a un
+score de base de 3 dans Concentration psy, mais un total de 15 une fois Volonté et Affinité
+ajoutés ; le bonus doit se calculer sur ce 15, pas sur ce 3). Le bonus obtenu est mis en évidence
+comme celui de tout autre pouvoir (badge ambre sur `AttributesPanel`, pris en compte dans le RA
+pour REF) — corrige un gap où choisir DEX/VIT plutôt que REF n'avait auparavant aucun effet visible
+nulle part dans l'app. Pour tout
 autre pouvoir qui modifie une caractéristique ou une compétence (règle non structurée en formule
 dans ce moteur), un "effet" optionnel se choisit manuellement à
 l'activation — repliée par défaut derrière un bouton "+ Effet (optionnel)" pour garder la ligne

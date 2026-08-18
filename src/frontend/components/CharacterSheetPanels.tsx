@@ -335,7 +335,7 @@ export function AttributesPanel({
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
         {ATTRIBUTES.map((attr) => {
           const isOpen = editing && selected === attr;
-          const boost = getActivePsyPowerAttributeBoost(character, attr);
+          const boost = getActivePsyPowerAttributeBoost(character, computed.attributeTotals, attr);
           return (
             <div key={attr} className="overflow-hidden rounded-lg bg-slate-800/50">
               <button

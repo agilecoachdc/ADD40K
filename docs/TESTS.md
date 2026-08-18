@@ -64,6 +64,10 @@ navigateur intégré, cf. session de build).
 - [ ] Sur l'écran "Suivi des constantes" (MJ), avec au moins un pouvoir actif sur un personnage en
       jeu : cliquer "Fin de combat" → tous les pouvoirs actifs des personnages en jeu sont
       désactivés, leur PSP remboursé, l'icône "⚡" disparaît de leurs tuiles.
+- [ ] Sur "Concentration psy" (ex. cas réel Karun : score de base 3, mais total 15 une fois Volonté
+      + Affinité ajoutés), activer à un palier avec REF choisi → le bonus REF (`AttributesPanel`,
+      pris en compte dans le RA) doit se calculer sur le score TOTAL (15), pas le score de base
+      seul (3) — au palier 15 (+1 par tranche de 5), bonus attendu +3, pas 0.
 - [ ] Sur "Concentration psy" (ex. cas réel Karun), choisir le palier 15 ou 20 → un sélecteur
       "Caractéristique boostée" (REF/DEX/VIT) apparaît toujours, sans clic supplémentaire ; choisir
       DEX ou VIT (pas REF) et activer → le bonus apparaît en évidence sur l'attribut choisi dans
