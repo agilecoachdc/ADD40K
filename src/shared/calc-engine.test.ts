@@ -15,6 +15,7 @@ import {
   getPspMax,
   getPsyPowerTotal,
   getSkillCost,
+  getSkillsCostTotal,
   getSkillTotal,
   getWeaponSkillName,
   getWeaponSuggestedScore,
@@ -71,6 +72,26 @@ describe("parseSkillAttribute / getSkillTotal", () => {
     expect(result.attribute).toBe("COM");
     expect(result.attributeValue).toBe(2);
     expect(result.total).toBe(8);
+  });
+
+  it("attributeOverride prend le pas sur le parsing du nom (compétence hors catalogue, ex. compétence 'free' sans code d'attribut dans le nom)", () => {
+    const attributeTotals = computeCharacter(sternTack, referenceData).attributeTotals;
+    const result = getSkillTotal("Résistance mentale", 0, attributeTotals, "VOL");
+    expect(result.attribute).toBe("VOL");
+    expect(result.attributeValue).toBe(attributeTotals.VOL);
+  });
+});
+
+describe("getSkillsCostTotal — compétences 'free' (justifiées par un avantage/du matériel)", () => {
+  it("exclut du coût une compétence marquée free, quel que soit son score", () => {
+    const base: Pick<Character, "skills"> = { skills: [{ name: "Commandement (COM)", score: 6 }] };
+    const withFree: Pick<Character, "skills"> = {
+      skills: [
+        { name: "Commandement (COM)", score: 6 },
+        { name: "Résistance mentale", score: 20, attribute: "VOL", free: true, justification: "Volonté de fer" },
+      ],
+    };
+    expect(getSkillsCostTotal(withFree, referenceData)).toBe(getSkillsCostTotal(base, referenceData));
   });
 });
 

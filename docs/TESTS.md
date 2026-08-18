@@ -38,6 +38,11 @@ navigateur intégré, cf. session de build).
       valeurs d'avant l'édition restaurées au prochain chargement.
 - [ ] Boutons +/- PV et PSP → mettent à jour le compteur actuel/max immédiatement (état local),
       persistés uniquement après "Enregistrer".
+- [ ] Ajouter une compétence, cocher "Gratuite (avantage/matériel)" → le champ nom devient du
+      texte libre (plus le catalogue), un sélecteur d'attribut et un champ "Justification"
+      apparaissent ; le solde de points ne bouge pas quel que soit le score saisi (coût exclu du
+      budget). Décocher → la compétence redevient sélectionnable depuis le catalogue et compte à
+      nouveau dans le coût.
 
 ## §4 — Permissions
 

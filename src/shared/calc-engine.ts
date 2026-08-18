@@ -55,9 +55,20 @@ export interface SkillTotal {
   total: number;
 }
 
-/** Score total d'une compétence = score + total de l'attribut lié (si identifiable dans le nom). */
-export function getSkillTotal(skillName: string, score: number, attributeTotals: AttributeScores): SkillTotal {
-  const attribute = parseSkillAttribute(skillName);
+/**
+ * Score total d'une compétence = score + total de l'attribut lié.
+ * `attributeOverride` (SkillEntry.attribute) prend le pas sur le parsing du
+ * nom quand renseigné — nécessaire pour une compétence hors catalogue (texte
+ * libre, ex. compétence `free` justifiée par un avantage/du matériel) dont
+ * le nom ne suit pas la convention "Nom (ATTR)" du catalogue.
+ */
+export function getSkillTotal(
+  skillName: string,
+  score: number,
+  attributeTotals: AttributeScores,
+  attributeOverride?: Attribute | null,
+): SkillTotal {
+  const attribute = attributeOverride ?? parseSkillAttribute(skillName);
   const attributeValue = attribute ? attributeTotals[attribute] : 0;
   return { attribute, attributeValue, total: score + attributeValue };
 }
@@ -133,12 +144,18 @@ export function getSkillCost(score: number, table: ReferenceData["skillCostTable
   return nearest !== undefined ? table[nearest]! : 0;
 }
 
+/**
+ * Coût total des compétences — exclut les compétences `free` (déjà
+ * justifiées par un avantage/du matériel de la fiche plutôt qu'achetées en
+ * XP, cf. SkillEntry.free), qui restent dans la même liste mais ne
+ * réduisent pas le solde de points.
+ */
 export function getSkillsCostTotal(
   character: Pick<Character, "skills">,
   reference: ReferenceData,
 ): number {
   return character.skills.reduce(
-    (sum, skill) => sum + getSkillCost(skill.score, reference.skillCostTable),
+    (sum, skill) => sum + (skill.free ? 0 : getSkillCost(skill.score, reference.skillCostTable)),
     0,
   );
 }
@@ -388,7 +405,7 @@ export function getWeaponSuggestedScore(
   if (!skillName) return null;
   const skill = character.skills.find((s) => s.name === skillName);
   if (!skill) return null;
-  return getSkillTotal(skillName, skill.score, attributeTotals).total;
+  return getSkillTotal(skillName, skill.score, attributeTotals, skill.attribute).total;
 }
 
 /** Somme signée des avantages/inconvénients (données!K40). */

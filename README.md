@@ -140,6 +140,19 @@ il faut d'abord ajuster la fiche, ou passer par le MJ : soit une distribution d'
 le bouton "Accepter" du message d'avertissement rouge, qui absorbe le déficit dans les points de
 départ pour ramener le solde à 0 (`onAcceptDeficit`, `BudgetPanel`).
 
+## Compétences gratuites (justifiées par un avantage/du matériel)
+
+Une compétence peut être marquée "Gratuite (avantage/matériel)" sur la fiche (`SkillEntry.free`,
+`SkillsPanel`) : elle reste dans la même liste de compétences (rien à part, rien à oublier en jeu)
+mais son coût est exclu du budget de points (`calc-engine.getSkillsCostTotal`) — utile pour une
+compétence déjà acquise via un avantage et/ou du matériel plutôt qu'achetée en XP, ex. "Résistance
+mentale" de Conrad Lingus, obtenue grâce à l'avantage "Volonté de fer" et son collier Alphacien. Un
+champ "Justification" (autocomplété depuis les libellés d'avantages/matériel de la fiche) documente
+la raison. Comme une compétence gratuite est le plus souvent hors du catalogue de règle (son nom ne
+suit donc pas la convention "Nom (ATTR)" utilisée pour en déduire l'attribut lié), son nom se saisit
+en texte libre et son attribut se choisit manuellement dans un sélecteur dédié
+(`SkillEntry.attribute`, prioritaire sur le parsing du nom — `calc-engine.getSkillTotal`).
+
 ## Traduction
 
 Chaque compte choisit sa langue d'interface (`users.language`, `migrations/0007_language.sql`,

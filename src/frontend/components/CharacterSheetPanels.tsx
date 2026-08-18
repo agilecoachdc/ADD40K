@@ -70,12 +70,23 @@ function NumberInput({ value, onChange, className = "" }: { value: number; onCha
   );
 }
 
-function TextInput({ value, onChange, className = "" }: { value: string; onChange: (s: string) => void; className?: string }) {
+function TextInput({
+  value,
+  onChange,
+  placeholder,
+  className = "",
+}: {
+  value: string;
+  onChange: (s: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
   return (
     <input
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
       className={`rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm ${className}`}
     />
   );
@@ -383,41 +394,106 @@ export function SkillsPanel({
         <span className="text-right">{t("Attribut")}</span>
         <span className="text-right">{t("Total")}</span>
       </div>
+      {editing && (
+        <datalist id="skill-free-justification-source">
+          {character.advantages.map((a, ai) => (
+            <option key={`a-${ai}`} value={a.label} />
+          ))}
+          {character.equipment.map((e, ei) => (
+            <option key={`e-${ei}`} value={e.label} />
+          ))}
+        </datalist>
+      )}
       <ul className="space-y-1">
         {skills.map((s, i) => {
-          const { attribute, attributeValue, total } = getSkillTotal(s.name, s.score, computed.attributeTotals);
+          const { attribute, attributeValue, total } = getSkillTotal(s.name, s.score, computed.attributeTotals, s.attribute);
           return (
-            <li key={i} className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-2 text-sm">
-              {editing ? (
-                <CatalogSelect
-                  value={s.name}
-                  options={referenceData.skills.map((sd) => sd.name)}
-                  onPick={(name) => setSkill(i, { name })}
-                  placeholder={t("— choisir une compétence —")}
-                  className="flex-1"
-                />
-              ) : (
-                <span className="text-slate-200" title={referenceData.skills.find((sd) => sd.name === s.name)?.description}>
-                  {s.name}
+            <li key={i} className="space-y-1">
+              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-2 text-sm">
+                {editing ? (
+                  s.free ? (
+                    <TextInput
+                      value={s.name}
+                      onChange={(v) => setSkill(i, { name: v })}
+                      placeholder={t("Nom de la compétence")}
+                      className="flex-1"
+                    />
+                  ) : (
+                    <CatalogSelect
+                      value={s.name}
+                      options={referenceData.skills.map((sd) => sd.name)}
+                      onPick={(name) => setSkill(i, { name })}
+                      placeholder={t("— choisir une compétence —")}
+                      className="flex-1"
+                    />
+                  )
+                ) : (
+                  <span className="text-slate-200" title={referenceData.skills.find((sd) => sd.name === s.name)?.description}>
+                    {s.name}
+                    {s.free && (
+                      <span
+                        className="ml-1.5 rounded-full bg-emerald-600/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300"
+                        title={s.justification || undefined}
+                      >
+                        {t("Gratuite")}
+                      </span>
+                    )}
+                  </span>
+                )}
+                {editing ? (
+                  <NumberInput value={s.score} onChange={(n) => setSkill(i, { score: n })} />
+                ) : (
+                  <span className="text-right text-slate-300">{s.score}</span>
+                )}
+                <span className="w-14 text-right text-xs text-slate-500">
+                  {attribute ? `+${attributeValue} ${attribute}` : "—"}
                 </span>
-              )}
-              {editing ? (
-                <NumberInput value={s.score} onChange={(n) => setSkill(i, { score: n })} />
-              ) : (
-                <span className="text-right text-slate-300">{s.score}</span>
-              )}
-              <span className="w-14 text-right text-xs text-slate-500">
-                {attribute ? `+${attributeValue} ${attribute}` : "—"}
-              </span>
-              <span className="w-8 text-right font-semibold text-indigo-300">{total}</span>
+                <span className="w-8 text-right font-semibold text-indigo-300">{total}</span>
+                {editing && (
+                  <button
+                    onClick={() => update({ skills: skills.filter((_, idx) => idx !== i) })}
+                    className="text-slate-500 hover:text-red-400"
+                    aria-label="Retirer"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               {editing && (
-                <button
-                  onClick={() => update({ skills: skills.filter((_, idx) => idx !== i) })}
-                  className="text-slate-500 hover:text-red-400"
-                  aria-label="Retirer"
-                >
-                  ×
-                </button>
+                <div className="flex flex-wrap items-center gap-2 pl-1 text-xs text-slate-400">
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={s.free ?? false}
+                      onChange={(e) => setSkill(i, { free: e.target.checked })}
+                    />
+                    {t("Gratuite (avantage/matériel)")}
+                  </label>
+                  {s.free && (
+                    <>
+                      <select
+                        value={s.attribute ?? ""}
+                        onChange={(e) => setSkill(i, { attribute: (e.target.value || null) as Attribute | null })}
+                        className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
+                      >
+                        <option value="">{t("— attribut —")}</option>
+                        {ATTRIBUTES.map((a) => (
+                          <option key={a} value={a}>
+                            {a}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        list="skill-free-justification-source"
+                        type="text"
+                        value={s.justification ?? ""}
+                        onChange={(e) => setSkill(i, { justification: e.target.value })}
+                        placeholder={t("Justification (avantage / matériel)")}
+                        className="min-w-[200px] flex-1 rounded border border-slate-700 bg-slate-800 px-2 py-1"
+                      />
+                    </>
+                  )}
+                </div>
               )}
             </li>
           );

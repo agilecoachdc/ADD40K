@@ -39,6 +39,27 @@ export interface SkillEntry {
   /** Nom de la compétence, idéalement une entrée de skills_catalog mais texte libre accepté. */
   name: string;
   score: number;
+  /**
+   * Attribut lié à utiliser pour le score total (score + attribut, cf.
+   * calc-engine.getSkillTotal). Déduit automatiquement du nom pour une
+   * compétence du catalogue (convention "Nom (ATTR)", cf.
+   * calc-engine.parseSkillAttribute) — ce champ n'est alors pas nécessaire.
+   * Utile en saisie manuelle pour une compétence hors catalogue (texte
+   * libre) dont le nom ne suit pas cette convention, notamment une
+   * compétence `free` ci-dessous ; prioritaire sur le nom si renseigné.
+   */
+  attribute?: Attribute | null;
+  /**
+   * Compétence acquise sans coûter de points de budget (exclue de
+   * calc-engine.getSkillsCostTotal) car déjà justifiée par un avantage
+   * et/ou du matériel de la fiche plutôt qu'achetée en XP — ex. "Résistance
+   * mentale" de Conrad Lingus, acquise via l'avantage "Volonté de fer" et
+   * son collier Alphacien. Reste dans la même liste de compétences (pas une
+   * liste séparée) pour ne pas l'oublier en jeu — cf. `justification`.
+   */
+  free?: boolean;
+  /** Ligne d'avantage/de matériel qui justifie la gratuité — attendu (mais pas imposé) si `free`. */
+  justification?: string;
 }
 
 export interface PsyPowerEntry {
