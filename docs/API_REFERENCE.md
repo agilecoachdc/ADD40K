@@ -76,9 +76,10 @@ chaque réponse.
 ### `POST /api/characters/:id/xp`
 - Auth : session + rôle `gm` membre du groupe du personnage (contrairement à `PUT` ci-dessus, le
   joueur propriétaire ne peut pas s'en servir même avec `canEdit` — l'XP est décidée par le MJ).
-- Entrée : `{ amount: number }` (non nul). Positif : ajouté à `character.xp` (pool disponible) et
-  `character.xpTotal` (compteur lifetime, purement informatif — cf. shared/types.ts). Négatif :
-  soustrait de `character.pointsDepart` au lieu de `xp` — le pool XP ne descend jamais sous 0, le
+- Entrée : `{ amount: number }` (non nul). Positif : ajouté à `character.xp` ("XP disponible" à
+  l'écran) et `character.xpTotal` ("XP gagnée (depuis la création)", compteur lifetime, purement
+  informatif — cf. shared/types.ts). Négatif : soustrait de `character.pointsDepart` ("Points de
+  départ" à l'écran) au lieu de `xp` — le pool XP ne descend jamais sous 0, le
   fait que ce soit le MJ qui applique l'ajustement via cette route vaut son "approbation".
 - Sortie : `{ character: Character, computed: CharacterComputed, canEdit: true, referenceData: ReferenceData }`
   (même enveloppe que `PUT /:id`).

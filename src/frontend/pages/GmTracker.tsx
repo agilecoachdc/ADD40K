@@ -280,15 +280,16 @@ function CharacterTile({
           )}
         </div>
         {/*
-          Pool XP actuel / total jamais distribué (cf. Character.xp/xpTotal)
-          — affiché pour joueurs et PNJ, avec le contrôle "+XP" du MJ juste
-          à côté (cette page est déjà réservée au MJ, cf. le garde-fou
-          Navigate plus bas).
+          XP disponible (c.xp) / XP gagnée depuis la création (c.xpTotal) —
+          mêmes libellés que BudgetPanel sur la fiche détaillée, cf.
+          Character.xp/xpTotal dans shared/types.ts. Affiché pour joueurs et
+          PNJ, avec le contrôle "+XP" du MJ juste à côté (cette page est
+          déjà réservée au MJ, cf. le garde-fou Navigate plus bas).
         */}
         <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-400">
           <span>
-            XP <span className="font-semibold text-amber-300">{c.xp}</span>
-            <span className="text-slate-600"> / total {c.xpTotal}</span>
+            XP dispo <span className="font-semibold text-amber-300">{c.xp}</span>
+            <span className="text-slate-600"> · gagnée {c.xpTotal}</span>
           </span>
           {onGrantXp && <GrantXpControl onGrant={onGrantXp} />}
         </div>

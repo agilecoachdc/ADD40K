@@ -948,7 +948,7 @@ export function BudgetPanel({
   isGm,
   onGrantXp,
 }: {
-  character: Pick<Character, "xp" | "xpTotal">;
+  character: Pick<Character, "pointsDepart" | "xp" | "xpTotal">;
   computed: CharacterComputed;
   isGm?: boolean;
   onGrantXp?: (amount: number) => void | Promise<void>;
@@ -956,6 +956,10 @@ export function BudgetPanel({
   const { budget } = computed;
   const [xpAmount, setXpAmount] = useState("");
   const [xpBusy, setXpBusy] = useState(false);
+  // Coût net réellement consommé sur le total dispo (compétences + pouvoirs
+  // psy + avantages) — équivalent à `totalDispo - solde`, affiché comme un
+  // seul chiffre en plus du détail par poste ci-dessous.
+  const xpUsed = budget.totalDispo - budget.solde;
 
   async function handleGrant() {
     const amount = Number(xpAmount);
@@ -971,14 +975,29 @@ export function BudgetPanel({
 
   return (
     <Section title="Budget de points">
-      <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+      {/*
+        Deux groupes : ce qui alimente le total dispo (points raciaux +
+        points de départ + XP), puis ce qui en est consommé (coûts +
+        solde). "XP gagnée" (xpTotal) ne compte que les distributions
+        positives du MJ et n'est jamais réduite par un ajustement négatif —
+        un retrait est absorbé dans "Points de départ" à la place (cf.
+        POST /api/characters/:id/xp) : "XP gagnée" reste un historique
+        ("depuis la création"), pas un solde courant.
+      */}
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Total dispo</p>
+      <dl className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
         <Metric label="Points raciaux" value={budget.raceSkillPoints} />
-        <Metric label="Pool XP actuel" value={character.xp} />
-        <Metric label="XP total distribué" value={character.xpTotal} />
-        <Metric label="Total dispo" value={budget.totalDispo} />
+        <Metric label="Points de départ" value={character.pointsDepart} />
+        <Metric label="XP gagnée (depuis la création)" value={character.xpTotal} />
+        <Metric label="XP disponible" value={character.xp} />
+        <Metric label="Total" value={budget.totalDispo} emphasis />
+      </dl>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Dépenses</p>
+      <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
         <Metric label="Coût compétences" value={-budget.skillsCost} />
         <Metric label="Coût pouvoirs psy" value={-budget.psyPowersCost} />
         <Metric label="Net avantages" value={budget.advantagesNet} />
+        <Metric label="XP utilisée" value={xpUsed} />
         <Metric label="Solde" value={budget.solde} emphasis />
       </dl>
       {budget.solde < 0 && (

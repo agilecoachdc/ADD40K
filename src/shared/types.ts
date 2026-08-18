@@ -159,26 +159,32 @@ export interface Character {
   advantages: AdvantageEntry[];
   equipment: EquipmentEntry[];
 
-  // Budget de points
+  // Budget de points — voir BudgetPanel (CharacterSheetPanels.tsx) pour le
+  // détail affiché à l'écran ("Total dispo" = raceSkillPoints + pointsDepart
+  // + xp ; "Dépenses" = coûts compétences/pouvoirs psy/avantages, résumés
+  // dans "XP utilisée" ; "Solde" = ce qui reste).
+  /** Points de départ ("pool XP de départ") — fixés à la création du personnage, distincts de l'XP distribuée ensuite par le MJ (`xp`/`xpTotal` ci-dessous). */
   pointsDepart: number;
   /**
-   * Pool d'XP actuellement disponible, distribué par le MJ (bouton "Donner
-   * de l'XP", écran de fiche vue MJ et écran "Suivi des constantes") —
-   * contribue au budget total dispo comme les points de départ
-   * (cf. calc-engine.getTotalDispo). Ne descend jamais sous 0 : un ajustement
-   * négatif approuvé par le MJ (POST /api/characters/:id/xp avec un montant
-   * négatif) est absorbé dans `pointsDepart` plutôt que rendre ce champ
+   * XP actuellement disponible ("XP disponible" à l'écran), distribuée par
+   * le MJ (bouton "Donner de l'XP", fiche vue MJ et écran "Suivi des
+   * constantes") — contribue au budget total dispo comme les points de
+   * départ (cf. calc-engine.getTotalDispo). Ne descend jamais sous 0 : un
+   * retrait décidé par le MJ (POST /api/characters/:id/xp avec un montant
+   * négatif) est absorbé dans `pointsDepart` plutôt que de rendre ce champ
    * négatif — voir aussi `xpTotal`.
    */
   xp: number;
   /**
-   * Total d'XP jamais distribué par le MJ à ce personnage (compteur qui ne
+   * XP gagnée depuis la création du personnage ("XP gagnée" à l'écran) —
+   * historique des seules distributions positives du MJ (compteur qui ne
    * fait qu'augmenter, contrairement à `xp` qui reflète le pool
-   * actuellement disponible) — purement informatif, affiché à côté du pool
-   * actuel sur la fiche (vue MJ) et sur l'écran "Suivi des constantes".
-   * Absent des fiches créées avant l'ajout de ce champ — traité comme `0`
-   * côté route (GET /api/characters, GET/PUT /api/characters/:id), pas de
-   * migration nécessaire (colonne `data` JSON libre).
+   * actuellement disponible et peut être amputé par un retrait) —
+   * purement informatif, affiché à côté du pool actuel sur la fiche
+   * (vue MJ) et sur l'écran "Suivi des constantes". Absent des fiches
+   * créées avant l'ajout de ce champ — traité comme `0` côté route
+   * (GET /api/characters, GET/PUT /api/characters/:id), pas de migration
+   * nécessaire (colonne `data` JSON libre).
    */
   xpTotal: number;
 
