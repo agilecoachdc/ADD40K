@@ -54,6 +54,9 @@ export default function Home() {
                 <Link to="/admin/groupes" className="text-indigo-400 hover:underline">
                   Groupes
                 </Link>
+                <Link to="/admin/comptes" className="text-indigo-400 hover:underline">
+                  Comptes
+                </Link>
               </>
             )}
             <Link to="/profil" className="text-indigo-400 hover:underline">

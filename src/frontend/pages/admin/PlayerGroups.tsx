@@ -4,10 +4,10 @@
 // au rôle admin (route protégée côté App.tsx + API /api/admin/*).
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import type { PlayerGroupDetail, PublicUser, Ruleset, UserRole } from "@shared/types";
 import { api } from "../../lib/api";
 import { ImagePicker } from "../../components/ImagePicker";
+import { AdminNav } from "../../components/AdminNav";
 
 const ROLE_LABELS: Record<UserRole, string> = { admin: "Admin", gm: "MJ", player: "Joueur" };
 
@@ -64,7 +64,12 @@ export default function PlayerGroups() {
   }, []);
 
   const selected = groups.find((g) => g.id === selectedId) ?? null;
-  const unassignedUsers = allUsers.filter((u) => u.playerGroupId !== selectedId);
+  // Un compte admin n'appartient à aucun groupe (cf. lib/session.ts /
+  // routes/admin.ts) — l'exclure ici, sinon "Assigner" l'affecte au groupe
+  // ET force son rôle à joueur/MJ (le sélecteur ci-dessous n'a que ces deux
+  // options), le rétrogradant silencieusement. Incident vécu le 18/08 sur
+  // le compte admin lui-même.
+  const unassignedUsers = allUsers.filter((u) => u.playerGroupId !== selectedId && u.role !== "admin");
 
   async function handleCreateGroup(e: React.FormEvent) {
     e.preventDefault();
@@ -163,9 +168,7 @@ export default function PlayerGroups() {
       <div className="mx-auto max-w-4xl px-4 py-6">
         <header className="mb-6 flex items-center justify-between gap-3">
           <h1 className="text-lg font-semibold">Groupes de joueurs</h1>
-          <Link to="/" className="text-sm text-indigo-400 hover:underline">
-            ← Retour
-          </Link>
+          <AdminNav current="groupes" />
         </header>
 
         {error && <p className="mb-4 text-red-400">{error}</p>}

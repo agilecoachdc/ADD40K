@@ -5,7 +5,6 @@
 // Réservée au rôle admin (route protégée côté App.tsx + API /api/admin/*).
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import {
   ATTRIBUTES,
   WEAPON_TYPES,
@@ -23,6 +22,7 @@ import {
 import { api } from "../../lib/api";
 import { CatalogTable, type CatalogColumn } from "../../components/CatalogTable";
 import { ImagePicker } from "../../components/ImagePicker";
+import { AdminNav } from "../../components/AdminNav";
 
 const CATALOG_TABS = [
   "Races",
@@ -177,9 +177,7 @@ export default function GamesRulesets() {
       <div className="mx-auto max-w-5xl px-4 py-6">
         <header className="mb-6 flex items-center justify-between gap-3">
           <h1 className="text-lg font-semibold">Jeux &amp; règles</h1>
-          <Link to="/" className="text-sm text-indigo-400 hover:underline">
-            ← Retour
-          </Link>
+          <AdminNav current="jeux" />
         </header>
 
         {error && <p className="mb-4 text-red-400">{error}</p>}

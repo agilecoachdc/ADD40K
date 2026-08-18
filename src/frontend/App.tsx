@@ -9,6 +9,7 @@ import GmTracker from "./pages/GmTracker";
 import Profile from "./pages/Profile";
 import GamesRulesets from "./pages/admin/GamesRulesets";
 import PlayerGroups from "./pages/admin/PlayerGroups";
+import Accounts from "./pages/admin/Accounts";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -87,6 +88,14 @@ export default function App() {
         element={
           <RequireRole roles={["admin"]}>
             <PlayerGroups />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/admin/comptes"
+        element={
+          <RequireRole roles={["admin"]}>
+            <Accounts />
           </RequireRole>
         }
       />
