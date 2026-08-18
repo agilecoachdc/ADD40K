@@ -25,9 +25,13 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4 rounded-xl bg-slate-900 p-6 shadow-xl">
-        <h1 className="text-xl font-semibold text-slate-100">R2T2 — Fiches de personnage</h1>
+    <div
+      className="flex min-h-dvh items-center justify-center bg-cover bg-center bg-no-repeat px-4"
+      style={{ backgroundImage: "linear-gradient(rgba(2,6,23,.75), rgba(2,6,23,.75)), url('/r2t2-banner.jpg')" }}
+    >
+      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4 rounded-xl bg-slate-900/95 p-6 shadow-xl">
+        <img src="/r2t2-logo.png" alt="R2T2" className="mx-auto h-28 w-auto" />
+        <h1 className="text-center text-xl font-semibold text-slate-100">Fiches de personnage</h1>
         <div className="space-y-1">
           <label htmlFor="username" className="text-sm text-slate-400">
             Identifiant

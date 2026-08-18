@@ -266,6 +266,8 @@ export interface Game {
   id: string;
   name: string;
   description: string;
+  /** Data URL (JPEG, redimensionnée côté client) ou chemin d'asset statique (ex. "/background.jpg"). */
+  imageUrl: string | null;
   createdAt: string;
 }
 
@@ -275,6 +277,7 @@ export interface Ruleset {
   gameId: string;
   name: string;
   description: string;
+  imageUrl: string | null;
   createdAt: string;
 }
 
@@ -288,6 +291,7 @@ export interface PlayerGroup {
   name: string;
   description: string;
   rulesetId: string;
+  imageUrl: string | null;
   createdAt: string;
 }
 

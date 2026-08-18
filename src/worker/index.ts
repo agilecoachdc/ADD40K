@@ -10,6 +10,7 @@ import { authRoutes } from "./routes/auth";
 import { characterRoutes } from "./routes/characters";
 import { profileRoutes } from "./routes/profile";
 import { adminRoutes } from "./routes/admin";
+import { catalogRoutes } from "./routes/catalog";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -21,6 +22,12 @@ app.route("/api/profile", profileRoutes);
 // Gestion plateforme (jeux/règles/groupes/comptes) — réservée aux admins.
 app.use("/api/admin/*", requireAuth, requireRole("admin"));
 app.route("/api/admin", adminRoutes);
+// Parcourir/rejoindre/créer un groupe — tout compte authentifié (page Profil).
+app.use("/api/games", requireAuth);
+app.use("/api/rulesets", requireAuth);
+app.use("/api/groups", requireAuth);
+app.use("/api/groups/*", requireAuth);
+app.route("/api", catalogRoutes);
 
 // Tout ce qui n'est pas /api/* est délégué aux assets statiques (le SPA).
 // `not_found_handling: "single-page-application"` dans wrangler.jsonc fait

@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import type { Env } from "../lib/session";
 import { hashPassword } from "../lib/auth";
+import { uniqueSlugId } from "../lib/ids";
 import type {
   Game,
   GroupMember,
@@ -25,29 +26,6 @@ export const adminRoutes = new Hono<HonoEnv>();
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function slugify(name: string): string {
-  return (
-    name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "") // accents
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "item"
-  );
-}
-
-// Table cible fixée par l'appelant (jamais depuis une entrée utilisateur) —
-// pas de risque d'injection à interpoler son nom dans la requête.
-async function uniqueSlugId(db: D1Database, table: "games" | "rulesets" | "player_groups", name: string): Promise<string> {
-  const base = slugify(name);
-  let candidate = base;
-  let suffix = 2;
-  while (await db.prepare(`SELECT 1 FROM ${table} WHERE id = ?1`).bind(candidate).first()) {
-    candidate = `${base}-${suffix++}`;
-  }
-  return candidate;
-}
 
 const EMPTY_REFERENCE_DATA: ReferenceData = {
   races: [],
@@ -76,40 +54,44 @@ interface GameRow {
   id: string;
   name: string;
   description: string;
+  image_url: string | null;
   created_at: string;
 }
 
 function toGame(row: GameRow): Game {
-  return { id: row.id, name: row.name, description: row.description, createdAt: row.created_at };
+  return { id: row.id, name: row.name, description: row.description, imageUrl: row.image_url, createdAt: row.created_at };
 }
 
 adminRoutes.get("/games", async (c) => {
-  const { results } = await c.env.DB.prepare("SELECT id, name, description, created_at FROM games ORDER BY name").all<GameRow>();
+  const { results } = await c.env.DB.prepare("SELECT id, name, description, image_url, created_at FROM games ORDER BY name").all<GameRow>();
   return c.json({ games: (results ?? []).map(toGame) });
 });
 
 adminRoutes.post("/games", async (c) => {
-  const body = await c.req.json<{ name?: string; description?: string }>().catch(() => null);
+  const body = await c.req.json<{ name?: string; description?: string; imageUrl?: string | null }>().catch(() => null);
   if (!body?.name?.trim()) return c.json({ error: "Nom requis" }, 400);
 
   const id = await uniqueSlugId(c.env.DB, "games", body.name);
-  await c.env.DB.prepare("INSERT INTO games (id, name, description) VALUES (?1, ?2, ?3)")
-    .bind(id, body.name.trim(), body.description?.trim() ?? "")
+  await c.env.DB.prepare("INSERT INTO games (id, name, description, image_url) VALUES (?1, ?2, ?3, ?4)")
+    .bind(id, body.name.trim(), body.description?.trim() ?? "", body.imageUrl ?? null)
     .run();
-  const row = await c.env.DB.prepare("SELECT id, name, description, created_at FROM games WHERE id = ?1").bind(id).first<GameRow>();
+  const row = await c.env.DB.prepare("SELECT id, name, description, image_url, created_at FROM games WHERE id = ?1").bind(id).first<GameRow>();
   return c.json({ game: toGame(row!) }, 201);
 });
 
 adminRoutes.put("/games/:id", async (c) => {
   const id = c.req.param("id");
-  const body = await c.req.json<{ name?: string; description?: string }>().catch(() => null);
-  const existing = await c.env.DB.prepare("SELECT id, name, description, created_at FROM games WHERE id = ?1").bind(id).first<GameRow>();
+  const body = await c.req.json<{ name?: string; description?: string; imageUrl?: string | null }>().catch(() => null);
+  const existing = await c.env.DB.prepare("SELECT id, name, description, image_url, created_at FROM games WHERE id = ?1").bind(id).first<GameRow>();
   if (!existing) return c.json({ error: "Jeu introuvable" }, 404);
 
   const name = body?.name?.trim() || existing.name;
   const description = body?.description ?? existing.description;
-  await c.env.DB.prepare("UPDATE games SET name = ?1, description = ?2 WHERE id = ?3").bind(name, description, id).run();
-  return c.json({ game: { id, name, description, createdAt: existing.created_at } });
+  const imageUrl = body?.imageUrl !== undefined ? body.imageUrl : existing.image_url;
+  await c.env.DB.prepare("UPDATE games SET name = ?1, description = ?2, image_url = ?3 WHERE id = ?4")
+    .bind(name, description, imageUrl, id)
+    .run();
+  return c.json({ game: { id, name, description, imageUrl, createdAt: existing.created_at } });
 });
 
 adminRoutes.delete("/games/:id", async (c) => {
@@ -129,29 +111,39 @@ interface RulesetRow {
   game_id: string;
   name: string;
   description: string;
+  image_url: string | null;
   reference_data: string;
   created_at: string;
 }
 
 function toRuleset(row: RulesetRow): Ruleset {
-  return { id: row.id, gameId: row.game_id, name: row.name, description: row.description, createdAt: row.created_at };
+  return {
+    id: row.id,
+    gameId: row.game_id,
+    name: row.name,
+    description: row.description,
+    imageUrl: row.image_url,
+    createdAt: row.created_at,
+  };
 }
 
 adminRoutes.get("/rulesets", async (c) => {
   const gameId = c.req.query("gameId");
   const { results } = gameId
     ? await c.env.DB.prepare(
-        "SELECT id, game_id, name, description, reference_data, created_at FROM rulesets WHERE game_id = ?1 ORDER BY name",
+        "SELECT id, game_id, name, description, image_url, reference_data, created_at FROM rulesets WHERE game_id = ?1 ORDER BY name",
       )
         .bind(gameId)
         .all<RulesetRow>()
-    : await c.env.DB.prepare("SELECT id, game_id, name, description, reference_data, created_at FROM rulesets ORDER BY name").all<RulesetRow>();
+    : await c.env.DB.prepare(
+        "SELECT id, game_id, name, description, image_url, reference_data, created_at FROM rulesets ORDER BY name",
+      ).all<RulesetRow>();
   return c.json({ rulesets: (results ?? []).map(toRuleset) });
 });
 
 adminRoutes.get("/rulesets/:id", async (c) => {
   const row = await c.env.DB.prepare(
-    "SELECT id, game_id, name, description, reference_data, created_at FROM rulesets WHERE id = ?1",
+    "SELECT id, game_id, name, description, image_url, reference_data, created_at FROM rulesets WHERE id = ?1",
   )
     .bind(c.req.param("id"))
     .first<RulesetRow>();
@@ -161,7 +153,9 @@ adminRoutes.get("/rulesets/:id", async (c) => {
 });
 
 adminRoutes.post("/rulesets", async (c) => {
-  const body = await c.req.json<{ gameId?: string; name?: string; description?: string }>().catch(() => null);
+  const body = await c.req
+    .json<{ gameId?: string; name?: string; description?: string; imageUrl?: string | null }>()
+    .catch(() => null);
   if (!body?.gameId || !body.name?.trim()) return c.json({ error: "Jeu et nom requis" }, 400);
 
   const game = await c.env.DB.prepare("SELECT 1 FROM games WHERE id = ?1").bind(body.gameId).first();
@@ -170,12 +164,12 @@ adminRoutes.post("/rulesets", async (c) => {
   const id = await uniqueSlugId(c.env.DB, "rulesets", body.name);
   const referenceDataJson = JSON.stringify(EMPTY_REFERENCE_DATA);
   await c.env.DB.prepare(
-    "INSERT INTO rulesets (id, game_id, name, description, reference_data) VALUES (?1, ?2, ?3, ?4, ?5)",
+    "INSERT INTO rulesets (id, game_id, name, description, image_url, reference_data) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
   )
-    .bind(id, body.gameId, body.name.trim(), body.description?.trim() ?? "", referenceDataJson)
+    .bind(id, body.gameId, body.name.trim(), body.description?.trim() ?? "", body.imageUrl ?? null, referenceDataJson)
     .run();
   const row = await c.env.DB.prepare(
-    "SELECT id, game_id, name, description, reference_data, created_at FROM rulesets WHERE id = ?1",
+    "SELECT id, game_id, name, description, image_url, reference_data, created_at FROM rulesets WHERE id = ?1",
   )
     .bind(id)
     .first<RulesetRow>();
@@ -186,10 +180,10 @@ adminRoutes.post("/rulesets", async (c) => {
 adminRoutes.put("/rulesets/:id", async (c) => {
   const id = c.req.param("id");
   const body = await c.req
-    .json<{ name?: string; description?: string; referenceData?: ReferenceData }>()
+    .json<{ name?: string; description?: string; imageUrl?: string | null; referenceData?: ReferenceData }>()
     .catch(() => null);
   const existing = await c.env.DB.prepare(
-    "SELECT id, game_id, name, description, reference_data, created_at FROM rulesets WHERE id = ?1",
+    "SELECT id, game_id, name, description, image_url, reference_data, created_at FROM rulesets WHERE id = ?1",
   )
     .bind(id)
     .first<RulesetRow>();
@@ -197,15 +191,19 @@ adminRoutes.put("/rulesets/:id", async (c) => {
 
   const name = body?.name?.trim() || existing.name;
   const description = body?.description ?? existing.description;
+  const imageUrl = body?.imageUrl !== undefined ? body.imageUrl : existing.image_url;
   const referenceData = body?.referenceData ?? JSON.parse(existing.reference_data);
-  await c.env.DB.prepare("UPDATE rulesets SET name = ?1, description = ?2, reference_data = ?3 WHERE id = ?4")
-    .bind(name, description, JSON.stringify(referenceData), id)
+  await c.env.DB.prepare(
+    "UPDATE rulesets SET name = ?1, description = ?2, image_url = ?3, reference_data = ?4 WHERE id = ?5",
+  )
+    .bind(name, description, imageUrl, JSON.stringify(referenceData), id)
     .run();
   const detail: RulesetDetail = {
     id,
     gameId: existing.game_id,
     name,
     description,
+    imageUrl,
     createdAt: existing.created_at,
     referenceData,
   };
@@ -229,16 +227,24 @@ interface GroupRow {
   name: string;
   description: string;
   ruleset_id: string;
+  image_url: string | null;
   created_at: string;
 }
 
 function toGroup(row: GroupRow): PlayerGroup {
-  return { id: row.id, name: row.name, description: row.description, rulesetId: row.ruleset_id, createdAt: row.created_at };
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    rulesetId: row.ruleset_id,
+    imageUrl: row.image_url,
+    createdAt: row.created_at,
+  };
 }
 
 adminRoutes.get("/groups", async (c) => {
   const { results } = await c.env.DB.prepare(
-    "SELECT id, name, description, ruleset_id, created_at FROM player_groups ORDER BY name",
+    "SELECT id, name, description, ruleset_id, image_url, created_at FROM player_groups ORDER BY name",
   ).all<GroupRow>();
   return c.json({ groups: (results ?? []).map(toGroup) });
 });
@@ -246,7 +252,7 @@ adminRoutes.get("/groups", async (c) => {
 adminRoutes.get("/groups/:id", async (c) => {
   const id = c.req.param("id");
   const row = await c.env.DB.prepare(
-    "SELECT id, name, description, ruleset_id, created_at FROM player_groups WHERE id = ?1",
+    "SELECT id, name, description, ruleset_id, image_url, created_at FROM player_groups WHERE id = ?1",
   )
     .bind(id)
     .first<GroupRow>();
@@ -270,18 +276,22 @@ adminRoutes.get("/groups/:id", async (c) => {
 });
 
 adminRoutes.post("/groups", async (c) => {
-  const body = await c.req.json<{ name?: string; description?: string; rulesetId?: string }>().catch(() => null);
+  const body = await c.req
+    .json<{ name?: string; description?: string; rulesetId?: string; imageUrl?: string | null }>()
+    .catch(() => null);
   if (!body?.name?.trim() || !body.rulesetId) return c.json({ error: "Nom et règle requis" }, 400);
 
   const ruleset = await c.env.DB.prepare("SELECT 1 FROM rulesets WHERE id = ?1").bind(body.rulesetId).first();
   if (!ruleset) return c.json({ error: "Règle introuvable" }, 404);
 
   const id = await uniqueSlugId(c.env.DB, "player_groups", body.name);
-  await c.env.DB.prepare("INSERT INTO player_groups (id, name, description, ruleset_id) VALUES (?1, ?2, ?3, ?4)")
-    .bind(id, body.name.trim(), body.description?.trim() ?? "", body.rulesetId)
+  await c.env.DB.prepare(
+    "INSERT INTO player_groups (id, name, description, ruleset_id, image_url) VALUES (?1, ?2, ?3, ?4, ?5)",
+  )
+    .bind(id, body.name.trim(), body.description?.trim() ?? "", body.rulesetId, body.imageUrl ?? null)
     .run();
   const row = await c.env.DB.prepare(
-    "SELECT id, name, description, ruleset_id, created_at FROM player_groups WHERE id = ?1",
+    "SELECT id, name, description, ruleset_id, image_url, created_at FROM player_groups WHERE id = ?1",
   )
     .bind(id)
     .first<GroupRow>();
@@ -291,9 +301,11 @@ adminRoutes.post("/groups", async (c) => {
 
 adminRoutes.put("/groups/:id", async (c) => {
   const id = c.req.param("id");
-  const body = await c.req.json<{ name?: string; description?: string; rulesetId?: string }>().catch(() => null);
+  const body = await c.req
+    .json<{ name?: string; description?: string; rulesetId?: string; imageUrl?: string | null }>()
+    .catch(() => null);
   const existing = await c.env.DB.prepare(
-    "SELECT id, name, description, ruleset_id, created_at FROM player_groups WHERE id = ?1",
+    "SELECT id, name, description, ruleset_id, image_url, created_at FROM player_groups WHERE id = ?1",
   )
     .bind(id)
     .first<GroupRow>();
@@ -307,10 +319,13 @@ adminRoutes.put("/groups/:id", async (c) => {
   const name = body?.name?.trim() || existing.name;
   const description = body?.description ?? existing.description;
   const rulesetId = body?.rulesetId ?? existing.ruleset_id;
-  await c.env.DB.prepare("UPDATE player_groups SET name = ?1, description = ?2, ruleset_id = ?3 WHERE id = ?4")
-    .bind(name, description, rulesetId, id)
+  const imageUrl = body?.imageUrl !== undefined ? body.imageUrl : existing.image_url;
+  await c.env.DB.prepare(
+    "UPDATE player_groups SET name = ?1, description = ?2, ruleset_id = ?3, image_url = ?4 WHERE id = ?5",
+  )
+    .bind(name, description, rulesetId, imageUrl, id)
     .run();
-  return c.json({ group: { id, name, description, rulesetId, createdAt: existing.created_at } });
+  return c.json({ group: { id, name, description, rulesetId, imageUrl, createdAt: existing.created_at } });
 });
 
 adminRoutes.delete("/groups/:id", async (c) => {

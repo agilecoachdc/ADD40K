@@ -10,11 +10,16 @@ export default function CharacterList() {
   // Catalogue du groupe de l'utilisateur — renvoyé par GET /characters
   // (scopé serveur), plus d'import statique ADD40K (cf. lib/reference.ts).
   const [referenceData, setReferenceData] = useState<ReferenceData | null>(null);
+  // Image du groupe (fond d'écran) — remplace le fond ADD40K en dur : chaque
+  // groupe a la sienne (cf. migrations/0004_images.sql), plateforme par
+  // défaut si le groupe n'en a pas (ou pour un admin, sans groupe).
+  const [groupImageUrl, setGroupImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const isGm = user?.role === "gm";
   const isAdmin = user?.role === "admin";
+  const backgroundUrl = groupImageUrl ?? "/r2t2-banner.jpg";
 
   function raceLabel(race: string) {
     return referenceData?.races.find((r) => r.race === race)?.label ?? race;
@@ -29,9 +34,10 @@ export default function CharacterList() {
     if (isAdmin) return Promise.resolve(); // pas de groupe/personnages pour un admin
     return api
       .listCharacters()
-      .then(({ characters, referenceData }) => {
+      .then(({ characters, referenceData, groupImageUrl }) => {
         setRows(characters);
         setReferenceData(referenceData);
+        setGroupImageUrl(groupImageUrl);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Erreur"));
   }
@@ -147,7 +153,7 @@ export default function CharacterList() {
     <div
       className="min-h-dvh bg-cover bg-center bg-no-repeat"
       style={{
-        backgroundImage: "linear-gradient(rgba(2,6,23,.82), rgba(2,6,23,.82)), url('/background.jpg')",
+        backgroundImage: `linear-gradient(rgba(2,6,23,.82), rgba(2,6,23,.82)), url('${backgroundUrl}')`,
       }}
     >
       <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden" onChange={handleFileSelected} />

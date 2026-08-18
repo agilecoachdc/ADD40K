@@ -211,6 +211,9 @@ export default function GmTracker() {
   const { user } = useAuth();
   const [rows, setRows] = useState<CharacterSummary[] | null>(null);
   const [referenceData, setReferenceData] = useState<ReferenceData>(EMPTY_REFERENCE_DATA);
+  // Image du groupe (fond d'écran) — remplace le fond ADD40K en dur, cf.
+  // migrations/0004_images.sql.
+  const [groupImageUrl, setGroupImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [showNpcForm, setShowNpcForm] = useState(false);
@@ -237,9 +240,10 @@ export default function GmTracker() {
   function loadCharacters() {
     return api
       .listCharacters()
-      .then(({ characters, referenceData }) => {
+      .then(({ characters, referenceData, groupImageUrl }) => {
         setRows(characters);
         if (referenceData) setReferenceData(referenceData);
+        setGroupImageUrl(groupImageUrl);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Erreur"));
   }
@@ -324,7 +328,7 @@ export default function GmTracker() {
     <div
       className="min-h-dvh bg-cover bg-center bg-no-repeat"
       style={{
-        backgroundImage: "linear-gradient(rgba(2,6,23,.82), rgba(2,6,23,.82)), url('/background.jpg')",
+        backgroundImage: `linear-gradient(rgba(2,6,23,.82), rgba(2,6,23,.82)), url('${groupImageUrl ?? "/r2t2-banner.jpg"}')`,
       }}
     >
       <div className="mx-auto max-w-5xl px-4 py-6">

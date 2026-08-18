@@ -29,6 +29,9 @@ export default function CharacterSheet() {
   // Catalogue du groupe de ce personnage — renvoyé par GET /characters/:id
   // (scopé serveur via sa règle), plus d'import statique ADD40K.
   const [referenceData, setReferenceData] = useState<ReferenceData | null>(null);
+  // Image du groupe de ce personnage — remplace le fond ADD40K en dur (cf.
+  // migrations/0004_images.sql) ; image plateforme par défaut si absente.
+  const [groupImageUrl, setGroupImageUrl] = useState<string | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -38,10 +41,11 @@ export default function CharacterSheet() {
     if (!id) return;
     api
       .getCharacter(id)
-      .then(({ character, canEdit, referenceData }) => {
+      .then(({ character, canEdit, referenceData, groupImageUrl }) => {
         setCharacter(character);
         setCanEdit(canEdit);
         setReferenceData(referenceData);
+        setGroupImageUrl(groupImageUrl);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Erreur"));
   }, [id]);
@@ -113,8 +117,7 @@ export default function CharacterSheet() {
       <div
         className="bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage:
-            "linear-gradient(to bottom, rgba(2,6,23,.55), rgba(2,6,23,.93)), url('/background.jpg')",
+          backgroundImage: `linear-gradient(to bottom, rgba(2,6,23,.55), rgba(2,6,23,.93)), url('${groupImageUrl ?? "/r2t2-banner.jpg"}')`,
         }}
       >
         <div className="mx-auto max-w-3xl space-y-4 px-4 pb-8 pt-6">

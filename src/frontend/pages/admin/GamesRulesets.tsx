@@ -22,6 +22,7 @@ import {
 } from "@shared/types";
 import { api } from "../../lib/api";
 import { CatalogTable, type CatalogColumn } from "../../components/CatalogTable";
+import { ImagePicker } from "../../components/ImagePicker";
 
 const CATALOG_TABS = [
   "Races",
@@ -49,11 +50,13 @@ export default function GamesRulesets() {
   const [games, setGames] = useState<Game[]>([]);
   const [gameName, setGameName] = useState("");
   const [gameDescription, setGameDescription] = useState("");
+  const [gameImageUrl, setGameImageUrl] = useState<string | null>(null);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
 
   const [rulesets, setRulesets] = useState<Ruleset[]>([]);
   const [rulesetName, setRulesetName] = useState("");
   const [rulesetDescription, setRulesetDescription] = useState("");
+  const [rulesetImageUrl, setRulesetImageUrl] = useState<string | null>(null);
   const [selectedRulesetId, setSelectedRulesetId] = useState<string | null>(null);
 
   const [draft, setDraft] = useState<RulesetDetail | null>(null);
@@ -90,9 +93,14 @@ export default function GamesRulesets() {
     e.preventDefault();
     if (!gameName.trim()) return;
     try {
-      const { game } = await api.createGame({ name: gameName.trim(), description: gameDescription.trim() });
+      const { game } = await api.createGame({
+        name: gameName.trim(),
+        description: gameDescription.trim(),
+        imageUrl: gameImageUrl,
+      });
       setGameName("");
       setGameDescription("");
+      setGameImageUrl(null);
       await loadGames();
       setSelectedGameId(game.id);
     } catch (err) {
@@ -118,9 +126,11 @@ export default function GamesRulesets() {
         gameId: selectedGameId,
         name: rulesetName.trim(),
         description: rulesetDescription.trim(),
+        imageUrl: rulesetImageUrl,
       });
       setRulesetName("");
       setRulesetDescription("");
+      setRulesetImageUrl(null);
       await loadRulesets(selectedGameId);
       setSelectedRulesetId(ruleset.id);
     } catch (err) {
@@ -146,6 +156,7 @@ export default function GamesRulesets() {
       const { ruleset } = await api.updateRuleset(draft.id, {
         name: draft.name,
         description: draft.description,
+        imageUrl: draft.imageUrl,
         referenceData: draft.referenceData,
       });
       setDraft(ruleset);
@@ -183,18 +194,25 @@ export default function GamesRulesets() {
                   <button
                     type="button"
                     onClick={() => setSelectedGameId(g.id)}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
+                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm ${
                       selectedGameId === g.id ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-200 hover:bg-slate-700"
                     }`}
                   >
-                    <span>{g.name}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      {g.imageUrl ? (
+                        <img src={g.imageUrl} alt="" className="h-6 w-6 shrink-0 rounded object-cover" />
+                      ) : (
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-700 text-xs">{g.name.charAt(0)}</span>
+                      )}
+                      <span className="truncate">{g.name}</span>
+                    </span>
                     <span
                       role="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteGame(g.id);
                       }}
-                      className="text-slate-400 hover:text-red-400"
+                      className="shrink-0 text-slate-400 hover:text-red-400"
                       aria-label={`Supprimer ${g.name}`}
                     >
                       ×
@@ -205,8 +223,13 @@ export default function GamesRulesets() {
               {games.length === 0 && <p className="text-sm text-slate-500">Aucun jeu.</p>}
             </ul>
             <form onSubmit={handleCreateGame} className="space-y-2">
-              <TextInput value={gameName} onChange={setGameName} className="w-full" />
-              <TextInput value={gameDescription} onChange={setGameDescription} className="w-full" />
+              <div className="flex items-start gap-3">
+                <ImagePicker value={gameImageUrl} onChange={setGameImageUrl} sizePx={64} />
+                <div className="flex-1 space-y-2">
+                  <TextInput value={gameName} onChange={setGameName} className="w-full" />
+                  <TextInput value={gameDescription} onChange={setGameDescription} className="w-full" />
+                </div>
+              </div>
               <button type="submit" className="w-full rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">
                 + Nouveau jeu
               </button>
@@ -225,18 +248,25 @@ export default function GamesRulesets() {
                       <button
                         type="button"
                         onClick={() => setSelectedRulesetId(r.id)}
-                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
+                        className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm ${
                           selectedRulesetId === r.id ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-200 hover:bg-slate-700"
                         }`}
                       >
-                        <span>{r.name}</span>
+                        <span className="flex min-w-0 items-center gap-2">
+                          {r.imageUrl ? (
+                            <img src={r.imageUrl} alt="" className="h-6 w-6 shrink-0 rounded object-cover" />
+                          ) : (
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-700 text-xs">{r.name.charAt(0)}</span>
+                          )}
+                          <span className="truncate">{r.name}</span>
+                        </span>
                         <span
                           role="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteRuleset(r.id);
                           }}
-                          className="text-slate-400 hover:text-red-400"
+                          className="shrink-0 text-slate-400 hover:text-red-400"
                           aria-label={`Supprimer ${r.name}`}
                         >
                           ×
@@ -247,8 +277,13 @@ export default function GamesRulesets() {
                   {rulesets.length === 0 && <p className="text-sm text-slate-500">Aucune règle.</p>}
                 </ul>
                 <form onSubmit={handleCreateRuleset} className="space-y-2">
-                  <TextInput value={rulesetName} onChange={setRulesetName} className="w-full" />
-                  <TextInput value={rulesetDescription} onChange={setRulesetDescription} className="w-full" />
+                  <div className="flex items-start gap-3">
+                    <ImagePicker value={rulesetImageUrl} onChange={setRulesetImageUrl} sizePx={64} />
+                    <div className="flex-1 space-y-2">
+                      <TextInput value={rulesetName} onChange={setRulesetName} className="w-full" />
+                      <TextInput value={rulesetDescription} onChange={setRulesetDescription} className="w-full" />
+                    </div>
+                  </div>
                   <button type="submit" className="w-full rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">
                     + Nouvelle règle
                   </button>
@@ -263,6 +298,11 @@ export default function GamesRulesets() {
             {!draft && <p className="text-sm text-slate-500">Choisissez une règle.</p>}
             {draft && (
               <div className="space-y-2">
+                <ImagePicker
+                  value={draft.imageUrl}
+                  onChange={(v) => setDraft((d) => (d ? { ...d, imageUrl: v } : d))}
+                  sizePx={80}
+                />
                 <div>
                   <label className="mb-1 block text-xs text-slate-500">Nom</label>
                   <TextInput

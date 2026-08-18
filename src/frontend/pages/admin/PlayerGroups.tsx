@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { PlayerGroupDetail, PublicUser, Ruleset, UserRole } from "@shared/types";
 import { api } from "../../lib/api";
+import { ImagePicker } from "../../components/ImagePicker";
 
 const ROLE_LABELS: Record<UserRole, string> = { admin: "Admin", gm: "MJ", player: "Joueur" };
 
@@ -36,6 +37,7 @@ export default function PlayerGroups() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [rulesetId, setRulesetId] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const [newUsername, setNewUsername] = useState("");
   const [newDisplayName, setNewDisplayName] = useState("");
@@ -68,10 +70,16 @@ export default function PlayerGroups() {
     e.preventDefault();
     if (!name.trim() || !rulesetId) return;
     try {
-      const { group } = await api.createGroup({ name: name.trim(), description: description.trim(), rulesetId });
+      const { group } = await api.createGroup({
+        name: name.trim(),
+        description: description.trim(),
+        rulesetId,
+        imageUrl,
+      });
       setName("");
       setDescription("");
       setRulesetId("");
+      setImageUrl(null);
       await loadAll();
       setSelectedId(group.id);
     } catch (err) {
@@ -96,6 +104,7 @@ export default function PlayerGroups() {
         name: selected.name,
         description: selected.description,
         rulesetId: selected.rulesetId,
+        imageUrl: selected.imageUrl,
       });
       await loadAll();
     } catch (err) {
@@ -176,12 +185,19 @@ export default function PlayerGroups() {
                   <button
                     type="button"
                     onClick={() => setSelectedId(g.id)}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
+                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm ${
                       selectedId === g.id ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-200 hover:bg-slate-700"
                     }`}
                   >
-                    <span>
-                      {g.name} <span className="text-xs opacity-70">({g.members.length})</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      {g.imageUrl ? (
+                        <img src={g.imageUrl} alt="" className="h-6 w-6 shrink-0 rounded object-cover" />
+                      ) : (
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-700 text-xs">{g.name.charAt(0)}</span>
+                      )}
+                      <span className="truncate">
+                        {g.name} <span className="text-xs opacity-70">({g.members.length})</span>
+                      </span>
                     </span>
                     <span
                       role="button"
@@ -189,7 +205,7 @@ export default function PlayerGroups() {
                         e.stopPropagation();
                         handleDeleteGroup(g.id);
                       }}
-                      className="text-slate-400 hover:text-red-400"
+                      className="shrink-0 text-slate-400 hover:text-red-400"
                       aria-label={`Supprimer ${g.name}`}
                     >
                       ×
@@ -200,20 +216,25 @@ export default function PlayerGroups() {
               {groups.length === 0 && <p className="text-sm text-slate-500">Aucun groupe.</p>}
             </ul>
             <form onSubmit={handleCreateGroup} className="space-y-2">
-              <TextInput value={name} onChange={setName} className="w-full" />
-              <TextInput value={description} onChange={setDescription} className="w-full" />
-              <select
-                value={rulesetId}
-                onChange={(e) => setRulesetId(e.target.value)}
-                className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
-              >
-                <option value="">— Règle —</option>
-                {rulesets.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-start gap-3">
+                <ImagePicker value={imageUrl} onChange={setImageUrl} sizePx={64} />
+                <div className="flex-1 space-y-2">
+                  <TextInput value={name} onChange={setName} className="w-full" />
+                  <TextInput value={description} onChange={setDescription} className="w-full" />
+                  <select
+                    value={rulesetId}
+                    onChange={(e) => setRulesetId(e.target.value)}
+                    className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
+                  >
+                    <option value="">— Règle —</option>
+                    {rulesets.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <button type="submit" className="w-full rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">
                 + Nouveau groupe
               </button>
@@ -226,6 +247,11 @@ export default function PlayerGroups() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Réglages</h2>
+                  <ImagePicker
+                    value={selected.imageUrl}
+                    onChange={(v) => updateSelected({ imageUrl: v })}
+                    sizePx={80}
+                  />
                   <TextInput value={selected.name} onChange={(v) => updateSelected({ name: v })} className="w-full" />
                   <TextInput value={selected.description} onChange={(v) => updateSelected({ description: v })} className="w-full" />
                   <select

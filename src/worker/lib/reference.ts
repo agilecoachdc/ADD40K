@@ -28,3 +28,15 @@ export async function getReferenceDataForGroup(db: D1Database, groupId: string):
   if (!row) throw new Error(`Groupe ou règle introuvable pour le groupe ${groupId}`);
   return JSON.parse(row.reference_data) as ReferenceData;
 }
+
+/**
+ * Image du groupe (fond d'écran des écrans Personnages/Fiche/Suivi) — plus
+ * un fond en dur (background.jpg) pour toute l'app : chaque groupe a la
+ * sienne (ex. "/background.jpg" pour le groupe historique "add40k"), à
+ * défaut le frontend retombe sur l'image plateforme (cf. CharacterList.tsx
+ * et consorts). Null si le groupe n'existe pas ou n'a pas d'image.
+ */
+export async function getGroupImageUrl(db: D1Database, groupId: string): Promise<string | null> {
+  const row = await db.prepare("SELECT image_url FROM player_groups WHERE id = ?1").bind(groupId).first<{ image_url: string | null }>();
+  return row?.image_url ?? null;
+}

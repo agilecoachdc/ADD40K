@@ -15,6 +15,7 @@ interface GroupRow {
   name: string;
   description: string;
   ruleset_id: string;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -23,6 +24,7 @@ interface RulesetRow {
   game_id: string;
   name: string;
   description: string;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -30,6 +32,7 @@ interface GameRow {
   id: string;
   name: string;
   description: string;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -44,7 +47,7 @@ profileRoutes.get("/", async (c) => {
   }
 
   const groupRow = await c.env.DB.prepare(
-    "SELECT id, name, description, ruleset_id, created_at FROM player_groups WHERE id = ?1",
+    "SELECT id, name, description, ruleset_id, image_url, created_at FROM player_groups WHERE id = ?1",
   )
     .bind(user.playerGroupId)
     .first<GroupRow>();
@@ -54,12 +57,12 @@ profileRoutes.get("/", async (c) => {
   }
 
   const rulesetRow = await c.env.DB.prepare(
-    "SELECT id, game_id, name, description, created_at FROM rulesets WHERE id = ?1",
+    "SELECT id, game_id, name, description, image_url, created_at FROM rulesets WHERE id = ?1",
   )
     .bind(groupRow.ruleset_id)
     .first<RulesetRow>();
   const gameRow = rulesetRow
-    ? await c.env.DB.prepare("SELECT id, name, description, created_at FROM games WHERE id = ?1")
+    ? await c.env.DB.prepare("SELECT id, name, description, image_url, created_at FROM games WHERE id = ?1")
         .bind(rulesetRow.game_id)
         .first<GameRow>()
     : null;
@@ -69,6 +72,7 @@ profileRoutes.get("/", async (c) => {
     name: groupRow.name,
     description: groupRow.description,
     rulesetId: groupRow.ruleset_id,
+    imageUrl: groupRow.image_url,
     createdAt: groupRow.created_at,
   };
   const ruleset: Ruleset | null = rulesetRow
@@ -77,11 +81,18 @@ profileRoutes.get("/", async (c) => {
         gameId: rulesetRow.game_id,
         name: rulesetRow.name,
         description: rulesetRow.description,
+        imageUrl: rulesetRow.image_url,
         createdAt: rulesetRow.created_at,
       }
     : null;
   const game: Game | null = gameRow
-    ? { id: gameRow.id, name: gameRow.name, description: gameRow.description, createdAt: gameRow.created_at }
+    ? {
+        id: gameRow.id,
+        name: gameRow.name,
+        description: gameRow.description,
+        imageUrl: gameRow.image_url,
+        createdAt: gameRow.created_at,
+      }
     : null;
 
   const info: ProfileInfo = { user, group, ruleset, game };

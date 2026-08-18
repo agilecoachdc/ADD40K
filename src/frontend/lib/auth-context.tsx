@@ -11,6 +11,10 @@ interface AuthState {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Recharge l'utilisateur depuis /auth/me — utilisé après un changement de
+   * groupe (rejoindre/créer, page Profil) pour que le reste de l'app (écran
+   * d'accueil, etc.) reflète immédiatement le nouveau playerGroupId. */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -37,7 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  async function refreshUser() {
+    const { user } = await api.me();
+    setUser(user);
+  }
+
+  return <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthState {

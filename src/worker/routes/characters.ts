@@ -13,7 +13,7 @@
 import { Hono } from "hono";
 import type { Env } from "../lib/session";
 import { canEditCharacter } from "../lib/session";
-import { getReferenceDataForGroup } from "../lib/reference";
+import { getGroupImageUrl, getReferenceDataForGroup } from "../lib/reference";
 import type { PublicUser } from "../../shared/types";
 import type { AttributeScores, Character, CharacterSummary, ReferenceData } from "../../shared/types";
 import { ATTRIBUTES } from "../../shared/types";
@@ -31,9 +31,10 @@ export const characterRoutes = new Hono<HonoEnv>();
 
 characterRoutes.get("/", async (c) => {
   const user = c.get("user");
-  if (!user.playerGroupId) return c.json({ characters: [], referenceData: null });
+  if (!user.playerGroupId) return c.json({ characters: [], referenceData: null, groupImageUrl: null });
 
   const referenceData = await getReferenceDataForGroup(c.env.DB, user.playerGroupId);
+  const groupImageUrl = await getGroupImageUrl(c.env.DB, user.playerGroupId);
   const { results } = await c.env.DB.prepare(
     "SELECT id, name, race, owner_username, data FROM characters WHERE player_group_id = ?1 ORDER BY name",
   )
@@ -63,7 +64,7 @@ characterRoutes.get("/", async (c) => {
     };
   });
 
-  return c.json({ characters, referenceData });
+  return c.json({ characters, referenceData, groupImageUrl });
 });
 
 characterRoutes.get("/:id", async (c) => {
@@ -78,9 +79,16 @@ characterRoutes.get("/:id", async (c) => {
   }
 
   const referenceData = await getReferenceDataForGroup(c.env.DB, row.player_group_id);
+  const groupImageUrl = await getGroupImageUrl(c.env.DB, row.player_group_id);
   const character: Character = JSON.parse(row.data);
   const computed = computeCharacter(character, referenceData);
-  return c.json({ character, computed, canEdit: canEditCharacter(user, row.id, row.player_group_id), referenceData });
+  return c.json({
+    character,
+    computed,
+    canEdit: canEditCharacter(user, row.id, row.player_group_id),
+    referenceData,
+    groupImageUrl,
+  });
 });
 
 function slugify(name: string): string {

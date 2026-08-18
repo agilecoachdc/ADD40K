@@ -38,11 +38,17 @@ export const api = {
   getProfile: () => request<ProfileInfo>("/profile"),
 
   listCharacters: () =>
-    request<{ characters: CharacterSummary[]; referenceData: ReferenceData | null }>("/characters"),
-  getCharacter: (id: string) =>
-    request<{ character: Character; computed: CharacterComputed; canEdit: boolean; referenceData: ReferenceData }>(
-      `/characters/${id}`,
+    request<{ characters: CharacterSummary[]; referenceData: ReferenceData | null; groupImageUrl: string | null }>(
+      "/characters",
     ),
+  getCharacter: (id: string) =>
+    request<{
+      character: Character;
+      computed: CharacterComputed;
+      canEdit: boolean;
+      referenceData: ReferenceData;
+      groupImageUrl: string | null;
+    }>(`/characters/${id}`),
   updateCharacter: (id: string, patch: Partial<Character>) =>
     request<{ character: Character; computed: CharacterComputed; canEdit: boolean; referenceData: ReferenceData }>(
       `/characters/${id}`,
@@ -59,27 +65,31 @@ export const api = {
   // ---------------------------------------------------------------------
 
   listGames: () => request<{ games: Game[] }>("/admin/games"),
-  createGame: (input: { name: string; description?: string }) =>
+  createGame: (input: { name: string; description?: string; imageUrl?: string | null }) =>
     request<{ game: Game }>("/admin/games", { method: "POST", body: JSON.stringify(input) }),
-  updateGame: (id: string, patch: { name?: string; description?: string }) =>
+  updateGame: (id: string, patch: { name?: string; description?: string; imageUrl?: string | null }) =>
     request<{ game: Game }>(`/admin/games/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
   deleteGame: (id: string) => request<{ ok: true }>(`/admin/games/${id}`, { method: "DELETE" }),
 
   listRulesets: (gameId?: string) =>
     request<{ rulesets: Ruleset[] }>(`/admin/rulesets${gameId ? `?gameId=${encodeURIComponent(gameId)}` : ""}`),
   getRuleset: (id: string) => request<{ ruleset: RulesetDetail }>(`/admin/rulesets/${id}`),
-  createRuleset: (input: { gameId: string; name: string; description?: string }) =>
+  createRuleset: (input: { gameId: string; name: string; description?: string; imageUrl?: string | null }) =>
     request<{ ruleset: RulesetDetail }>("/admin/rulesets", { method: "POST", body: JSON.stringify(input) }),
-  updateRuleset: (id: string, patch: { name?: string; description?: string; referenceData?: ReferenceData }) =>
-    request<{ ruleset: RulesetDetail }>(`/admin/rulesets/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
+  updateRuleset: (
+    id: string,
+    patch: { name?: string; description?: string; imageUrl?: string | null; referenceData?: ReferenceData },
+  ) => request<{ ruleset: RulesetDetail }>(`/admin/rulesets/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
   deleteRuleset: (id: string) => request<{ ok: true }>(`/admin/rulesets/${id}`, { method: "DELETE" }),
 
   listGroups: () => request<{ groups: PlayerGroup[] }>("/admin/groups"),
   getGroup: (id: string) => request<{ group: PlayerGroupDetail }>(`/admin/groups/${id}`),
-  createGroup: (input: { name: string; description?: string; rulesetId: string }) =>
+  createGroup: (input: { name: string; description?: string; rulesetId: string; imageUrl?: string | null }) =>
     request<{ group: PlayerGroupDetail }>("/admin/groups", { method: "POST", body: JSON.stringify(input) }),
-  updateGroup: (id: string, patch: { name?: string; description?: string; rulesetId?: string }) =>
-    request<{ group: PlayerGroup }>(`/admin/groups/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
+  updateGroup: (
+    id: string,
+    patch: { name?: string; description?: string; rulesetId?: string; imageUrl?: string | null },
+  ) => request<{ group: PlayerGroup }>(`/admin/groups/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
   deleteGroup: (id: string) => request<{ ok: true }>(`/admin/groups/${id}`, { method: "DELETE" }),
 
   listUsers: () => request<{ users: PublicUser[] }>("/admin/users"),
@@ -87,4 +97,18 @@ export const api = {
     request<{ user: PublicUser; password: string }>("/admin/users", { method: "POST", body: JSON.stringify(input) }),
   updateUser: (id: string, patch: { displayName?: string; role?: UserRole; playerGroupId?: string | null }) =>
     request<{ user: PublicUser }>(`/admin/users/${id}`, { method: "PUT", body: JSON.stringify(patch) }),
+
+  // ---------------------------------------------------------------------
+  // Jeux / règles / groupes — parcourir, rejoindre, créer (page Profil).
+  // Ouvert à tout compte authentifié, sans passer par /admin/*.
+  // ---------------------------------------------------------------------
+
+  browseGames: () => request<{ games: Game[] }>("/games"),
+  browseRulesets: (gameId?: string) =>
+    request<{ rulesets: Ruleset[] }>(`/rulesets${gameId ? `?gameId=${encodeURIComponent(gameId)}` : ""}`),
+  browseGroups: () => request<{ groups: PlayerGroup[] }>("/groups"),
+  joinGroup: (groupId: string) =>
+    request<{ user: PublicUser }>("/groups/join", { method: "POST", body: JSON.stringify({ groupId }) }),
+  createGroupSelf: (input: { name: string; description?: string; rulesetId: string; imageUrl?: string | null }) =>
+    request<{ group: PlayerGroup; user: PublicUser }>("/groups", { method: "POST", body: JSON.stringify(input) }),
 };
