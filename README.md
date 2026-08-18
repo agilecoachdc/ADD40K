@@ -120,10 +120,14 @@ Chaque pouvoir possédé (`PsyPowersPanel`) a un bouton "Activer" dédié, rése
 personnage ou à un MJ membre du groupe (`canEditCharacter`, comme le reste de l'édition de la
 fiche) — un simple lecteur (autre joueur du groupe consultant la fiche) ne le voit pas. Tous les
 paliers restent sélectionnables quel que soit le score du personnage dans ce pouvoir — 10
-(gratuit), 15, 20, 25, 30 ou 35 (`calc-engine.PSY_POWER_LEVELS`) : la réussite se joue au dé (score
-+ palier, puis un jet 1-10, comparés au seuil du pouvoir), pas par un seuil dur côté app, donc un
-score plus bas reste jouable via le jet — le total "avant jet" (score + palier choisi) est affiché
-pour aider au choix. Le coût en PSP du palier (0/1/2/3/4/5, cf. `getPsyPowerActivationCost`) est
+(gratuit), 15, 20, 25, 30 ou 35 (`calc-engine.PSY_POWER_LEVELS`) : le palier choisi est le SEUIL que
+le score total (score + Volonté + Affinité, cf. `getPsyPowerTotal`/`getSkillDisplayTotal`) plus un
+jet de 1-10 doit atteindre pour réussir — pas un seuil dur côté app (le palier n'est jamais
+additionné au total lui-même), donc un score plus bas reste jouable via le jet. Le total affiché
+comme "Total avant jet" est donc identique au total du pouvoir/de la compétence, jamais ce total
+plus le palier — bug corrigé qui l'ajoutait par erreur (cas réel signalé : Téléportation de Conrad
+Lingus affichait 26 au lieu de 16, +10 = le palier par défaut ajouté à tort). Le coût en PSP du
+palier (0/1/2/3/4/5, cf. `getPsyPowerActivationCost`) est
 décompté de `Character.pspCurrent` à l'activation et remboursé à la désactivation (clampé entre 0
 et `pspMax`, cf. `CharacterSheet.setActivePower`). "Concentration psy" garde son mécanisme dédié
 (`calc-engine.getConcentrationPsyAttributeBonus`) : aux paliers 15/20, un sélecteur dédié (toujours

@@ -192,6 +192,7 @@ const EN: Record<string, string> = {
   "— choisir une discipline —": "— choose a discipline —",
   "— cible non choisie —": "— no target chosen —",
   "Bonus d'affinité et/ou de pouvoir actif": "Affinity and/or active power bonus",
+  "Bonus d'affinité": "Affinity bonus",
   "Actif · niveau": "Active · level",
   "Désactiver": "Deactivate",
   "Activer": "Activate",

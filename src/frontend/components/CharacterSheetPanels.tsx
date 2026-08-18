@@ -22,6 +22,7 @@ import {
   getActivePsyPowerAttributeBoost,
   getActivePsyPowerSkillBoost,
   getDualWieldPenalty,
+  getPowerAffinityBonus,
   getPsyPowerActivationCost,
   getPsyPowerTotal,
   getSkillDisplayTotal,
@@ -441,6 +442,15 @@ export function SkillsPanel({
     if (s.affinityTargetSkillName) return `${t("Compétence")} : ${s.affinityTargetSkillName}`;
     return t("— cible non choisie —");
   }
+  // Version courte (juste le nom de la cible, sans préfixe "Pouvoir :"/etc.)
+  // pour le badge — affiche la cible réelle plutôt que de répéter le mot
+  // "Affinité" (redondant quand le nom de la ligne contient déjà ce mot,
+  // ex. une compétence catalogue littéralement nommée "Affinité, cf. cas
+  // réel Conrad Lingus vs. Karun où seule la première a un ciblage
+  // explicite — signalé comme "Affinité Affinité" à l'écran).
+  function affinityTargetShort(s: (typeof skills)[number]): string {
+    return s.affinityTargetPowerName || s.affinityTargetDiscipline || s.affinityTargetSkillName || t("— cible non choisie —");
+  }
   return (
     <Section title={t("Compétences")}>
       <div className="mb-1 hidden grid-cols-[1fr_auto_auto_auto] gap-2 px-1 text-xs text-slate-500 sm:grid">
@@ -508,7 +518,7 @@ export function SkillsPanel({
                         className="ml-1.5 rounded-full bg-sky-600/20 px-1.5 py-0.5 text-[10px] font-medium text-sky-300"
                         title={affinityTargetLabel(s)}
                       >
-                        {t("Affinité")}
+                        → {affinityTargetShort(s)}
                       </span>
                     )}
                   </span>
@@ -1204,8 +1214,16 @@ function PsyPowerActivation({
             );
           })}
         </select>
-        {/* Total avant jet = score + palier — la réussite se joue ensuite au dé (1-10) contre le seuil du pouvoir. */}
-        <span className="text-slate-500">{t("Total avant jet")} : {score + level}</span>
+        {/*
+          Total avant jet = score total du pouvoir/de la compétence (déjà
+          score + attribut + Affinité, cf. PsyPowersPanel/SkillsPanel) — le
+          palier choisi ci-dessus n'est PAS additionné : c'est le seuil que
+          ce total + un jet de 1-10 doit atteindre, pas un terme de la
+          somme. Signalé sur le cas réel Téléportation de Conrad Lingus :
+          total 16 (correct), un ancien calcul y ajoutait par erreur le
+          palier (16 + 10 = 26).
+        */}
+        <span className="text-slate-500">{t("Total avant jet")} : {score}</span>
         {needsAttribute && (
           <span className="flex items-center gap-1">
             <span className="text-slate-400">{t("Caractéristique boostée")} :</span>
@@ -1331,6 +1349,7 @@ export function PsyPowersPanel({
       <ul className="space-y-1">
         {powers.map((p, i) => {
           const total = getPsyPowerTotal(p, character, computed.attributeTotals);
+          const affinityBonus = getPowerAffinityBonus(character, p);
           const active = activePowers.find((ap) => ap.name === p.name);
           return (
             <li key={i} className="space-y-1 text-sm">
@@ -1370,7 +1389,18 @@ export function PsyPowersPanel({
                   <span className="w-8 text-right text-xs text-slate-500" title="Score + Volonté + Affinité">
                     Σ
                   </span>
-                  <span className="w-8 text-right font-semibold text-indigo-300">{total}</span>
+                  <span className="flex w-14 items-center justify-end gap-1 text-right">
+                    <span className="font-semibold tabular-nums text-indigo-300">{total}</span>
+                    {affinityBonus !== 0 && (
+                      <span
+                        className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
+                        title={t("Bonus d'affinité")}
+                      >
+                        {affinityBonus > 0 ? "+" : ""}
+                        {affinityBonus}
+                      </span>
+                    )}
+                  </span>
                 </div>
               </div>
               {!editing && canEdit && p.name && (

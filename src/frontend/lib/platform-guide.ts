@@ -72,7 +72,7 @@ const FR: GuideContent = {
     {
       title: "Pouvoirs psy et activation",
       paragraphs: [
-        "Chaque pouvoir possédé peut être activé « à la demande » via un bouton dédié (réservé au propriétaire du personnage ou au MJ). Choisissez un palier — 10 (gratuit), 15, 20, 25, 30 ou 35 — tous restent sélectionnables quel que soit votre score : la réussite se joue au dé (score + palier, puis un jet de 1 à 10, comparés au seuil du pouvoir), le total « avant jet » est affiché pour vous aider à choisir.",
+        "Chaque pouvoir possédé peut être activé « à la demande » via un bouton dédié (réservé au propriétaire du personnage ou au MJ). Choisissez un palier — 10 (gratuit), 15, 20, 25, 30 ou 35 — tous restent sélectionnables quel que soit votre score : le palier choisi est le seuil que votre score total (affiché comme « total avant jet ») plus un jet de 1 à 10 doit atteindre pour réussir — le palier n'est PAS additionné au total lui-même, c'est bien ce que vous devez battre avec le dé.",
         "Activer un pouvoir décompte automatiquement son coût en PSP (0 au palier 10, puis +1 par palier de 5 jusqu'à 5 PSP au palier 35) ; désactiver le pouvoir rembourse ce même coût.",
         "Pour un pouvoir qui modifie une caractéristique ou une compétence, un « effet » optionnel (replié par défaut derrière un bouton) permet de choisir la cible et la valeur du bonus/malus à l'activation. Ce bonus est mis en évidence à l'endroit concerné (badge sur l'attribut ou la compétence visée) et signalé par une icône « ⚡ » sur la tuile du personnage à l'écran « Suivi des constantes » du MJ.",
       ],
@@ -200,7 +200,7 @@ const EN: GuideContent = {
     {
       title: "Psychic powers and activation",
       paragraphs: [
-        "Every power a character has can be activated \"on demand\" via a dedicated button (restricted to the character's owner or a GM). Pick a level — 10 (free), 15, 20, 25, 30, or 35 — all remain selectable regardless of your score: success is rolled for (score + level, then a 1-10 roll, compared to the power's threshold), and the \"total before roll\" is shown to help you choose.",
+        "Every power a character has can be activated \"on demand\" via a dedicated button (restricted to the character's owner or a GM). Pick a level — 10 (free), 15, 20, 25, 30, or 35 — all remain selectable regardless of your score: the chosen level is the threshold that your total score (shown as \"total before roll\") plus a 1-10 roll must reach to succeed — the level is NOT added into the total itself, it's what you need to beat with the roll.",
         "Activating a power automatically deducts its PSP cost (0 at level 10, then +1 per 5-level tier up to 5 PSP at level 35); deactivating refunds that same cost.",
         "For a power that modifies an attribute or a skill, an optional \"effect\" (collapsed by default behind a button) lets you pick the target and the bonus/penalty value at activation. That bonus is highlighted at the relevant spot (a badge on the targeted attribute or skill) and flagged with a \"⚡\" icon on the character's tile on the GM's \"Vitals tracker\" screen.",
       ],

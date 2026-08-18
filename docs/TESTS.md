@@ -73,11 +73,19 @@ navigateur intégré, cf. session de build).
 - [ ] Ajouter une compétence, cocher "Affinité" (indépendant de "Gratuite") → le champ nom devient
       du texte libre, un sélecteur "Compétence"/"Pouvoir"/"Discipline" apparaît. Choisir "Pouvoir"
       et cibler un pouvoir psy possédé → le score total de ce pouvoir (`PsyPowersPanel`) augmente
-      du score de la ligne d'Affinité. Choisir "Discipline" → tous les pouvoirs de cette discipline
-      en bénéficient. Choisir "Compétence" et cibler une autre compétence de la fiche → le total de
-      cette compétence (`SkillsPanel`) augmente d'autant, badge ambre affiché. La ligne d'Affinité
-      elle-même n'affiche que son score de base en "Total" (pas de colonne "Attribut" — toujours
-      "—"), même si son nom contient un code d'attribut.
+      du score de la ligne d'Affinité, badge ambre "+N" affiché à côté du total du pouvoir. Choisir
+      "Discipline" → tous les pouvoirs de cette discipline en bénéficient. Choisir "Compétence" et
+      cibler une autre compétence de la fiche → le total de cette compétence (`SkillsPanel`)
+      augmente d'autant, badge ambre affiché. La ligne d'Affinité elle-même n'affiche que son score
+      de base en "Total" (pas de colonne "Attribut" — toujours "—"), même si son nom contient un
+      code d'attribut. Le badge bleu "Affinité" en lecture seule affiche la cible réelle (ex.
+      "→ Téléportation"), pas le mot "Affinité" répété (cas réel signalé : une ligne nommée
+      "Affinité" avec le badge affichait "Affinité Affinité").
+- [ ] Sur un pouvoir psy, cliquer "Activer" → "Total avant jet" doit être identique au total affiché
+      juste au-dessus (Σ, score + Volonté + Affinité) — PAS ce total plus le palier choisi (bug
+      réel signalé : Téléportation de Conrad Lingus affichait 26 au lieu de 16, soit +10 = le
+      palier par défaut ajouté par erreur). Changer de palier ne doit pas faire varier "Total avant
+      jet".
 - [ ] Sur une fiche sans l'avantage "Ambidextre" : cocher "équipée" sur une 2ᵉ arme (la 1ʳᵉ reste
       équipée, deux armes autorisées par défaut) → un message rouge "Combat à deux armes sans
       Ambidextre : -3 au score de chaque arme équipée" apparaît, et le "Score" affiché de chacune
