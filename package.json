@@ -1,8 +1,8 @@
 {
-  "name": "add40k",
+  "name": "r2t2",
   "private": true,
   "version": "0.1.0",
-  "description": "Fiches de personnage ADD40K - remplacement des classeurs Excel par une web app Cloudflare",
+  "description": "R2T2 - plateforme de fiches de personnage multi-jeux (remplace les classeurs Excel), Worker Cloudflare unique. Née du jeu ADD40K.",
   "type": "module",
   "engines": {
     "node": ">=20.0.0"

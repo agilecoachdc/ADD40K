@@ -1,7 +1,10 @@
-# ADD40K — Fiches de personnage
+# R2T2 — Fiches de personnage multi-jeux
 
-Web app (laptop / tablette / téléphone) remplaçant les classeurs Excel de fiches de personnage
-du jeu de rôle ADD40K. Déployée sur un Worker Cloudflare unique (Hono + D1 + SPA React).
+Plateforme web (laptop / tablette / téléphone) de fiches de personnage pour plusieurs jeux de
+rôle et groupes de joueurs, chacun avec sa propre règle (catalogue races/compétences/armes/
+armures/pouvoirs/avantages). Née du jeu ADD40K, dont les données historiques forment aujourd'hui
+le premier jeu/règle/groupe hébergé (remplace les classeurs Excel d'origine). Déployée sur un
+Worker Cloudflare unique (Hono + D1 + SPA React).
 
 Voir le plan de conception : `~/.claude/plans/lively-rolling-comet.md` (contexte complet,
 décisions actées, hors-périmètre MVP).

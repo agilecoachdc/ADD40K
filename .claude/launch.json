@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "add40k",
+      "name": "r2t2",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 8787

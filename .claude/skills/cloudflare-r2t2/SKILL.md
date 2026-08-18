@@ -1,9 +1,9 @@
 ---
-name: cloudflare-add40k
-description: Configure et déploie ce Worker Cloudflare (Hono + D1 + SPA React) pour l'app de fiches ADD40K. Utiliser quand il est question de "wrangler.jsonc", "binding D1", "migration", "seed", "deploy", "worker add40k", ou d'ajouter une route API.
+name: cloudflare-r2t2
+description: Configure et déploie ce Worker Cloudflare (Hono + D1 + SPA React) pour R2T2, la plateforme de fiches de personnage multi-jeux (née du jeu ADD40K, désormais un jeu/règle/groupe parmi d'autres). Utiliser quand il est question de "wrangler.jsonc", "binding D1", "migration", "seed", "deploy", "worker r2t2", ou d'ajouter une route API.
 ---
 
-# Cloudflare (Worker unique — add40k)
+# Cloudflare (Worker unique — r2t2)
 
 Équivalent allégé de la skill `cloudflare-features` de Peakabox (ex-CrossfitCarnotzet) : ce
 projet est un seul Worker Cloudflare (pas de monorepo, pas d'OpenNext/Next.js, pas de
@@ -22,7 +22,7 @@ d'Access JWT ici.
 
 | Binding | Type | Usage |
 |---|---|---|
-| `DB` | D1Database | `users`, `sessions`, `characters` (cf. `migrations/0001_init.sql`) |
+| `DB` | D1Database | `users`, `sessions`, `characters`, `games`, `rulesets`, `player_groups` (cf. `migrations/0001_init.sql`, `0003_platform.sql`) |
 | `ASSETS` | Fetcher | Sert le SPA buildé (`./dist`) |
 
 ### Ajouter un nouveau binding
@@ -73,7 +73,10 @@ npm run deploy   # release-check.sh (typecheck + tests) -> vite build -> wrangle
 
 Avant le tout premier déploiement remote : `wrangler d1 create add40k`, reporter le
 `database_id` retourné dans `wrangler.jsonc` (actuellement `REPLACE_WITH_D1_DATABASE_ID`), puis
-`npm run db:migrate:remote`.
+`npm run db:migrate:remote`. Note : la base D1 garde son nom interne historique `add40k` (visible
+uniquement dans `wrangler.jsonc`/commandes `wrangler d1`) même si le projet/Worker s'appelle
+désormais `r2t2` — renommer une base D1 existante n'apporte rien et ajoute un risque de migration
+inutile.
 
 **`wrangler deploy` expose l'app publiquement — ne jamais l'exécuter sans confirmation explicite
 de l'utilisateur** (cf. plan, section Déploiement).

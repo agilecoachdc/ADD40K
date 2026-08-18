@@ -1,4 +1,4 @@
-# Référence API — add40k
+# Référence API — r2t2
 
 Doc dev-facing des routes `/api/*` (Hono, `src/worker/`). Tenue à jour via le hook
 `.claude/hooks/api-reference-reminder.sh` à chaque édition d'une route.

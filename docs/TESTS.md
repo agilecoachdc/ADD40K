@@ -51,4 +51,4 @@ navigateur intégré, cf. session de build).
 - Assistant de création de personnage complet (point-buy from scratch).
 - Aides de jeu visuelles de combat.
 - E2E automatisé (Playwright) — app à petite échelle, groupe restreint ; à ajouter si le projet
-  grossit (cf. `.claude/skills/cloudflare-add40k/SKILL.md`).
+  grossit (cf. `.claude/skills/cloudflare-r2t2/SKILL.md`).

@@ -27,7 +27,7 @@ export default function Login() {
   return (
     <div className="flex min-h-dvh items-center justify-center px-4">
       <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4 rounded-xl bg-slate-900 p-6 shadow-xl">
-        <h1 className="text-xl font-semibold text-slate-100">ADD40K — Fiches de personnage</h1>
+        <h1 className="text-xl font-semibold text-slate-100">R2T2 — Fiches de personnage</h1>
         <div className="space-y-1">
           <label htmlFor="username" className="text-sm text-slate-400">
             Identifiant

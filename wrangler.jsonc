@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "add40k",
+  "name": "r2t2",
   "main": "src/worker/index.ts",
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -9,6 +9,11 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   },
+  // Domaine personnalisé — remplace l'ancien add40k.ac2dc.ch (Worker "add40k",
+  // décommissionné). "custom_domain: true" fait provisionner le DNS + la route
+  // automatiquement par `wrangler deploy`, à condition que la zone ac2dc.ch soit
+  // sur le même compte Cloudflare que ce token wrangler.
+  "routes": [{ "pattern": "r2t2.ac2dc.ch/*", "custom_domain": true }],
   "d1_databases": [
     {
       "binding": "DB",
