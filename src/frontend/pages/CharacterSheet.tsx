@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import type { Character } from "@shared/types";
+import type { Character, ReferenceData } from "@shared/types";
 import { computeCharacter, type CharacterComputed } from "@shared/calc-engine";
-import { referenceData } from "@shared/reference-data";
 import { api } from "../lib/api";
 import {
   IdentityHeader,
@@ -27,6 +26,9 @@ export default function CharacterSheet() {
   const backTo = from === "suivi" ? "/suivi" : "/";
   const backLabel = from === "suivi" ? "← Suivi des constantes" : "← Personnages";
   const [character, setCharacter] = useState<Character | null>(null);
+  // Catalogue du groupe de ce personnage — renvoyé par GET /characters/:id
+  // (scopé serveur via sa règle), plus d'import statique ADD40K.
+  const [referenceData, setReferenceData] = useState<ReferenceData | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -36,15 +38,16 @@ export default function CharacterSheet() {
     if (!id) return;
     api
       .getCharacter(id)
-      .then(({ character, canEdit }) => {
+      .then(({ character, canEdit, referenceData }) => {
         setCharacter(character);
         setCanEdit(canEdit);
+        setReferenceData(referenceData);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Erreur"));
   }, [id]);
 
   if (error) return <p className="p-6 text-red-400">{error}</p>;
-  if (!character) return <p className="p-6 text-slate-400">Chargement…</p>;
+  if (!character || !referenceData) return <p className="p-6 text-slate-400">Chargement…</p>;
 
   const computed: CharacterComputed = computeCharacter(character, referenceData);
 
@@ -91,8 +94,9 @@ export default function CharacterSheet() {
     setSaving(true);
     setError(null);
     try {
-      const { character: saved } = await api.updateCharacter(id, character);
+      const { character: saved, referenceData: savedReferenceData } = await api.updateCharacter(id, character);
       setCharacter(saved);
+      setReferenceData(savedReferenceData);
       setEditing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Échec de la sauvegarde");
@@ -147,14 +151,14 @@ export default function CharacterSheet() {
 
           {error && <p className="text-red-400">{error}</p>}
 
-          <IdentityHeader character={character} editing={editing} update={update} />
+          <IdentityHeader character={character} editing={editing} update={update} referenceData={referenceData} />
         </div>
       </div>
 
       <div className="mx-auto max-w-3xl space-y-4 px-4 pb-16 pt-4">
         <HpPspBar character={character} computed={computed} onAdjust={adjustVital} />
-      <AttributesPanel character={character} computed={computed} editing={editing} update={update} />
-      <SkillsPanel character={character} computed={computed} editing={editing} update={update} />
+      <AttributesPanel character={character} computed={computed} editing={editing} update={update} referenceData={referenceData} />
+      <SkillsPanel character={character} computed={computed} editing={editing} update={update} referenceData={referenceData} />
       <WeaponsArmorPanel
         character={character}
         computed={computed}
@@ -162,9 +166,10 @@ export default function CharacterSheet() {
         canEdit={canEdit}
         update={update}
         onToggleArmor={toggleArmor}
+        referenceData={referenceData}
       />
-      <PsyPowersPanel character={character} computed={computed} editing={editing} update={update} />
-      <AdvantagesPanel character={character} editing={editing} update={update} />
+      <PsyPowersPanel character={character} computed={computed} editing={editing} update={update} referenceData={referenceData} />
+      <AdvantagesPanel character={character} editing={editing} update={update} referenceData={referenceData} />
       <EquipmentPanel character={character} editing={editing} update={update} />
       <BudgetPanel computed={computed} />
       <LocalisationsPanel />

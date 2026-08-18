@@ -177,7 +177,12 @@ export interface Character {
 // ---------------------------------------------------------------------------
 
 export interface RaceDefinition {
-  race: Race;
+  /**
+   * Normalement une valeur de `Race`, mais un catalogue de règle créée par
+   * un admin (autre jeu que ADD40K) peut définir des races hors de cette
+   * liste fixe — même assouplissement que `Character.race` ci-dessus.
+   */
+  race: Race | (string & {});
   label: string;
   /** Bonus par attribut appliqué au score de base (extrait des formules IF de la feuille données). */
   attributeBonus: AttributeScores;
@@ -240,15 +245,70 @@ export interface ReferenceData {
 // Auth
 // ---------------------------------------------------------------------------
 
-export type UserRole = "gm" | "player";
+export type UserRole = "admin" | "gm" | "player";
 
 export interface PublicUser {
   id: string;
   username: string;
   displayName: string;
   role: UserRole;
-  /** Personnage possédé par ce joueur (null pour le MJ). */
+  /** Personnage possédé par ce joueur (null pour le MJ ou l'admin). */
   characterId: string | null;
+  /** Groupe de joueurs auquel ce compte est rattaché (null pour un admin plateforme). */
+  playerGroupId: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Plateforme : jeux, règles (rulesets), groupes de joueurs
+// ---------------------------------------------------------------------------
+
+export interface Game {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+}
+
+/** Résumé d'une règle — sans le catalogue complet, pour les listes (sélecteurs...). */
+export interface Ruleset {
+  id: string;
+  gameId: string;
+  name: string;
+  description: string;
+  createdAt: string;
+}
+
+/** Règle avec son catalogue complet — utilisé par l'éditeur admin. */
+export interface RulesetDetail extends Ruleset {
+  referenceData: ReferenceData;
+}
+
+export interface PlayerGroup {
+  id: string;
+  name: string;
+  description: string;
+  rulesetId: string;
+  createdAt: string;
+}
+
+export interface GroupMember {
+  id: string;
+  username: string;
+  displayName: string;
+  role: UserRole;
+  characterId: string | null;
+}
+
+export interface PlayerGroupDetail extends PlayerGroup {
+  members: GroupMember[];
+}
+
+/** Contexte plateforme de l'utilisateur connecté — voir GET /api/profile. */
+export interface ProfileInfo {
+  user: PublicUser;
+  group: PlayerGroup | null;
+  ruleset: Ruleset | null;
+  game: Game | null;
 }
 
 // ---------------------------------------------------------------------------

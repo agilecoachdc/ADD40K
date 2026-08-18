@@ -1,21 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import type { CharacterSummary } from "@shared/types";
-import { referenceData } from "@shared/reference-data";
+import type { CharacterSummary, ReferenceData } from "@shared/types";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
-
-function raceLabel(race: string) {
-  return referenceData.races.find((r) => r.race === race)?.label ?? race;
-}
 
 export default function CharacterList() {
   const { user, logout } = useAuth();
   const [rows, setRows] = useState<CharacterSummary[] | null>(null);
+  // Catalogue du groupe de l'utilisateur — renvoyé par GET /characters
+  // (scopé serveur), plus d'import statique ADD40K (cf. lib/reference.ts).
+  const [referenceData, setReferenceData] = useState<ReferenceData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const isGm = user?.role === "gm";
+  const isAdmin = user?.role === "admin";
+
+  function raceLabel(race: string) {
+    return referenceData?.races.find((r) => r.race === race)?.label ?? race;
+  }
 
   // Un seul input file caché, réutilisé pour toutes les tuiles — on retient
   // quelle fiche est visée dans une ref (pas de state, pas besoin de re-render).
@@ -23,9 +26,13 @@ export default function CharacterList() {
   const importTargetId = useRef<string | null>(null);
 
   function loadCharacters() {
+    if (isAdmin) return Promise.resolve(); // pas de groupe/personnages pour un admin
     return api
       .listCharacters()
-      .then(({ characters }) => setRows(characters))
+      .then(({ characters, referenceData }) => {
+        setRows(characters);
+        setReferenceData(referenceData);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "Erreur"));
   }
 
@@ -119,7 +126,7 @@ export default function CharacterList() {
     const file = e.target.files?.[0];
     const id = importTargetId.current;
     e.target.value = ""; // permet de re-sélectionner le même fichier ensuite
-    if (!file || !id) return;
+    if (!file || !id || !referenceData) return;
     setError(null);
     setBusyId(id);
     try {
@@ -146,7 +153,7 @@ export default function CharacterList() {
       <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden" onChange={handleFileSelected} />
       <div className="mx-auto max-w-3xl px-4 py-6">
         <header className="mb-6 flex items-center justify-between gap-3">
-          <h1 className="text-lg font-semibold">Personnages ADD40K</h1>
+          <h1 className="text-lg font-semibold">{isAdmin ? "Administration" : "Personnages ADD40K"}</h1>
           <div className="flex items-center gap-3 text-sm text-slate-400">
             {isGm && (
               <Link
@@ -156,14 +163,29 @@ export default function CharacterList() {
                 Suivi des constantes
               </Link>
             )}
-            <a
-              href="https://drive.google.com/drive/folders/1bCHRg2AuKnBwizC9arAxvLRCQ8ikCJ6s"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-indigo-400 hover:underline"
-            >
-              Dossier Drive
-            </a>
+            {isAdmin && (
+              <>
+                <Link to="/admin/jeux" className="text-indigo-400 hover:underline">
+                  Jeux &amp; règles
+                </Link>
+                <Link to="/admin/groupes" className="text-indigo-400 hover:underline">
+                  Groupes
+                </Link>
+              </>
+            )}
+            {!isAdmin && (
+              <a
+                href="https://drive.google.com/drive/folders/1bCHRg2AuKnBwizC9arAxvLRCQ8ikCJ6s"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-400 hover:underline"
+              >
+                Dossier Drive
+              </a>
+            )}
+            <Link to="/profil" className="text-indigo-400 hover:underline">
+              Mon profil
+            </Link>
             <span>{user?.displayName}</span>
             <button onClick={() => logout()} className="text-indigo-400 hover:underline">
               Déconnexion
@@ -171,6 +193,15 @@ export default function CharacterList() {
           </div>
         </header>
 
+        {isAdmin && (
+          <p className="text-slate-400">
+            Compte administrateur — pas de groupe de joueurs assigné. Utilisez « Jeux &amp; règles » pour créer un
+            jeu et une règle, puis « Groupes » pour créer un groupe de joueurs et y rattacher des comptes.
+          </p>
+        )}
+
+        {!isAdmin && (
+        <>
         {error && <p className="text-red-400">{error}</p>}
         {!rows && !error && <p className="text-slate-400">Chargement…</p>}
 
@@ -363,6 +394,8 @@ export default function CharacterList() {
               </ul>
             )}
           </>
+        )}
+        </>
         )}
       </div>
     </div>

@@ -15,9 +15,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { ATTRIBUTES, type AttributeScores, type CharacterSummary } from "@shared/types";
+import { ATTRIBUTES, type AttributeScores, type CharacterSummary, type ReferenceData } from "@shared/types";
 import { getHpMax, getPspMax } from "@shared/calc-engine";
-import { referenceData } from "@shared/reference-data";
 import { useAuth } from "../lib/auth-context";
 import { api } from "../lib/api";
 import { RaceArmorSilhouette } from "../components/RaceArmorSilhouette";
@@ -33,6 +32,17 @@ const RING_SIZE = 96;
 const PHOTO_SIZE = 96;
 const SIL_SIZE = 80;
 const EMPTY_NPC_ATTRIBUTES: AttributeScores = Object.fromEntries(ATTRIBUTES.map((a) => [a, 0])) as AttributeScores;
+// Catalogue par défaut le temps que GET /characters (scopé au groupe du MJ)
+// réponde — cf. lib/reference.ts côté worker, plus d'import statique ADD40K.
+const EMPTY_REFERENCE_DATA: ReferenceData = {
+  races: [],
+  skillCostTable: {},
+  skills: [],
+  weapons: [],
+  armor: [],
+  psyPowers: [],
+  advantages: [],
+};
 
 /**
  * Anneaux concentriques façon Apple Fitness : PV (rouge) à l'extérieur, PSP
@@ -200,6 +210,7 @@ function CharacterTile({
 export default function GmTracker() {
   const { user } = useAuth();
   const [rows, setRows] = useState<CharacterSummary[] | null>(null);
+  const [referenceData, setReferenceData] = useState<ReferenceData>(EMPTY_REFERENCE_DATA);
   const [error, setError] = useState<string | null>(null);
 
   const [showNpcForm, setShowNpcForm] = useState(false);
@@ -226,7 +237,10 @@ export default function GmTracker() {
   function loadCharacters() {
     return api
       .listCharacters()
-      .then(({ characters }) => setRows(characters))
+      .then(({ characters, referenceData }) => {
+        setRows(characters);
+        if (referenceData) setReferenceData(referenceData);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "Erreur"));
   }
 

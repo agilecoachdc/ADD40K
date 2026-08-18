@@ -14,6 +14,7 @@ interface UserRow {
   password_salt: string;
   role: UserRole;
   character_id: string | null;
+  player_group_id: string | null;
 }
 
 export const authRoutes = new Hono<{ Bindings: Env }>();
@@ -42,6 +43,7 @@ authRoutes.post("/login", async (c) => {
     displayName: row.display_name,
     role: row.role,
     characterId: row.character_id,
+    playerGroupId: row.player_group_id,
   };
   return c.json({ user });
 });

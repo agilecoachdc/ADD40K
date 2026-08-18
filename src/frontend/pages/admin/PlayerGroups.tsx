@@ -1,0 +1,328 @@
+// Page d'admin "Groupes" — CRUD des groupes de joueurs (nom, description,
+// règle assignée) et gestion de leurs membres : réassigner un compte
+// existant au groupe, ou en créer un nouveau directement rattaché. Réservée
+// au rôle admin (route protégée côté App.tsx + API /api/admin/*).
+
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import type { PlayerGroupDetail, PublicUser, Ruleset, UserRole } from "@shared/types";
+import { api } from "../../lib/api";
+
+const ROLE_LABELS: Record<UserRole, string> = { admin: "Admin", gm: "MJ", player: "Joueur" };
+
+function TextInput({ value, onChange, className = "" }: { value: string; onChange: (v: string) => void; className?: string }) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm ${className}`}
+    />
+  );
+}
+
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : "Erreur";
+}
+
+export default function PlayerGroups() {
+  const [groups, setGroups] = useState<PlayerGroupDetail[]>([]);
+  const [rulesets, setRulesets] = useState<Ruleset[]>([]);
+  const [allUsers, setAllUsers] = useState<PublicUser[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [lastPassword, setLastPassword] = useState<{ username: string; password: string } | null>(null);
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [rulesetId, setRulesetId] = useState("");
+
+  const [newUsername, setNewUsername] = useState("");
+  const [newDisplayName, setNewDisplayName] = useState("");
+  const [newRole, setNewRole] = useState<UserRole>("player");
+  const [assignUserId, setAssignUserId] = useState("");
+  const [assignRole, setAssignRole] = useState<UserRole>("player");
+
+  function loadAll() {
+    return Promise.all([
+      api.listGroups().then(({ groups }) => Promise.all(groups.map((g) => api.getGroup(g.id).then((r) => r.group)))),
+      api.listRulesets(),
+      api.listUsers(),
+    ])
+      .then(([groupDetails, { rulesets }, { users }]) => {
+        setGroups(groupDetails);
+        setRulesets(rulesets);
+        setAllUsers(users);
+      })
+      .catch((err) => setError(errMsg(err)));
+  }
+
+  useEffect(() => {
+    loadAll();
+  }, []);
+
+  const selected = groups.find((g) => g.id === selectedId) ?? null;
+  const unassignedUsers = allUsers.filter((u) => u.playerGroupId !== selectedId);
+
+  async function handleCreateGroup(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !rulesetId) return;
+    try {
+      const { group } = await api.createGroup({ name: name.trim(), description: description.trim(), rulesetId });
+      setName("");
+      setDescription("");
+      setRulesetId("");
+      await loadAll();
+      setSelectedId(group.id);
+    } catch (err) {
+      setError(errMsg(err));
+    }
+  }
+
+  async function handleDeleteGroup(id: string) {
+    try {
+      await api.deleteGroup(id);
+      if (selectedId === id) setSelectedId(null);
+      await loadAll();
+    } catch (err) {
+      setError(errMsg(err));
+    }
+  }
+
+  async function handleSaveGroup() {
+    if (!selected) return;
+    try {
+      await api.updateGroup(selected.id, {
+        name: selected.name,
+        description: selected.description,
+        rulesetId: selected.rulesetId,
+      });
+      await loadAll();
+    } catch (err) {
+      setError(errMsg(err));
+    }
+  }
+
+  function updateSelected(patch: Partial<PlayerGroupDetail>) {
+    setGroups((gs) => gs.map((g) => (g.id === selectedId ? { ...g, ...patch } : g)));
+  }
+
+  async function handleCreateUserInGroup(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selected || !newUsername.trim() || !newDisplayName.trim()) return;
+    setError(null);
+    try {
+      const { user, password } = await api.createUser({
+        username: newUsername.trim(),
+        displayName: newDisplayName.trim(),
+        role: newRole,
+        playerGroupId: selected.id,
+      });
+      setLastPassword({ username: user.username, password });
+      setNewUsername("");
+      setNewDisplayName("");
+      setNewRole("player");
+      await loadAll();
+    } catch (err) {
+      setError(errMsg(err));
+    }
+  }
+
+  async function handleAssignExisting(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selected || !assignUserId) return;
+    try {
+      await api.updateUser(assignUserId, { role: assignRole, playerGroupId: selected.id });
+      setAssignUserId("");
+      await loadAll();
+    } catch (err) {
+      setError(errMsg(err));
+    }
+  }
+
+  async function handleRemoveMember(userId: string) {
+    try {
+      await api.updateUser(userId, { playerGroupId: null });
+      await loadAll();
+    } catch (err) {
+      setError(errMsg(err));
+    }
+  }
+
+  return (
+    <div className="min-h-dvh bg-slate-950">
+      <div className="mx-auto max-w-4xl px-4 py-6">
+        <header className="mb-6 flex items-center justify-between gap-3">
+          <h1 className="text-lg font-semibold">Groupes de joueurs</h1>
+          <Link to="/" className="text-sm text-indigo-400 hover:underline">
+            ← Retour
+          </Link>
+        </header>
+
+        {error && <p className="mb-4 text-red-400">{error}</p>}
+        {lastPassword && (
+          <p className="mb-4 rounded-lg bg-emerald-950 px-3 py-2 text-sm text-emerald-300">
+            Compte « {lastPassword.username} » créé — mot de passe : <span className="font-mono">{lastPassword.password}</span>{" "}
+            (à communiquer hors-ligne, ne sera plus affiché).
+          </p>
+        )}
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <section className="rounded-xl bg-slate-900 p-4 shadow md:col-span-1">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">Groupes</h2>
+            <ul className="mb-3 space-y-1">
+              {groups.map((g) => (
+                <li key={g.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(g.id)}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${
+                      selectedId === g.id ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-200 hover:bg-slate-700"
+                    }`}
+                  >
+                    <span>
+                      {g.name} <span className="text-xs opacity-70">({g.members.length})</span>
+                    </span>
+                    <span
+                      role="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteGroup(g.id);
+                      }}
+                      className="text-slate-400 hover:text-red-400"
+                      aria-label={`Supprimer ${g.name}`}
+                    >
+                      ×
+                    </span>
+                  </button>
+                </li>
+              ))}
+              {groups.length === 0 && <p className="text-sm text-slate-500">Aucun groupe.</p>}
+            </ul>
+            <form onSubmit={handleCreateGroup} className="space-y-2">
+              <TextInput value={name} onChange={setName} className="w-full" />
+              <TextInput value={description} onChange={setDescription} className="w-full" />
+              <select
+                value={rulesetId}
+                onChange={(e) => setRulesetId(e.target.value)}
+                className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
+              >
+                <option value="">— Règle —</option>
+                {rulesets.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+              <button type="submit" className="w-full rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">
+                + Nouveau groupe
+              </button>
+            </form>
+          </section>
+
+          <section className="rounded-xl bg-slate-900 p-4 shadow md:col-span-2">
+            {!selected && <p className="text-sm text-slate-500">Choisissez un groupe.</p>}
+            {selected && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Réglages</h2>
+                  <TextInput value={selected.name} onChange={(v) => updateSelected({ name: v })} className="w-full" />
+                  <TextInput value={selected.description} onChange={(v) => updateSelected({ description: v })} className="w-full" />
+                  <select
+                    value={selected.rulesetId}
+                    onChange={(e) => updateSelected({ rulesetId: e.target.value })}
+                    className="w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
+                  >
+                    {rulesets.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleSaveGroup}
+                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
+                  >
+                    Enregistrer
+                  </button>
+                </div>
+
+                <div>
+                  <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Membres</h2>
+                  <ul className="space-y-1">
+                    {selected.members.map((m) => (
+                      <li key={m.id} className="flex items-center justify-between rounded-lg bg-slate-800/50 px-3 py-2 text-sm">
+                        <span>
+                          {m.displayName} <span className="text-slate-500">({m.username})</span> ·{" "}
+                          <span className="text-slate-400">{ROLE_LABELS[m.role]}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMember(m.id)}
+                          className="text-xs text-slate-500 hover:text-red-400"
+                        >
+                          Retirer du groupe
+                        </button>
+                      </li>
+                    ))}
+                    {selected.members.length === 0 && <p className="text-sm text-slate-500">Aucun membre.</p>}
+                  </ul>
+                </div>
+
+                <form onSubmit={handleAssignExisting} className="space-y-2 rounded-lg bg-slate-800/50 p-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Assigner un compte existant</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <select
+                      value={assignUserId}
+                      onChange={(e) => setAssignUserId(e.target.value)}
+                      className="flex-1 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
+                    >
+                      <option value="">— Compte —</option>
+                      {unassignedUsers.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.displayName} ({u.username})
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={assignRole}
+                      onChange={(e) => setAssignRole(e.target.value as UserRole)}
+                      className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
+                    >
+                      <option value="player">Joueur</option>
+                      <option value="gm">MJ</option>
+                    </select>
+                    <button type="submit" className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">
+                      Assigner
+                    </button>
+                  </div>
+                </form>
+
+                <form onSubmit={handleCreateUserInGroup} className="space-y-2 rounded-lg bg-slate-800/50 p-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Créer un nouveau compte</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <TextInput value={newUsername} onChange={setNewUsername} className="flex-1" />
+                    <TextInput value={newDisplayName} onChange={setNewDisplayName} className="flex-1" />
+                    <select
+                      value={newRole}
+                      onChange={(e) => setNewRole(e.target.value as UserRole)}
+                      className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
+                    >
+                      <option value="player">Joueur</option>
+                      <option value="gm">MJ</option>
+                    </select>
+                    <button type="submit" className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">
+                      Créer
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-500">Identifiant, puis nom affiché.</p>
+                </form>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,30 +1,44 @@
 // Routes /api/characters/* — voir docs/API_REFERENCE.md.
-// Lecture ouverte à tout utilisateur connecté (utile en jeu pour consulter
-// la fiche d'un coéquipier) ; écriture réservée au propriétaire ou au MJ
-// (canEditCharacter, lib/session.ts). Création (PNJ) réservée au MJ.
+// Toutes les routes sont désormais scopées au groupe de joueurs de
+// l'utilisateur (user.playerGroupId) : un compte ne voit et ne modifie que
+// les personnages de son propre groupe — cf. migrations/0003_platform.sql.
+// Lecture ouverte à tout membre du groupe (utile en jeu pour consulter la
+// fiche d'un coéquipier) ; écriture réservée au propriétaire ou au MJ du
+// groupe (canEditCharacter, lib/session.ts). Création (PNJ) réservée au MJ.
+// Le catalogue de référence (ReferenceData) n'est plus un import statique
+// ADD40K : il est chargé dynamiquement depuis la règle assignée au groupe
+// (getReferenceDataForGroup, lib/reference.ts) et renvoyé dans chaque
+// réponse pour que le frontend n'ait pas à l'importer lui-même.
 
 import { Hono } from "hono";
 import type { Env } from "../lib/session";
 import { canEditCharacter } from "../lib/session";
+import { getReferenceDataForGroup } from "../lib/reference";
 import type { PublicUser } from "../../shared/types";
-import type { AttributeScores, Character, CharacterSummary } from "../../shared/types";
+import type { AttributeScores, Character, CharacterSummary, ReferenceData } from "../../shared/types";
 import { ATTRIBUTES } from "../../shared/types";
 import { computeCharacter } from "../../shared/calc-engine";
-import { referenceData } from "../../shared/reference-data";
 
 type HonoEnv = { Bindings: Env; Variables: { user: PublicUser } };
 
 interface CharacterRow {
   id: string;
   data: string;
+  player_group_id: string | null;
 }
 
 export const characterRoutes = new Hono<HonoEnv>();
 
 characterRoutes.get("/", async (c) => {
+  const user = c.get("user");
+  if (!user.playerGroupId) return c.json({ characters: [], referenceData: null });
+
+  const referenceData = await getReferenceDataForGroup(c.env.DB, user.playerGroupId);
   const { results } = await c.env.DB.prepare(
-    "SELECT id, name, race, owner_username, data FROM characters ORDER BY name",
-  ).all<{ id: string; name: string; race: string; owner_username: string; data: string }>();
+    "SELECT id, name, race, owner_username, data FROM characters WHERE player_group_id = ?1 ORDER BY name",
+  )
+    .bind(user.playerGroupId)
+    .all<{ id: string; name: string; race: string; owner_username: string; data: string }>();
 
   // Résumé enrichi (portrait, statut en jeu, PV/PSP) pour l'écran d'accueil
   // et l'écran "Suivi des constantes" du MJ — computeCharacter recalcule
@@ -49,19 +63,24 @@ characterRoutes.get("/", async (c) => {
     };
   });
 
-  return c.json({ characters });
+  return c.json({ characters, referenceData });
 });
 
 characterRoutes.get("/:id", async (c) => {
-  const row = await c.env.DB.prepare("SELECT id, data FROM characters WHERE id = ?1")
+  const user = c.get("user");
+  const row = await c.env.DB.prepare("SELECT id, data, player_group_id FROM characters WHERE id = ?1")
     .bind(c.req.param("id"))
     .first<CharacterRow>();
-  if (!row) return c.json({ error: "Personnage introuvable" }, 404);
+  // Une fiche d'un autre groupe est traitée comme inexistante — évite de
+  // confirmer son existence à un compte qui n'y a pas accès.
+  if (!row || !row.player_group_id || row.player_group_id !== user.playerGroupId) {
+    return c.json({ error: "Personnage introuvable" }, 404);
+  }
 
+  const referenceData = await getReferenceDataForGroup(c.env.DB, row.player_group_id);
   const character: Character = JSON.parse(row.data);
   const computed = computeCharacter(character, referenceData);
-  const user = c.get("user");
-  return c.json({ character, computed, canEdit: canEditCharacter(user, row.id) });
+  return c.json({ character, computed, canEdit: canEditCharacter(user, row.id, row.player_group_id), referenceData });
 });
 
 function slugify(name: string): string {
@@ -91,11 +110,11 @@ const EMPTY_ATTRIBUTE_SCORES: AttributeScores = Object.fromEntries(ATTRIBUTES.ma
 // la silhouette, PV/PSP max fixés directement via hpMaxOverride/
 // pspMaxOverride — pas d'attributs à saisir). Réservé au MJ : un PNJ n'a pas
 // de joueur propriétaire, seul le MJ doit pouvoir le créer/modifier (déjà
-// garanti par canEditCharacter côté PUT, qui autorise role=gm sur n'importe
-// quel id).
+// garanti par canEditCharacter côté PUT, qui autorise role=gm sur tout
+// personnage de son groupe). Le PNJ est rattaché au groupe du MJ créateur.
 characterRoutes.post("/", async (c) => {
   const user = c.get("user");
-  if (user.role !== "gm") {
+  if (user.role !== "gm" || !user.playerGroupId) {
     return c.json({ error: "Réservé au MJ" }, 403);
   }
 
@@ -106,6 +125,7 @@ characterRoutes.post("/", async (c) => {
     return c.json({ error: "Nom requis" }, 400);
   }
 
+  const referenceData = await getReferenceDataForGroup(c.env.DB, user.playerGroupId);
   const id = await uniqueId(c.env.DB, body.name);
   const now = new Date().toISOString();
   const race = body.race?.trim() || "humain";
@@ -152,26 +172,34 @@ characterRoutes.post("/", async (c) => {
   character.pspCurrent = pspMax;
 
   await c.env.DB.prepare(
-    "INSERT INTO characters (id, name, race, owner_username, data, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+    "INSERT INTO characters (id, name, race, owner_username, data, updated_at, player_group_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
   )
-    .bind(character.id, character.name, character.race, character.ownerUsername, JSON.stringify(character), now)
+    .bind(
+      character.id,
+      character.name,
+      character.race,
+      character.ownerUsername,
+      JSON.stringify(character),
+      now,
+      user.playerGroupId,
+    )
     .run();
 
   const computed = computeCharacter(character, referenceData);
-  return c.json({ character, computed, canEdit: true }, 201);
+  return c.json({ character, computed, canEdit: true, referenceData }, 201);
 });
 
 characterRoutes.put("/:id", async (c) => {
   const id = c.req.param("id");
   const user = c.get("user");
-  if (!canEditCharacter(user, id)) {
-    return c.json({ error: "Vous ne pouvez modifier que votre propre fiche" }, 403);
-  }
 
-  const existing = await c.env.DB.prepare("SELECT id, data FROM characters WHERE id = ?1")
+  const existing = await c.env.DB.prepare("SELECT id, data, player_group_id FROM characters WHERE id = ?1")
     .bind(id)
     .first<CharacterRow>();
   if (!existing) return c.json({ error: "Personnage introuvable" }, 404);
+  if (!canEditCharacter(user, id, existing.player_group_id)) {
+    return c.json({ error: "Vous ne pouvez modifier que votre propre fiche" }, 403);
+  }
 
   const incoming = await c.req.json<Partial<Character>>().catch(() => null);
   if (!incoming) return c.json({ error: "JSON invalide" }, 400);
@@ -194,6 +222,9 @@ characterRoutes.put("/:id", async (c) => {
     .bind(updated.name, updated.race, JSON.stringify(updated), updated.updatedAt, id)
     .run();
 
+  const referenceData: ReferenceData = existing.player_group_id
+    ? await getReferenceDataForGroup(c.env.DB, existing.player_group_id)
+    : { races: [], skillCostTable: {}, skills: [], weapons: [], armor: [], psyPowers: [], advantages: [] };
   const computed = computeCharacter(updated, referenceData);
-  return c.json({ character: updated, computed, canEdit: true });
+  return c.json({ character: updated, computed, canEdit: true, referenceData });
 });

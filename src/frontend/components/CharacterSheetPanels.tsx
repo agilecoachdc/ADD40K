@@ -10,12 +10,18 @@ import {
   WEAPON_TYPES,
   type Attribute,
   type Character,
+  type ReferenceData,
   type WeaponModifier,
   type WeaponType,
 } from "@shared/types";
 import type { CharacterComputed } from "@shared/calc-engine";
 import { getPsyPowerTotal, getSkillTotal, getWeaponSuggestedScore, getWeaponTotals } from "@shared/calc-engine";
-import { referenceData, LOCALISATIONS } from "@shared/reference-data";
+// LOCALISATIONS est une légende générique (répartition des touches par
+// localisation), pas une donnée de catalogue liée à une règle — elle reste
+// donc en dur, contrairement au reste de reference-data.ts (races/compétences/
+// armes/armures/pouvoirs/avantages), qui vient désormais du groupe de
+// l'utilisateur via la prop `referenceData` (cf. CharacterSheet.tsx).
+import { LOCALISATIONS } from "@shared/reference-data";
 import { RaceArmorSilhouette } from "./RaceArmorSilhouette";
 import { resizePortraitToDataUrl } from "../lib/image";
 
@@ -105,10 +111,12 @@ export function IdentityHeader({
   character,
   editing,
   update,
+  referenceData,
 }: {
   character: Character;
   editing: boolean;
   update: Update;
+  referenceData: ReferenceData;
 }) {
   const fields: [string, keyof Character][] = [
     ["Faction", "faction"],
@@ -269,11 +277,13 @@ export function AttributesPanel({
   computed,
   editing,
   update,
+  referenceData,
 }: {
   character: Character;
   computed: CharacterComputed;
   editing: boolean;
   update: Update;
+  referenceData: ReferenceData;
 }) {
   const [selected, setSelected] = useState<Attribute | null>(null);
   const raceDef = referenceData.races.find((r) => r.race === character.race);
@@ -335,11 +345,13 @@ export function SkillsPanel({
   computed,
   editing,
   update,
+  referenceData,
 }: {
   character: Character;
   computed: CharacterComputed;
   editing: boolean;
   update: Update;
+  referenceData: ReferenceData;
 }) {
   const skills = character.skills;
   function setSkill(i: number, patch: Partial<(typeof skills)[number]>) {
@@ -410,6 +422,7 @@ export function WeaponsArmorPanel({
   canEdit,
   update,
   onToggleArmor,
+  referenceData,
 }: {
   character: Character;
   computed: CharacterComputed;
@@ -417,6 +430,7 @@ export function WeaponsArmorPanel({
   canEdit: boolean;
   update: Update;
   onToggleArmor: (index: number) => void;
+  referenceData: ReferenceData;
 }) {
   const weapons = character.weapons;
   const armor = character.armor;
@@ -751,11 +765,13 @@ export function PsyPowersPanel({
   computed,
   editing,
   update,
+  referenceData,
 }: {
   character: Character;
   computed: CharacterComputed;
   editing: boolean;
   update: Update;
+  referenceData: ReferenceData;
 }) {
   const powers = character.psyPowers;
   if (powers.length === 0 && !editing) return null;
@@ -820,10 +836,12 @@ export function AdvantagesPanel({
   character,
   editing,
   update,
+  referenceData,
 }: {
   character: Character;
   editing: boolean;
   update: Update;
+  referenceData: ReferenceData;
 }) {
   const advantages = character.advantages;
   return (
