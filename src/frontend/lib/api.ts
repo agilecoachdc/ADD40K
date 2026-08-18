@@ -76,6 +76,13 @@ export const api = {
       `/characters?groupId=${encodeURIComponent(groupId)}`,
       { method: "POST", body: JSON.stringify(input) },
     ),
+  // "Fin de combat" (MJ, écran Suivi des constantes) : désactive tous les
+  // pouvoirs psy actifs des personnages en jeu de ce groupe et rembourse
+  // leur coût en PSP — cf. characters.ts POST /end-combat.
+  endCombat: (groupId: string) =>
+    request<{ ok: true; deactivated: number }>(`/characters/end-combat?groupId=${encodeURIComponent(groupId)}`, {
+      method: "POST",
+    }),
 
   // ---------------------------------------------------------------------
   // Administration (jeux / règles / groupes / comptes) — réservé au rôle admin.

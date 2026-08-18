@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import type { ActivePsyPower, Character, ReferenceData } from "@shared/types";
-import { computeCharacter, type CharacterComputed } from "@shared/calc-engine";
+import { computeCharacter, getPsyPowerActivationCost, type CharacterComputed } from "@shared/calc-engine";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import { useTranslation } from "../lib/i18n";
@@ -114,18 +114,28 @@ export default function CharacterSheet() {
   // — même principe que toggleArmor/toggleWeaponEquipped. Un seul pouvoir
   // actif par nom (activePsyPowers est une petite liste, pas indexée par
   // pouvoir) : on retire l'entrée existante puis on ajoute la nouvelle si
-  // `next` n'est pas null.
+  // `next` n'est pas null. Le PSP du palier (10 gratuit, +1 par palier de 5
+  // jusqu'à 35, cf. calc-engine.getPsyPowerActivationCost) est décompté à
+  // l'activation et remboursé à la désactivation — clampé entre 0 et
+  // pspMax, comme les autres ajustements de compteur (adjustVital
+  // ci-dessus). Même mécanisme groupé côté MJ pour "Fin de combat", cf.
+  // characters.ts POST /end-combat.
   async function setActivePower(powerName: string, next: ActivePsyPower | null) {
     if (!character || !id) return;
     const previous = character.activePsyPowers ?? [];
+    const previousEntry = previous.find((p) => p.name === powerName);
     const nextActivePowers = previous.filter((p) => p.name !== powerName);
     if (next) nextActivePowers.push(next);
-    update({ activePsyPowers: nextActivePowers });
+    const previousPsp = character.pspCurrent;
+    let nextPsp = previousPsp;
+    if (previousEntry) nextPsp = Math.min(computed.pspMax, nextPsp + getPsyPowerActivationCost(previousEntry.level));
+    if (next) nextPsp = Math.max(0, nextPsp - getPsyPowerActivationCost(next.level));
+    update({ activePsyPowers: nextActivePowers, pspCurrent: nextPsp });
     try {
-      await api.updateCharacter(id, { activePsyPowers: nextActivePowers });
+      await api.updateCharacter(id, { activePsyPowers: nextActivePowers, pspCurrent: nextPsp });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Échec de l'activation du pouvoir");
-      update({ activePsyPowers: previous });
+      update({ activePsyPowers: previous, pspCurrent: previousPsp });
     }
   }
 

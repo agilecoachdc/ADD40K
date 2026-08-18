@@ -45,7 +45,10 @@ chaque réponse.
   de lien ADD40K en dur). `actionRank` (cf. `calc-engine.getActionRank`) est le Rang d'Action
   courant du personnage — plus bas = agit plus tôt ; l'écran "Suivi des constantes" affiche un
   rang courant (boutons Précédent/Suivant) et surligne les tuiles dont `actionRank` correspond
-  exactement (plusieurs personnages peuvent agir au même rang). Voir `src/shared/types.ts`.
+  exactement (plusieurs personnages peuvent agir au même rang). `hasActiveBoost` (cf.
+  `calc-engine.hasActivePsyPowerBoost`) indique qu'au moins un pouvoir psy actif
+  (`Character.activePsyPowers`) booste une caractéristique ou une compétence de ce personnage —
+  affiche une icône "⚡" sur sa tuile. Voir `src/shared/types.ts`.
 
 ### `GET /api/characters/:id`
 - Auth : session ; lecture ouverte à tout membre du groupe du personnage.
@@ -101,6 +104,19 @@ chaque réponse.
   (même enveloppe que `PUT /:id`).
 - Erreurs : `403` (pas MJ ou pas membre du groupe), `404` (personnage introuvable), `400` (montant
   manquant, non numérique, ou nul).
+
+### `POST /api/characters/end-combat?groupId=`
+- Auth : session + rôle `gm` membre du groupe ciblé.
+- "Fin de combat" (bouton MJ, écran "Suivi des constantes") : désactive d'un coup
+  `activePsyPowers` de tous les personnages `inGame` de ce groupe qui en ont, et rembourse à
+  chacun le PSP décompté à l'activation (`getPsyPowerActivationCost` par palier actif, clampé à
+  `pspMax`) — même mécanisme de remboursement qu'une désactivation individuelle
+  (`PUT /:id` côté fiche, cf. `CharacterSheet.setActivePower`). S'applique uniformément aux
+  pouvoirs `duration: "turn"` et `"combat"` : aucune expiration automatique par tour n'est codée,
+  seule cette action groupée ou une désactivation manuelle par fiche y met fin.
+- Sortie : `{ ok: true, deactivated: number }` (nombre de personnages dont au moins un pouvoir a
+  été désactivé).
+- Erreurs : `403` (pas MJ ou pas membre du groupe).
 
 ## Profil (`src/worker/routes/profile.ts`)
 

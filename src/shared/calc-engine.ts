@@ -333,6 +333,47 @@ function getActivePsyPowerRefBonus(character: Pick<Character, "psyPowers" | "act
   }
 }
 
+// ---------------------------------------------------------------------------
+// Activation générique des pouvoirs psy — coût en PSP par palier et bonus
+// "boost" (caractéristique/compétence) choisis manuellement à l'activation
+// pour les pouvoirs sans formule chiffrée codée (tous sauf "Concentration
+// psy" ci-dessus). Cf. ActivePsyPower (shared/types.ts).
+// ---------------------------------------------------------------------------
+
+/** Paliers d'activation disponibles pour tout pouvoir psy (Règles ADD40K V0.2) — 10 gratuit, puis les paliers existants de POWER_LEVELS. */
+export const PSY_POWER_LEVELS = [10, 15, 20, 25, 30, 35] as const;
+
+/** Coût en PSP pour activer un pouvoir à un palier donné : 10 gratuit, +1 PSP par palier de 5 jusqu'à 35 (5 PSP). Décompté de Character.pspCurrent à l'activation, remboursé à la désactivation (cf. CharacterSheet.setActivePower). */
+const PSY_POWER_ACTIVATION_COST: Record<number, number> = { 10: 0, 15: 1, 20: 2, 25: 3, 30: 4, 35: 5 };
+
+export function getPsyPowerActivationCost(level: number): number {
+  return PSY_POWER_ACTIVATION_COST[level] ?? 0;
+}
+
+/** Somme des `boostAmount` des pouvoirs actifs ciblant cet attribut via `boostAttribute` — additif, pour affichage (AttributesPanel) et pris en compte pour REF dans getActionRank ci-dessous. */
+export function getActivePsyPowerAttributeBoost(
+  character: Pick<Character, "activePsyPowers">,
+  attribute: Attribute,
+): number {
+  return (character.activePsyPowers ?? []).reduce(
+    (sum, p) => sum + (p.boostAttribute === attribute ? (p.boostAmount ?? 0) : 0),
+    0,
+  );
+}
+
+/** Somme des `boostAmount` des pouvoirs actifs ciblant cette compétence via `boostSkillName` (nom exact) — additif, pour affichage (SkillsPanel). */
+export function getActivePsyPowerSkillBoost(character: Pick<Character, "activePsyPowers">, skillName: string): number {
+  return (character.activePsyPowers ?? []).reduce(
+    (sum, p) => sum + (p.boostSkillName === skillName ? (p.boostAmount ?? 0) : 0),
+    0,
+  );
+}
+
+/** Au moins un pouvoir actif booste une caractéristique ou une compétence — cf. CharacterSummary.hasActiveBoost (icône sur la tuile du Suivi des constantes). */
+export function hasActivePsyPowerBoost(character: Pick<Character, "activePsyPowers">): boolean {
+  return (character.activePsyPowers ?? []).some((p) => p.boostAttribute != null || p.boostSkillName != null);
+}
+
 /**
  * Rang d'Action courant du personnage, tous éléments combinés — cf. les
  * commentaires ci-dessus pour le détail de chaque terme. Plus la valeur est
@@ -345,7 +386,10 @@ export function getActionRank(
   const refTotal = getAttributeTotal(character, reference, "REF");
   const hasActivePower = (character.activePsyPowers ?? []).length > 0;
   const effectiveRef =
-    refTotal + getConcentrationAdvantageRefDelta(character, hasActivePower) + getActivePsyPowerRefBonus(character);
+    refTotal +
+    getConcentrationAdvantageRefDelta(character, hasActivePower) +
+    getActivePsyPowerRefBonus(character) +
+    getActivePsyPowerAttributeBoost(character, "REF");
   const equippedWeapon = character.weapons.find((w) => w.equipped);
   const weaponRaModifier = equippedWeapon ? getWeaponRaModifier(equippedWeapon) : 0;
   return BASE_RA - effectiveRef + weaponRaModifier;

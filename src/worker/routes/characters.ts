@@ -19,7 +19,14 @@ import { getGroupDriveUrl, getGroupImageUrl, getReferenceDataForGroup } from "..
 import type { PublicUser } from "../../shared/types";
 import type { AttributeScores, Character, CharacterSummary, ReferenceData } from "../../shared/types";
 import { ATTRIBUTES } from "../../shared/types";
-import { computeCharacter, getAdvantagesNet, getPsyPowersCostTotal, getSkillsCostTotal } from "../../shared/calc-engine";
+import {
+  computeCharacter,
+  getAdvantagesNet,
+  getPsyPowerActivationCost,
+  getPsyPowersCostTotal,
+  getSkillsCostTotal,
+  hasActivePsyPowerBoost,
+} from "../../shared/calc-engine";
 
 type HonoEnv = { Bindings: Env; Variables: { user: PublicUser } };
 
@@ -71,6 +78,7 @@ characterRoutes.get("/", async (c) => {
       xp: parsed.xp ?? 0,
       xpAvailable: parsed.xpAvailable ?? 0,
       actionRank,
+      hasActiveBoost: hasActivePsyPowerBoost(parsed),
     };
   });
 
@@ -310,4 +318,49 @@ characterRoutes.post("/:id/xp", async (c) => {
   const referenceData = await getReferenceDataForGroup(c.env.DB, existing.player_group_id);
   const computed = computeCharacter(updated, referenceData);
   return c.json({ character: updated, computed, canEdit: true, referenceData });
+});
+
+// "Fin de combat" — bouton MJ sur l'écran "Suivi des constantes" : désactive
+// d'un coup tous les pouvoirs psy actifs (Character.activePsyPowers) des
+// personnages EN JEU (inGame) de ce groupe, et rembourse le PSP décompté à
+// leur activation (cf. getPsyPowerActivationCost, CharacterSheet.
+// setActivePower pour le même mécanisme côté fiche individuelle). Les
+// pouvoirs "turn" (immédiats) et "combat" (modification) sont traités de la
+// même façon ici : aucune expiration automatique par tour n'est codée, seule
+// cette action groupée ou une désactivation manuelle par fiche y met fin.
+characterRoutes.post("/end-combat", async (c) => {
+  const user = c.get("user");
+  const groupId = c.req.query("groupId");
+  if (user.role !== "gm" || !groupId || !user.memberships.includes(groupId)) {
+    return c.json({ error: "Réservé au MJ de ce groupe" }, 403);
+  }
+
+  const referenceData = await getReferenceDataForGroup(c.env.DB, groupId);
+  const { results } = await c.env.DB.prepare(
+    "SELECT id, data FROM characters WHERE player_group_id = ?1",
+  )
+    .bind(groupId)
+    .all<{ id: string; data: string }>();
+
+  const now = new Date().toISOString();
+  let deactivated = 0;
+  for (const row of results ?? []) {
+    const character: Character = JSON.parse(row.data);
+    const active = character.activePsyPowers ?? [];
+    if (!character.inGame || active.length === 0) continue;
+    const { pspMax } = computeCharacter(character, referenceData);
+    const refund = active.reduce((sum, p) => sum + getPsyPowerActivationCost(p.level), 0);
+    const updated: Character = {
+      ...character,
+      activePsyPowers: [],
+      pspCurrent: Math.min(pspMax, character.pspCurrent + refund),
+      updatedAt: now,
+    };
+    await c.env.DB.prepare("UPDATE characters SET data = ?1, updated_at = ?2 WHERE id = ?3")
+      .bind(JSON.stringify(updated), now, row.id)
+      .run();
+    deactivated++;
+  }
+
+  return c.json({ ok: true, deactivated });
 });

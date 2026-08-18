@@ -16,7 +16,16 @@ import {
   type WeaponType,
 } from "@shared/types";
 import type { CharacterComputed } from "@shared/calc-engine";
-import { getPsyPowerTotal, getSkillTotal, getWeaponSuggestedScore, getWeaponTotals } from "@shared/calc-engine";
+import {
+  getActivePsyPowerAttributeBoost,
+  getActivePsyPowerSkillBoost,
+  getPsyPowerActivationCost,
+  getPsyPowerTotal,
+  getSkillTotal,
+  getWeaponSuggestedScore,
+  getWeaponTotals,
+  PSY_POWER_LEVELS,
+} from "@shared/calc-engine";
 import { LocalisationSilhouette, RaceArmorSilhouette } from "./RaceArmorSilhouette";
 import { resizePortraitToDataUrl } from "../lib/image";
 import { useTranslation } from "../lib/i18n";
@@ -319,6 +328,7 @@ export function AttributesPanel({
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
         {ATTRIBUTES.map((attr) => {
           const isOpen = editing && selected === attr;
+          const boost = getActivePsyPowerAttributeBoost(character, attr);
           return (
             <div key={attr} className="overflow-hidden rounded-lg bg-slate-800/50">
               <button
@@ -327,7 +337,18 @@ export function AttributesPanel({
                 className={`flex w-full items-center justify-between px-3 py-2 text-left ${editing ? "cursor-pointer hover:bg-slate-800" : "cursor-default"}`}
               >
                 <span className="text-sm text-slate-300">{t(ATTRIBUTE_LABELS[attr])}</span>
-                <span className="text-lg font-semibold text-slate-100">{computed.attributeTotals[attr]}</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-lg font-semibold text-slate-100">{computed.attributeTotals[attr] + boost}</span>
+                  {boost !== 0 && (
+                    <span
+                      className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-xs font-semibold text-amber-300"
+                      title={t("Bonus de pouvoir psy actif")}
+                    >
+                      {boost > 0 ? "+" : ""}
+                      {boost}
+                    </span>
+                  )}
+                </span>
               </button>
               {isOpen && (
                 <div className="space-y-1.5 border-t border-slate-700 px-3 py-2 text-xs text-slate-400" onClick={(e) => e.stopPropagation()}>
@@ -351,9 +372,18 @@ export function AttributesPanel({
                       }
                     />
                   </div>
+                  {boost !== 0 && (
+                    <div className="flex items-center justify-between text-amber-300">
+                      <span>{t("Bonus de pouvoir psy actif")}</span>
+                      <span>
+                        {boost > 0 ? "+" : ""}
+                        {boost}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between border-t border-slate-700 pt-1.5 font-semibold text-slate-200">
                     <span>{t("Total")}</span>
-                    <span>{computed.attributeTotals[attr]}</span>
+                    <span>{computed.attributeTotals[attr] + boost}</span>
                   </div>
                 </div>
               )}
@@ -407,6 +437,7 @@ export function SkillsPanel({
       <ul className="space-y-1">
         {skills.map((s, i) => {
           const { attribute, attributeValue, total } = getSkillTotal(s.name, s.score, computed.attributeTotals, s.attribute);
+          const boost = getActivePsyPowerSkillBoost(character, s.name);
           return (
             <li key={i} className="space-y-1">
               <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-2 text-sm">
@@ -448,7 +479,18 @@ export function SkillsPanel({
                 <span className="w-14 text-right text-xs text-slate-500">
                   {attribute ? `+${attributeValue} ${attribute}` : "—"}
                 </span>
-                <span className="w-8 text-right font-semibold text-indigo-300">{total}</span>
+                <span className="flex items-center justify-end gap-1 text-right">
+                  <span className="font-semibold text-indigo-300">{total + boost}</span>
+                  {boost !== 0 && (
+                    <span
+                      className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
+                      title={t("Bonus de pouvoir psy actif")}
+                    >
+                      {boost > 0 ? "+" : ""}
+                      {boost}
+                    </span>
+                  )}
+                </span>
                 {editing && (
                   <button
                     onClick={() => update({ skills: skills.filter((_, idx) => idx !== i) })}
@@ -894,11 +936,6 @@ export function WeaponsArmorPanel({
   );
 }
 
-// Paliers de règle des pouvoirs psy (Règles ADD40K V0.2, §Description des
-// pouvoirs psys) — un personnage ne peut activer un palier que si son score
-// dans le pouvoir l'atteint.
-const POWER_LEVELS = [15, 20, 25, 30, 35];
-
 /**
  * "Concentration psy" est le seul pouvoir du catalogue à avoir un effet
  * chiffré codé (bonus de Réflexe pour le Rang d'Action, cf.
@@ -909,14 +946,24 @@ const POWER_LEVELS = [15, 20, 25, 30, 35];
  */
 const CONCENTRATION_PSY_ATTRIBUTES: Attribute[] = ["REF", "DEX", "VIT"];
 
+/** Datalist partagée (id global) pour l'autocomplétion du nom de compétence boostée — cf. PsyPowersPanel. */
+const PSY_BOOST_SKILL_DATALIST_ID = "psy-boost-skill-source";
+
 /**
  * Active/désactive un pouvoir "à la demande" (bouton dédié, réservé au
  * joueur propriétaire ou au MJ — canEdit) : choix d'un palier ≤ au score du
- * personnage dans ce pouvoir, et pour "Concentration psy" aux paliers
- * 15/20, de l'attribut physique à améliorer. Sauvegarde immédiate via
- * `onChange`, comme le reste des toggles hors mode édition (armure, arme
- * équipée) — pas besoin d'ouvrir la fiche en édition pour ça, c'est une
- * action de jeu, pas une modification de la fiche elle-même.
+ * personnage dans ce pouvoir (coût en PSP affiché par palier, cf.
+ * calc-engine.getPsyPowerActivationCost — décompté/remboursé côté
+ * CharacterSheet.setActivePower), et pour "Concentration psy" aux paliers
+ * 15/20, de l'attribut physique à améliorer (mécanique dédiée, cf.
+ * calc-engine.getActivePsyPowerRefBonus). Pour tout autre pouvoir, un "effet"
+ * optionnel peut être choisi à l'activation — caractéristique ET/OU
+ * compétence boostée, valeur du bonus, et durée indicative (un tour /
+ * combat) — puisque leur formule n'est pas codée dans ce moteur (cf.
+ * ActivePsyPower.boostAttribute/boostSkillName/boostAmount). Sauvegarde
+ * immédiate via `onChange`, comme le reste des toggles hors mode édition
+ * (armure, arme équipée) — pas besoin d'ouvrir la fiche en édition pour ça,
+ * c'est une action de jeu, pas une modification de la fiche elle-même.
  */
 function PsyPowerActivation({
   powerName,
@@ -930,19 +977,28 @@ function PsyPowerActivation({
   onChange: (next: ActivePsyPower | null) => void;
 }) {
   const { t } = useTranslation();
-  const availableLevels = POWER_LEVELS.filter((lvl) => lvl <= score);
-  const [level, setLevel] = useState(active?.level ?? availableLevels[availableLevels.length - 1] ?? 15);
+  const availableLevels = PSY_POWER_LEVELS.filter((lvl) => lvl <= score);
+  const [level, setLevel] = useState(active?.level ?? availableLevels[availableLevels.length - 1] ?? 10);
   const [attribute, setAttribute] = useState<Attribute>(active?.attribute ?? "REF");
+  const [boostAttribute, setBoostAttribute] = useState<Attribute | "">(active?.boostAttribute ?? "");
+  const [boostSkillName, setBoostSkillName] = useState(active?.boostSkillName ?? "");
+  const [boostAmount, setBoostAmount] = useState(active?.boostAmount ?? 0);
+  const [duration, setDuration] = useState<"turn" | "combat">(active?.duration ?? "turn");
 
   if (availableLevels.length === 0) return null;
-  const needsAttribute = powerName === CONCENTRATION_PSY_NAME && (level === 15 || level === 20);
+  const isConcentrationPsy = powerName === CONCENTRATION_PSY_NAME;
+  const needsAttribute = isConcentrationPsy && (level === 15 || level === 20);
 
   if (active) {
+    const cost = getPsyPowerActivationCost(active.level);
     return (
-      <div className="flex items-center gap-2 text-xs">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full bg-emerald-600/20 px-2 py-0.5 text-emerald-300">
-          {t("Actif · niveau")} {active.level}
+          {t("Actif · niveau")} {active.level} ({cost} PSP)
           {active.attribute ? ` · ${active.attribute}` : ""}
+          {active.boostAttribute ? ` · +${active.boostAmount ?? 0} ${active.boostAttribute}` : ""}
+          {active.boostSkillName ? ` · +${active.boostAmount ?? 0} ${active.boostSkillName}` : ""}
+          {active.duration ? ` · ${active.duration === "combat" ? t("le combat") : t("un tour")}` : ""}
         </span>
         <button type="button" onClick={() => onChange(null)} className="text-slate-500 hover:text-red-400">
           {t("Désactiver")}
@@ -952,38 +1008,90 @@ function PsyPowerActivation({
   }
 
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <select
-        value={level}
-        onChange={(e) => setLevel(Number(e.target.value))}
-        className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
-      >
-        {availableLevels.map((lvl) => (
-          <option key={lvl} value={lvl}>
-            {t("Niveau")} {lvl}
-          </option>
-        ))}
-      </select>
-      {needsAttribute && (
+    <div className="flex flex-col gap-1.5 text-xs">
+      <div className="flex flex-wrap items-center gap-2">
         <select
-          value={attribute}
-          onChange={(e) => setAttribute(e.target.value as Attribute)}
+          value={level}
+          onChange={(e) => setLevel(Number(e.target.value))}
           className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
         >
-          {CONCENTRATION_PSY_ATTRIBUTES.map((attr) => (
-            <option key={attr} value={attr}>
-              {attr}
-            </option>
-          ))}
+          {availableLevels.map((lvl) => {
+            const cost = getPsyPowerActivationCost(lvl);
+            return (
+              <option key={lvl} value={lvl}>
+                {t("Niveau")} {lvl} ({cost === 0 ? t("gratuit") : `${cost} PSP`})
+              </option>
+            );
+          })}
         </select>
+        {needsAttribute && (
+          <select
+            value={attribute}
+            onChange={(e) => setAttribute(e.target.value as Attribute)}
+            className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
+          >
+            {CONCENTRATION_PSY_ATTRIBUTES.map((attr) => (
+              <option key={attr} value={attr}>
+                {attr}
+              </option>
+            ))}
+          </select>
+        )}
+        <button
+          type="button"
+          onClick={() =>
+            onChange({
+              name: powerName,
+              level,
+              attribute: needsAttribute ? attribute : undefined,
+              boostAttribute: !isConcentrationPsy && boostAttribute ? boostAttribute : undefined,
+              boostSkillName: !isConcentrationPsy && boostSkillName.trim() ? boostSkillName.trim() : undefined,
+              boostAmount:
+                !isConcentrationPsy && (boostAttribute || boostSkillName.trim()) && boostAmount !== 0
+                  ? boostAmount
+                  : undefined,
+              duration: !isConcentrationPsy && (boostAttribute || boostSkillName.trim()) ? duration : undefined,
+            })
+          }
+          className="rounded bg-indigo-600 px-2 py-0.5 font-medium text-white hover:bg-indigo-500"
+        >
+          {t("Activer")}
+        </button>
+      </div>
+      {!isConcentrationPsy && (
+        <div className="flex flex-wrap items-center gap-1.5 text-slate-400">
+          <span>{t("Effet (optionnel)")} :</span>
+          <select
+            value={boostAttribute}
+            onChange={(e) => setBoostAttribute((e.target.value || "") as Attribute | "")}
+            className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
+          >
+            <option value="">{t("— caractéristique —")}</option>
+            {ATTRIBUTES.map((attr) => (
+              <option key={attr} value={attr}>
+                {attr}
+              </option>
+            ))}
+          </select>
+          <input
+            list={PSY_BOOST_SKILL_DATALIST_ID}
+            type="text"
+            value={boostSkillName}
+            onChange={(e) => setBoostSkillName(e.target.value)}
+            placeholder={t("ou compétence")}
+            className="w-32 rounded border border-slate-700 bg-slate-800 px-1.5 py-0.5"
+          />
+          <NumberInput value={boostAmount} onChange={setBoostAmount} className="w-12" />
+          <select
+            value={duration}
+            onChange={(e) => setDuration(e.target.value as "turn" | "combat")}
+            className="rounded border border-slate-700 bg-slate-800 px-1 py-0.5"
+          >
+            <option value="turn">{t("Un tour")}</option>
+            <option value="combat">{t("Le combat")}</option>
+          </select>
+        </div>
       )}
-      <button
-        type="button"
-        onClick={() => onChange({ name: powerName, level, attribute: needsAttribute ? attribute : undefined })}
-        className="rounded bg-indigo-600 px-2 py-0.5 font-medium text-white hover:bg-indigo-500"
-      >
-        {t("Activer")}
-      </button>
     </div>
   );
 }
@@ -1013,6 +1121,13 @@ export function PsyPowersPanel({
   if (powers.length === 0 && !editing) return null;
   return (
     <Section title={t("Pouvoirs Psy")}>
+      {!editing && canEdit && (
+        <datalist id={PSY_BOOST_SKILL_DATALIST_ID}>
+          {character.skills.map((s, si) => (
+            <option key={si} value={s.name} />
+          ))}
+        </datalist>
+      )}
       <ul className="space-y-1">
         {powers.map((p, i) => {
           const total = getPsyPowerTotal(p, character, computed.attributeTotals);

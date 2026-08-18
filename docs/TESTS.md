@@ -43,6 +43,17 @@ navigateur intégré, cf. session de build).
       apparaissent ; le solde de points ne bouge pas quel que soit le score saisi (coût exclu du
       budget). Décocher → la compétence redevient sélectionnable depuis le catalogue et compte à
       nouveau dans le coût.
+- [ ] Activer un pouvoir psy (bouton dédié, hors mode édition) à un palier payant (ex. 20, 2 PSP)
+      → PSP courant diminue de 2 immédiatement, badge "Actif · niveau 20 (2 PSP)" affiché,
+      bouton "Désactiver" disponible. Désactiver → PSP remboursé (clampé au max), badge disparaît.
+- [ ] Sur un pouvoir autre que "Concentration psy", renseigner l'effet optionnel (caractéristique
+      ou compétence + valeur du bonus) avant d'activer → le bonus apparaît en évidence (badge
+      ambre) sur l'attribut concerné (`AttributesPanel`) ou la compétence concernée
+      (`SkillsPanel`), et une icône "⚡" apparaît sur la tuile du personnage à l'écran "Suivi des
+      constantes".
+- [ ] Sur l'écran "Suivi des constantes" (MJ), avec au moins un pouvoir actif sur un personnage en
+      jeu : cliquer "Fin de combat" → tous les pouvoirs actifs des personnages en jeu sont
+      désactivés, leur PSP remboursé, l'icône "⚡" disparaît de leurs tuiles.
 
 ## §4 — Permissions
 

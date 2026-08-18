@@ -73,23 +73,51 @@ export interface PsyPowerEntry {
  * Pouvoir psy activé "à la demande" en séance (bouton dédié sur la fiche,
  * réservé au joueur propriétaire ou au MJ) — distinct de la simple
  * possession du pouvoir (PsyPowerEntry ci-dessus, fixée à la création).
- * `level` est le palier de règle choisi (15/20/25/30/35, cf. Règles ADD40K
- * V0.2 §Description des pouvoirs psys) et doit être ≤ au score du
- * personnage dans ce pouvoir. `attribute` ne s'applique qu'à "Concentration
- * psy" aux paliers 15/20 (le joueur choisit REF/DEX/VIT à améliorer — PRE
- * du classeur d'origine n'a pas d'équivalent dans les 8 attributs de
- * l'app, cf. ATTRIBUTES) ; ignoré pour les autres pouvoirs/paliers.
+ * `level` est le palier de règle choisi (10/15/20/25/30/35, cf. Règles
+ * ADD40K V0.2 §Description des pouvoirs psys) et doit être ≤ au score du
+ * personnage dans ce pouvoir ; son coût en PSP (10 gratuit, +1 PSP par
+ * palier de 5 jusqu'à 35, cf. calc-engine.getPsyPowerActivationCost) est
+ * décompté de `Character.pspCurrent` à l'activation et remboursé à la
+ * désactivation (cf. CharacterSheet.setActivePower). `attribute` ne
+ * s'applique qu'à "Concentration psy" aux paliers 15/20 (le joueur choisit
+ * REF/DEX/VIT à améliorer — PRE du classeur d'origine n'a pas d'équivalent
+ * dans les 8 attributs de l'app, cf. ATTRIBUTES) ; ignoré pour les autres
+ * pouvoirs/paliers, qui utilisent `boostAttribute`/`boostSkillName`/
+ * `boostAmount` ci-dessous à la place.
  *
- * Seul "Concentration psy" a un effet mécanique codé pour l'instant (bonus
+ * "Concentration psy" reste le seul pouvoir à effet mécanique CODÉ (bonus
  * de Réflexe pris en compte dans calc-engine.getActionRank, cf. Règles
- * ADD40K V0.2) — les autres pouvoirs peuvent être activés via cette même
- * UI mais n'ont aucun effet chiffré tant que leur mécanique n'a pas été
- * pareillement codée.
+ * ADD40K V0.2) — pour tous les autres pouvoirs qui modifient une
+ * caractéristique ou une compétence (portée de la règle non structurée dans
+ * ce moteur, ~19 pouvoirs), la cible et la valeur du bonus/malus se
+ * choisissent manuellement à l'activation plutôt que d'être déduites d'une
+ * formule par pouvoir.
  */
 export interface ActivePsyPower {
   name: string;
   level: number;
   attribute?: Attribute;
+  /**
+   * Caractéristique boostée par ce pouvoir actif (hors "Concentration psy",
+   * cf. `attribute` ci-dessus) — purement additif, ajouté au total affiché
+   * de cet attribut (calc-engine.getActivePsyPowerAttributeBoost) et, pour
+   * REF, au Rang d'Action (calc-engine.getActionRank).
+   */
+  boostAttribute?: Attribute;
+  /** Compétence boostée (nom exact de SkillEntry.name) — même principe que `boostAttribute`, ajouté au total affiché de cette compétence (calc-engine.getActivePsyPowerSkillBoost). */
+  boostSkillName?: string;
+  /** Valeur du bonus (peut être négative) appliquée à `boostAttribute` et/ou `boostSkillName` pendant que ce pouvoir est actif. */
+  boostAmount?: number;
+  /**
+   * Portée temporelle indicative : "turn" (pouvoir immédiat, actif le temps
+   * d'un tour de Rang d'Action) ou "combat" (modification active jusqu'à la
+   * fin du combat). Purement informatif (badge) — aucune expiration
+   * automatique par tour n'est codée ; la désactivation reste manuelle
+   * (bouton "Désactiver") ou groupée via le bouton "Fin de combat" du MJ
+   * (écran Suivi des constantes), qui désactive tous les pouvoirs actifs
+   * des personnages en jeu du groupe et rembourse leur coût en PSP.
+   */
+  duration?: "turn" | "combat";
 }
 
 export interface WeaponEntry {
@@ -491,4 +519,12 @@ export interface CharacterSummary {
    * round affiché en haut de l'écran (plusieurs peuvent agir au même RA).
    */
   actionRank: number;
+  /**
+   * Au moins un pouvoir psy actif (Character.activePsyPowers) booste
+   * actuellement une caractéristique ou une compétence de ce personnage
+   * (ActivePsyPower.boostAttribute/boostSkillName, cf.
+   * calc-engine.hasActivePsyPowerBoost) — affiche une icône "boost" sur la
+   * tuile de l'écran "Suivi des constantes".
+   */
+  hasActiveBoost: boolean;
 }

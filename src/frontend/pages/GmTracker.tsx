@@ -253,6 +253,20 @@ function CharacterTile({
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-sm font-medium text-slate-100">{c.name}</p>
           {/*
+            Icône "boost" — au moins un pouvoir psy actif modifie une
+            caractéristique/compétence de ce personnage (cf.
+            ActivePsyPower.boostAttribute/boostSkillName,
+            calc-engine.hasActivePsyPowerBoost, CharacterSummary.hasActiveBoost).
+          */}
+          {c.hasActiveBoost && (
+            <span
+              className="shrink-0 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-xs text-amber-300"
+              title={t("Pouvoir actif : caractéristique ou compétence boostée")}
+            >
+              ⚡
+            </span>
+          )}
+          {/*
             Rang d'Action courant — cf. calc-engine.getActionRank (Réflexe,
             arme équipée, Concentration rapide/lente + Concentration psy
             actifs). Plus bas = agit plus tôt.
@@ -352,6 +366,7 @@ export default function GmTracker() {
   // premier) — rankInitialized évite de réinitialiser à chaque poll (1s).
   const [currentRank, setCurrentRank] = useState(0);
   const rankInitialized = useRef(false);
+  const [endCombatBusy, setEndCombatBusy] = useState(false);
 
   const [showNpcForm, setShowNpcForm] = useState(false);
   const [npcName, setNpcName] = useState("");
@@ -442,6 +457,24 @@ export default function GmTracker() {
       await loadCharacters();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Échec de la distribution d'XP");
+    }
+  }
+
+  // "Fin de combat" — désactive d'un coup tous les pouvoirs psy actifs des
+  // personnages en jeu de ce groupe et rembourse leur coût en PSP (cf.
+  // characters.ts POST /end-combat, même mécanisme de remboursement que
+  // CharacterSheet.setActivePower pour une désactivation individuelle).
+  async function handleEndCombat() {
+    if (!groupId) return;
+    setError(null);
+    setEndCombatBusy(true);
+    try {
+      await api.endCombat(groupId);
+      await loadCharacters();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de la fin de combat");
+    } finally {
+      setEndCombatBusy(false);
     }
   }
 
@@ -541,6 +574,27 @@ export default function GmTracker() {
             className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
           >
             {t("Suivant →")}
+          </button>
+        </div>
+
+        {/*
+          "Fin de combat" — désactive tous les pouvoirs psy actifs des
+          personnages en jeu du groupe et rembourse leur coût en PSP (cf.
+          handleEndCombat ci-dessus, characters.ts POST /end-combat). Les
+          pouvoirs "un tour" comme "le combat" (ActivePsyPower.duration) sont
+          traités pareil ici : aucune expiration automatique par tour n'est
+          codée, seul ce bouton groupé ou une désactivation manuelle par
+          fiche y met fin.
+        */}
+        <div className="mb-6 flex justify-center">
+          <button
+            type="button"
+            onClick={handleEndCombat}
+            disabled={endCombatBusy}
+            title={t("Désactive tous les pouvoirs psy actifs des personnages en jeu et rembourse leur PSP")}
+            className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+          >
+            {endCombatBusy ? "…" : `⚡ ${t("Fin de combat")}`}
           </button>
         </div>
 

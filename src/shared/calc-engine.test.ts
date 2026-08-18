@@ -8,11 +8,14 @@ import { describe, expect, it } from "vitest";
 import {
   computeCharacter,
   getActionRank,
+  getActivePsyPowerAttributeBoost,
+  getActivePsyPowerSkillBoost,
   getAllAttributeTotals,
   getArmorTotals,
   getAttributeTotal,
   getHpMax,
   getPspMax,
+  getPsyPowerActivationCost,
   getPsyPowerTotal,
   getSkillCost,
   getSkillsCostTotal,
@@ -20,6 +23,7 @@ import {
   getWeaponSkillName,
   getWeaponSuggestedScore,
   getWeaponTotals,
+  hasActivePsyPowerBoost,
   parseSkillAttribute,
 } from "./calc-engine";
 import { referenceData } from "./reference-data";
@@ -268,6 +272,72 @@ describe("getActionRank", () => {
       activePsyPowers: [{ name: "Concentration psy", level: 35 }],
     };
     expect(getActionRank(character, referenceData)).toBe(0);
+  });
+
+  it("boost générique (boostAttribute REF, hors Concentration psy) : pris en compte dans le RA comme un bonus de Réflexe", () => {
+    const character = {
+      ...baseCharacter(),
+      activePsyPowers: [{ name: "Illusion", level: 20, boostAttribute: "REF" as const, boostAmount: 4 }],
+    };
+    expect(getActionRank(character, referenceData)).toBe(1);
+  });
+
+  it("boost générique ciblant un autre attribut (DEX) : aucun effet sur le RA", () => {
+    const character = {
+      ...baseCharacter(),
+      activePsyPowers: [{ name: "Illusion", level: 20, boostAttribute: "DEX" as const, boostAmount: 4 }],
+    };
+    expect(getActionRank(character, referenceData)).toBe(5);
+  });
+});
+
+describe("getPsyPowerActivationCost — coût en PSP par palier", () => {
+  it.each([
+    [10, 0],
+    [15, 1],
+    [20, 2],
+    [25, 3],
+    [30, 4],
+    [35, 5],
+  ])("palier %i -> %i PSP", (level, cost) => {
+    expect(getPsyPowerActivationCost(level)).toBe(cost);
+  });
+});
+
+describe("boost générique d'un pouvoir actif (attribut/compétence choisis à l'activation)", () => {
+  it("getActivePsyPowerAttributeBoost additionne les boostAmount ciblant l'attribut demandé", () => {
+    const character = {
+      activePsyPowers: [
+        { name: "Illusion", level: 20, boostAttribute: "FO" as const, boostAmount: 3 },
+        { name: "Vigueur", level: 15, boostAttribute: "FO" as const, boostAmount: 2 },
+        { name: "Acuité", level: 15, boostAttribute: "PER" as const, boostAmount: 5 },
+      ],
+    };
+    expect(getActivePsyPowerAttributeBoost(character, "FO")).toBe(5);
+    expect(getActivePsyPowerAttributeBoost(character, "PER")).toBe(5);
+    expect(getActivePsyPowerAttributeBoost(character, "VOL")).toBe(0);
+  });
+
+  it("getActivePsyPowerSkillBoost additionne les boostAmount ciblant la compétence demandée (nom exact)", () => {
+    const character = {
+      activePsyPowers: [{ name: "Illusion", level: 20, boostSkillName: "Discretion (DEX)", boostAmount: 4 }],
+    };
+    expect(getActivePsyPowerSkillBoost(character, "Discretion (DEX)")).toBe(4);
+    expect(getActivePsyPowerSkillBoost(character, "Autre compétence")).toBe(0);
+  });
+
+  it("hasActivePsyPowerBoost détecte un boost actif (attribut ou compétence), pas une simple activation sans effet", () => {
+    expect(hasActivePsyPowerBoost({ activePsyPowers: [{ name: "Illusion", level: 15 }] })).toBe(false);
+    expect(
+      hasActivePsyPowerBoost({
+        activePsyPowers: [{ name: "Illusion", level: 15, boostAttribute: "FO", boostAmount: 2 }],
+      }),
+    ).toBe(true);
+    expect(
+      hasActivePsyPowerBoost({
+        activePsyPowers: [{ name: "Illusion", level: 15, boostSkillName: "Discretion (DEX)", boostAmount: 2 }],
+      }),
+    ).toBe(true);
   });
 });
 

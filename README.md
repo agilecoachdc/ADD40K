@@ -107,6 +107,28 @@ haut de l'écran (boutons Précédent/Suivant pour dérouler le round — "Suiva
 dépassé le plus haut RA parmi les personnages en jeu) et surligne les tuiles dont le RA correspond
 exactement au rang affiché — plusieurs personnages peuvent agir au même rang.
 
+## Activation des pouvoirs psy et coût en PSP
+
+Chaque pouvoir possédé (`PsyPowersPanel`) a un bouton "Activer" dédié (réservé au propriétaire ou
+au MJ) : choix d'un palier ≤ au score du personnage dans ce pouvoir — 10 (gratuit), 15, 20, 25, 30
+ou 35 (`calc-engine.PSY_POWER_LEVELS`) — dont le coût en PSP (0/1/2/3/4/5, cf.
+`getPsyPowerActivationCost`) est décompté de `Character.pspCurrent` à l'activation et remboursé à
+la désactivation (clampé entre 0 et `pspMax`, cf. `CharacterSheet.setActivePower`). "Concentration
+psy" garde son mécanisme dédié (bonus de Réflexe chiffré selon le palier, cf. section RA
+ci-dessus) ; pour tout autre pouvoir qui modifie une caractéristique ou une compétence (règle non
+structurée en formule dans ce moteur), un "effet" optionnel se choisit manuellement à
+l'activation : caractéristique et/ou compétence ciblée (`ActivePsyPower.boostAttribute`/
+`boostSkillName`), valeur du bonus (`boostAmount`), et durée indicative "un tour" (immédiat) ou "le
+combat" (`duration`). Ce bonus est ajouté et mis en évidence (badge ambre) à l'endroit concerné —
+`AttributesPanel` pour une caractéristique (et pris en compte dans le RA si REF), `SkillsPanel` pour
+une compétence — et signalé par une icône "⚡" sur la tuile du personnage à l'écran "Suivi des
+constantes" (`CharacterSummary.hasActiveBoost`).
+
+Le bouton "Fin de combat" (MJ, écran "Suivi des constantes", `POST /api/characters/end-combat`)
+désactive d'un coup tous les pouvoirs actifs des personnages en jeu du groupe et rembourse leur PSP
+— aucune expiration automatique par tour n'est codée (portée hors périmètre de cette itération),
+seule cette action groupée ou une désactivation manuelle par fiche met fin à un pouvoir actif.
+
 ## Descriptions du catalogue et infobulles
 
 Compétences, avantages/inconvénients et pouvoirs psy portent chacun une `description` extraite des
