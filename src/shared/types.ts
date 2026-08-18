@@ -163,30 +163,35 @@ export interface Character {
   // détail affiché à l'écran ("Total dispo" = raceSkillPoints + pointsDepart
   // + xp ; "Dépenses" = coûts compétences/pouvoirs psy/avantages, résumés
   // dans "XP utilisée" ; "Solde" = ce qui reste).
-  /** Points de départ ("pool XP de départ") — fixés à la création du personnage, distincts de l'XP distribuée ensuite par le MJ (`xp`/`xpTotal` ci-dessous). */
+  /** Points de départ ("Points de départ" à l'écran) — fixés à la création du personnage, distincts de l'XP distribuée ensuite par le MJ (`xp`/`xpAvailable` ci-dessous). */
   pointsDepart: number;
   /**
-   * XP actuellement disponible ("XP disponible" à l'écran), distribuée par
-   * le MJ (bouton "Donner de l'XP", fiche vue MJ et écran "Suivi des
-   * constantes") — contribue au budget total dispo comme les points de
-   * départ (cf. calc-engine.getTotalDispo). Ne descend jamais sous 0 : un
-   * retrait décidé par le MJ (POST /api/characters/:id/xp avec un montant
-   * négatif) est absorbé dans `pointsDepart` plutôt que de rendre ce champ
-   * négatif — voir aussi `xpTotal`.
+   * XP gagnée depuis la création du personnage ("XP gagnée (depuis la
+   * création)" à l'écran) — total cumulatif : la valeur historique importée
+   * depuis la fiche Excel d'origine, plus toutes les distributions
+   * positives du MJ depuis (bouton "Donner de l'XP", fiche vue MJ et écran
+   * "Suivi des constantes"). Contribue au budget total dispo comme les
+   * points de départ (cf. calc-engine.getTotalDispo). Ne descend jamais
+   * sous 0 et n'est jamais réduit par un retrait du MJ — c'est un
+   * historique permanent de ce qui a été gagné, pas un solde courant :
+   * un retrait négatif décidé par le MJ (POST /api/characters/:id/xp)
+   * réduit `xpAvailable` à la place, jamais ce champ.
    */
   xp: number;
   /**
-   * XP gagnée depuis la création du personnage ("XP gagnée" à l'écran) —
-   * historique des seules distributions positives du MJ (compteur qui ne
-   * fait qu'augmenter, contrairement à `xp` qui reflète le pool
-   * actuellement disponible et peut être amputé par un retrait) —
-   * purement informatif, affiché à côté du pool actuel sur la fiche
-   * (vue MJ) et sur l'écran "Suivi des constantes". Absent des fiches
-   * créées avant l'ajout de ce champ — traité comme `0` côté route
-   * (GET /api/characters, GET/PUT /api/characters/:id), pas de migration
-   * nécessaire (colonne `data` JSON libre).
+   * XP actuellement disponible ("XP disponible" à l'écran) — pool distinct
+   * de `xp`, purement géré par le MJ : augmente du même montant que `xp` à
+   * chaque distribution positive, diminue d'un retrait négatif décidé par
+   * le MJ (peut devenir négatif si le retrait dépasse ce qui est
+   * disponible — aucun plancher à 0, contrairement à `xp`). Ne contribue
+   * PAS au budget total dispo (calc-engine.getTotalDispo n'en tient pas
+   * compte) : c'est un compteur d'appoint pour suivre ce qui reste "à
+   * consommer" de l'XP gagnée, pas une seconde source de points. Absent
+   * des fiches créées avant l'ajout de ce champ — traité comme `0` côté
+   * route (GET /api/characters, GET/PUT /api/characters/:id), pas de
+   * migration nécessaire (colonne `data` JSON libre).
    */
-  xpTotal: number;
+  xpAvailable: number;
 
   // Texte libre
   reputations: string;
@@ -398,7 +403,7 @@ export interface CharacterSummary {
   pspMax: number;
   /** VP de protection par membre — mêmes clés que calc-engine.ArmorTotals, dupliquées ici pour éviter un import croisé types.ts ↔ calc-engine.ts. */
   armorTotals: { vpTete: number; vpBras: number; vpTorse: number; vpJambes: number };
-  /** Pool XP actuel et total jamais distribué — cf. Character.xp/xpTotal. Affichés sur la tuile de l'écran "Suivi des constantes". */
+  /** XP gagnée (cumulatif) et XP disponible (pool géré par le MJ) — cf. Character.xp/xpAvailable. Affichés sur la tuile de l'écran "Suivi des constantes". */
   xp: number;
-  xpTotal: number;
+  xpAvailable: number;
 }

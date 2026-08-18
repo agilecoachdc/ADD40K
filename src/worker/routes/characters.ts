@@ -69,7 +69,7 @@ characterRoutes.get("/", async (c) => {
       pspMax,
       armorTotals,
       xp: parsed.xp ?? 0,
-      xpTotal: parsed.xpTotal ?? 0,
+      xpAvailable: parsed.xpAvailable ?? 0,
     };
   });
 
@@ -184,7 +184,7 @@ characterRoutes.post("/", async (c) => {
     equipment: [],
     pointsDepart: 0,
     xp: 0,
-    xpTotal: 0,
+    xpAvailable: 0,
     reputations: "",
     notes: "",
     updatedAt: now,
@@ -231,10 +231,11 @@ characterRoutes.put("/:id", async (c) => {
     ownerUsername: current.ownerUsername, // idem — changement de propriétaire hors périmètre MVP
     updatedAt: new Date().toISOString(),
   };
-  // Le pool XP ne descend jamais sous 0 par cette route (import Excel ou
-  // édition directe) : un ajustement négatif doit passer par le MJ via
-  // POST /characters/:id/xp, qui l'absorbe dans pointsDepart plutôt que de
-  // rendre xp négatif — cf. Character.xp dans shared/types.ts.
+  // `xp` ("XP gagnée depuis la création") ne descend jamais sous 0 par
+  // cette route (import Excel ou édition directe) : c'est un historique
+  // cumulatif, jamais réduit, y compris par un retrait du MJ — celui-ci
+  // réduit `xpAvailable` à la place (sans plancher), cf. POST
+  // /characters/:id/xp et Character.xp/xpAvailable dans shared/types.ts.
   if (updated.xp < 0) updated.xp = 0;
 
   await c.env.DB.prepare(
@@ -253,12 +254,15 @@ characterRoutes.put("/:id", async (c) => {
 // Distribution d'XP par le MJ — réservé au MJ membre du groupe du
 // personnage (contrairement à PUT ci-dessus, le joueur propriétaire ne peut
 // pas s'en servir : l'XP est décidée par le MJ, jamais auto-attribuée).
-// Un montant positif alimente le pool `xp` (utilisable par le joueur) et
-// `xpTotal` (compteur lifetime, purement informatif). Un montant négatif —
-// une pénalité ou une correction, décidée et appliquée par le MJ, ce qui
-// vaut ici son "approbation" — est absorbée dans `pointsDepart` plutôt que
-// de rendre `xp` négatif : `xp` ne descend jamais sous 0, cf. Character.xp
-// dans shared/types.ts.
+// Un montant positif augmente à la fois `xp` ("XP gagnée depuis la
+// création", contribue au budget total dispo, cf. calc-engine.getTotalDispo)
+// et `xpAvailable` ("XP disponible", pool d'appoint géré par le MJ, hors
+// budget total dispo) du même montant. Un montant négatif — un retrait
+// décidé par le MJ, ce qui vaut ici son "approbation" — ne réduit que
+// `xpAvailable`, qui peut devenir négatif (pas de plancher, contrairement à
+// `xp` qui ne descend jamais sous 0 et n'est jamais réduit par un retrait :
+// c'est un historique permanent, pas un solde courant). Cf. Character.xp/
+// xpAvailable dans shared/types.ts.
 characterRoutes.post("/:id/xp", async (c) => {
   const id = c.req.param("id");
   const user = c.get("user");
@@ -283,8 +287,7 @@ characterRoutes.post("/:id/xp", async (c) => {
   const updated: Character = {
     ...current,
     xp: amount > 0 ? current.xp + amount : current.xp,
-    xpTotal: amount > 0 ? (current.xpTotal ?? 0) + amount : current.xpTotal ?? 0,
-    pointsDepart: amount < 0 ? current.pointsDepart + amount : current.pointsDepart,
+    xpAvailable: (current.xpAvailable ?? 0) + amount,
     updatedAt: new Date().toISOString(),
   };
 

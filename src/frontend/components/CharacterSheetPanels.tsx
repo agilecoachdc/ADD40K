@@ -948,7 +948,7 @@ export function BudgetPanel({
   isGm,
   onGrantXp,
 }: {
-  character: Pick<Character, "pointsDepart" | "xp" | "xpTotal">;
+  character: Pick<Character, "pointsDepart" | "xp" | "xpAvailable">;
   computed: CharacterComputed;
   isGm?: boolean;
   onGrantXp?: (amount: number) => void | Promise<void>;
@@ -976,21 +976,26 @@ export function BudgetPanel({
   return (
     <Section title="Budget de points">
       {/*
-        Deux groupes : ce qui alimente le total dispo (points raciaux +
-        points de départ + XP), puis ce qui en est consommé (coûts +
-        solde). "XP gagnée" (xpTotal) ne compte que les distributions
-        positives du MJ et n'est jamais réduite par un ajustement négatif —
-        un retrait est absorbé dans "Points de départ" à la place (cf.
-        POST /api/characters/:id/xp) : "XP gagnée" reste un historique
-        ("depuis la création"), pas un solde courant.
+        Trois groupes : ce qui alimente le total dispo (points raciaux +
+        points de départ + XP gagnée = Total), puis le pool XP d'appoint
+        géré par le MJ à part (XP disponible, hors budget total dispo), puis
+        ce qui est consommé du total dispo (coûts + solde). "XP gagnée"
+        (character.xp) est un historique cumulatif ("depuis la création")
+        qui contribue au total dispo et n'est jamais réduit — un retrait du
+        MJ diminue "XP disponible" (xpAvailable) à la place, qui peut donc
+        devenir négatif et ne compte PAS dans le total dispo (cf.
+        POST /api/characters/:id/xp).
       */}
       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Total dispo</p>
       <dl className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
         <Metric label="Points raciaux" value={budget.raceSkillPoints} />
         <Metric label="Points de départ" value={character.pointsDepart} />
-        <Metric label="XP gagnée (depuis la création)" value={character.xpTotal} />
-        <Metric label="XP disponible" value={character.xp} />
+        <Metric label="XP gagnée (depuis la création)" value={character.xp} />
         <Metric label="Total" value={budget.totalDispo} emphasis />
+      </dl>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">XP à distribuer (MJ)</p>
+      <dl className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+        <Metric label="XP disponible" value={character.xpAvailable} />
       </dl>
       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Dépenses</p>
       <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">

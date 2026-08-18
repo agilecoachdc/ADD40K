@@ -13,13 +13,13 @@
 // (VIT/VOL + race + taille, cf. calc-engine.ts) — le formulaire affiche un
 // aperçu en direct de ce calcul pendant la saisie.
 //
-// Chaque tuile affiche aussi le pool XP actuel et l'XP total jamais
-// distribué (Character.xp/xpTotal) avec un bouton "+XP" pour en donner sans
-// ouvrir la fiche complète — même mécanisme que sur la fiche détaillée
+// Chaque tuile affiche aussi l'XP gagnée depuis la création et l'XP
+// disponible (Character.xp/xpAvailable) avec un bouton "+XP" pour en donner
+// sans ouvrir la fiche complète — même mécanisme que sur la fiche détaillée
 // (BudgetPanel, CharacterSheetPanels.tsx), réservé au MJ côté serveur
-// (POST /api/characters/:id/xp). Un montant négatif est absorbé dans les
-// points de départ plutôt que de rendre le pool XP négatif — cf.
-// shared/types.ts.
+// (POST /api/characters/:id/xp). Un montant positif augmente les deux du
+// même montant ; un montant négatif ne réduit que l'XP disponible (peut
+// devenir négatif) — cf. shared/types.ts.
 
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
@@ -280,16 +280,16 @@ function CharacterTile({
           )}
         </div>
         {/*
-          XP disponible (c.xp) / XP gagnée depuis la création (c.xpTotal) —
-          mêmes libellés que BudgetPanel sur la fiche détaillée, cf.
-          Character.xp/xpTotal dans shared/types.ts. Affiché pour joueurs et
-          PNJ, avec le contrôle "+XP" du MJ juste à côté (cette page est
-          déjà réservée au MJ, cf. le garde-fou Navigate plus bas).
+          XP gagnée depuis la création (c.xp) / XP disponible (c.xpAvailable)
+          — mêmes libellés que BudgetPanel sur la fiche détaillée, cf.
+          Character.xp/xpAvailable dans shared/types.ts. Affiché pour
+          joueurs et PNJ, avec le contrôle "+XP" du MJ juste à côté (cette
+          page est déjà réservée au MJ, cf. le garde-fou Navigate plus bas).
         */}
         <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-400">
           <span>
-            XP dispo <span className="font-semibold text-amber-300">{c.xp}</span>
-            <span className="text-slate-600"> · gagnée {c.xpTotal}</span>
+            XP gagnée <span className="font-semibold text-amber-300">{c.xp}</span>
+            <span className="text-slate-600"> · dispo {c.xpAvailable}</span>
           </span>
           {onGrantXp && <GrantXpControl onGrant={onGrantXp} />}
         </div>
@@ -390,8 +390,8 @@ export default function GmTracker() {
   // fiche complète pour ça (même esprit que les +/- PV/PSP des PNJ ci-dessus,
   // mais côté API réservé au MJ, cf. POST /characters/:id/xp). Recharge la
   // liste plutôt qu'une mise à jour optimiste : positif ou négatif touche
-  // xp/xpTotal/pointsDepart selon le signe côté serveur (routes/characters.ts),
-  // plus simple à refléter fidèlement via un GET qu'à recalculer ici.
+  // xp/xpAvailable selon le signe côté serveur (routes/characters.ts), plus
+  // simple à refléter fidèlement via un GET qu'à recalculer ici.
   async function grantXp(character: CharacterSummary, amount: number) {
     try {
       await api.grantXp(character.id, amount);

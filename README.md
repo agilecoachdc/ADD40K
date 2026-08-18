@@ -67,17 +67,23 @@ identique visuellement aux fiches de `Fiches App/`.
 
 ## Distribution d'XP
 
-Le pool d'XP d'un personnage (`Character.xp`, additionné aux points de départ dans le budget de
-points) est distribué par le MJ, jamais auto-attribué par le joueur : un bouton "Donner de l'XP"
-apparaît, pour le MJ uniquement, sur la fiche détaillée (panneau "Budget de points") et sur chaque
-tuile de l'écran "Suivi des constantes", qui affiche aussi le pool XP actuel et l'XP total jamais
-distribué (`Character.xpTotal`, compteur qui ne fait qu'augmenter, purement informatif).
+L'XP d'un personnage est distribuée par le MJ, jamais auto-attribuée par le joueur : un bouton
+"Donner de l'XP" apparaît, pour le MJ uniquement, sur la fiche détaillée (panneau "Budget de
+points") et sur chaque tuile de l'écran "Suivi des constantes". Deux champs distincts, à ne pas
+confondre :
 
-Un montant positif alimente directement le pool. Un montant négatif — une pénalité ou une
-correction, décidée par le MJ, ce qui vaut son approbation — est absorbé dans les points de départ
-plutôt que de rendre le pool XP négatif : `xp` ne descend jamais sous 0, y compris via un import
-Excel qui enverrait une valeur négative (clampée à 0 côté `PUT /api/characters/:id`). Voir
-`POST /api/characters/:id/xp` dans `docs/API_REFERENCE.md`.
+- **`Character.xp`** ("XP gagnée (depuis la création)" à l'écran) — historique cumulatif : la
+  valeur importée depuis la fiche Excel d'origine, plus toutes les distributions positives du MJ
+  depuis. Contribue au budget total dispo (additionné aux points raciaux + points de départ, cf.
+  calc-engine.getTotalDispo). Ne descend jamais sous 0 et n'est **jamais réduit**, y compris par un
+  retrait du MJ — c'est un historique permanent, pas un solde courant.
+- **`Character.xpAvailable`** ("XP disponible" à l'écran) — pool d'appoint géré par le MJ, séparé
+  du budget total dispo (n'y contribue pas). Augmente du même montant que `xp` à chaque
+  distribution positive ; un retrait du MJ (pénalité ou correction — le fait que ce soit le MJ qui
+  l'applique vaut son approbation) diminue uniquement ce champ, qui peut devenir négatif (pas de
+  plancher, contrairement à `xp`).
+
+Voir `POST /api/characters/:id/xp` dans `docs/API_REFERENCE.md`.
 
 ## Comptes et plateforme
 
